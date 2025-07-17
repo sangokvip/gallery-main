@@ -31,11 +31,31 @@
       "dest": "/fonts/$1"
     },
     {
-      "src": "/(female|male|s|message|gallery)\\.html",
-      "dest": "/$1.html"
+      "src": "/female.html",
+      "dest": "/female.html"
+    },
+    {
+      "src": "/male.html", 
+      "dest": "/male.html"
+    },
+    {
+      "src": "/s.html",
+      "dest": "/s.html"
+    },
+    {
+      "src": "/message.html",
+      "dest": "/message.html"
+    },
+    {
+      "src": "/gallery.html",
+      "dest": "/gallery.html"
     },
     {
       "src": "/",
+      "dest": "/index.html"
+    },
+    {
+      "src": "/(.*)",
       "dest": "/index.html"
     }
   ]
