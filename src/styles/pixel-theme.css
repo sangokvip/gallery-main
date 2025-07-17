@@ -1,0 +1,417 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+/* 像素风格全局样式 */
+.pixel-theme {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* 红白像素风格主题 - 专为S页面设计 */
+.pixel-theme-red {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #ffffff;
+  color: #ff0000;
+  image-rendering: pixelated;
+}
+
+/* 像素风格按钮 */
+.pixel-button {
+  position: relative;
+  padding: 8px 16px;
+  background: #2196f3;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  image-rendering: pixelated;
+}
+
+.pixel-button::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid #2196f3;
+  transition: all 0.2s ease;
+}
+
+.pixel-button:hover {
+  animation: pixelHover 0.5s infinite;
+}
+
+.pixel-button:hover::before {
+  animation: pixelBorderAnimation 1s infinite;
+}
+
+/* 像素风格的卡片 */
+.pixel-card {
+  background: #1a1a1a;
+  border: 2px solid #2196f3;
+  padding: 16px;
+  transition: all 0.3s ease;
+  image-rendering: pixelated;
+}
+
+.pixel-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
+}
+
+/* 像素风格的加载器 */
+.pixel-loader {
+  width: 32px;
+  height: 32px;
+  border: 4px solid #2196f3;
+  border-top-color: transparent;
+  animation: pixelLoading 1s steps(8) infinite;
+}
+
+/* 像素风格的标题 */
+.pixel-title {
+  font-family: 'Press Start 2P', cursive;
+  color: #2196f3;
+  text-shadow: 2px 2px 0 #1a1a1a;
+  letter-spacing: 2px;
+}
+
+/* 像素风格的输入框 */
+.pixel-input {
+  background: #1a1a1a;
+  border: 2px solid #2196f3;
+  color: white;
+  padding: 8px;
+  transition: all 0.3s ease;
+}
+
+.pixel-input:focus {
+  outline: none;
+  border-color: #64b5f6;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.3);
+}
+
+/* 像素风格的图片容器 */
+.pixel-image-container {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #2196f3;
+  transition: all 0.3s ease;
+}
+
+.pixel-image-container:hover {
+  transform: scale(1.02);
+  border-color: #64b5f6;
+}
+
+/* 像素风格的进度条 */
+.pixel-progress {
+  height: 20px;
+  background: #1a1a1a;
+  border: 2px solid #2196f3;
+  position: relative;
+  overflow: hidden;
+}
+
+.pixel-progress-bar {
+  height: 100%;
+  background: #2196f3;
+  transition: width 0.3s steps(20);
+}
+
+/* 像素风格的对话框 */
+.pixel-dialog {
+  background: #1a1a1a;
+  border: 4px solid #2196f3;
+  box-shadow: 8px 8px 0 rgba(33, 150, 243, 0.3);
+}
+
+/* 像素风格的图标 */
+.pixel-icon {
+  image-rendering: pixelated;
+  transform: scale(1.2);
+  transition: transform 0.3s steps(3);
+}
+
+.pixel-icon:hover {
+  transform: scale(1.4);
+}
+
+/* 像素风格分隔线 */
+.pixel-divider {
+  height: 8px;
+  border-top: 2px dashed #000;
+  border-bottom: 2px dashed #000;
+  margin: 1rem 0;
+  background: transparent;
+  position: relative;
+}
+
+/* 红白像素风格分隔线 */
+.pixel-divider-red {
+  height: 8px;
+  border-top: 2px dashed #ff0000;
+  border-bottom: 2px dashed #ff0000;
+  margin: 1rem 0;
+  background: repeating-linear-gradient(90deg, #ff0000, #ff0000 8px, #ffffff 8px, #ffffff 16px);
+  position: relative;
+}
+
+/* 红白像素风格卡片 */
+.pixel-card-red {
+  border: 4px solid #ff0000;
+  background-color: #ffffff;
+  border-radius: 0 !important;
+  box-shadow: 8px 8px 0 rgba(255, 0, 0, 0.5) !important;
+  transition: all 0.2s ease;
+  image-rendering: pixelated;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.pixel-card-red:hover {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 4px 4px 0 rgba(255, 0, 0, 0.7) !important;
+}
+
+/* 粉红色像素风格主题 */
+.pixel-theme-pink {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #fff0f5;
+  color: #ff69b4;
+  image-rendering: pixelated;
+}
+
+/* 粉红色像素风格消息气泡 */
+.pixel-bubble {
+  position: relative;
+  background-color: #ffffff;
+  border: 4px solid #ff69b4;
+  box-shadow: 4px 4px 0 rgba(74, 20, 140, 0.5);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.pixel-bubble:hover {
+  transform: translateY(-4px);
+  box-shadow: 6px 6px 0 rgba(74, 20, 140, 0.5);
+}
+
+/* 红白像素风格选项评分颜色 */
+.rating-sss-red {
+  background-color: #ff0000 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+.rating-ss-red {
+  background-color: #ff3333 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+.rating-s-red {
+  background-color: #ff6666 !important;
+  color: #ffffff !important;
+  border: 2px solid #ffffff !important;
+}
+
+.rating-q-red {
+  background-color: #ff9999 !important;
+  color: #ff0000 !important;
+  border: 2px solid #ff0000 !important;
+}
+
+.rating-n-red {
+  background-color: #ffcccc !important;
+  color: #ff0000 !important;
+  border: 2px solid #ff0000 !important;
+}
+
+.rating-w-red {
+  background-color: #ffffff !important;
+  color: #ff0000 !important;
+  border: 2px solid #ff0000 !important;
+}
+
+/* 红白像素风格选择器 */
+.pixel-select-red {
+  font-family: 'Press Start 2P', cursive !important;
+  border: 2px solid #ff0000 !important;
+  background-color: #ffffff !important;
+  color: #ff0000 !important;
+  border-radius: 0 !important;
+  padding: 8px !important;
+}
+
+.pixel-select-red .MuiSelect-icon {
+  color: #ff0000 !important;
+}
+
+.pixel-select-red .MuiOutlinedInput-notchedOutline {
+  border-color: #ff0000 !important;
+  border-width: 2px !important;
+}
+
+/* 红白像素风格菜单项 */
+.pixel-menu-item-red {
+  font-family: 'Press Start 2P', cursive !important;
+  color: #ff0000 !important;
+  background-color: #ffffff !important;
+}
+
+.pixel-menu-item-red:hover {
+  background-color: #ffeeee !important;
+}
+
+/* 红白像素风格图表 */
+.pixel-chart-red .recharts-polar-grid-angle line,
+.pixel-chart-red .recharts-polar-grid-concentric path,
+.pixel-chart-red .recharts-cartesian-grid line {
+  stroke: #ff0000 !important;
+  stroke-width: 2px !important;
+  stroke-dasharray: 4 4 !important;
+}
+
+.pixel-chart-red .recharts-text {
+  font-family: 'Press Start 2P', cursive !important;
+  font-size: 8px !important;
+  fill: #ff0000 !important;
+}
+
+.pixel-chart-red .recharts-radar-polygon {
+  fill: rgba(255, 0, 0, 0.3) !important;
+  stroke: #ff0000 !important;
+  stroke-width: 3px !important;
+}
+
+.pixel-chart-red .recharts-bar-rectangle path {
+  fill: #ff0000 !important;
+  stroke: #ffffff !important;
+  stroke-width: 2px !important;
+}
+
+/* 像素字体 */
+@font-face {
+  font-family: 'PixelFont';
+  src: url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+}
+
+/* 像素边框动画 */
+@keyframes pixelBorderAnimation {
+  0% { box-shadow: 0 0 0 2px #2196f3; }
+  50% { box-shadow: 0 0 0 4px #64b5f6; }
+  100% { box-shadow: 0 0 0 2px #2196f3; }
+}
+
+/* 像素按钮悬停效果 */
+@keyframes pixelHover {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+/* 像素加载动画 */
+@keyframes pixelLoading {
+  0% { transform: rotate(0deg); }
+  12.5% { transform: rotate(45deg); }
+  25% { transform: rotate(90deg); }
+  37.5% { transform: rotate(135deg); }
+  50% { transform: rotate(180deg); }
+  62.5% { transform: rotate(225deg); }
+  75% { transform: rotate(270deg); }
+  87.5% { transform: rotate(315deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 渐变边框图片容器 */
+.gradient-border-image {
+  position: relative;
+  padding: 3px;
+  background: linear-gradient(45deg, #ff69b4, #2196f3, #4caf50, #ff9800);
+  background-size: 400% 400%;
+  animation: gradientBorder 15s ease infinite;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.gradient-border-image::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: inherit;
+  filter: blur(6px);
+  opacity: 0.5;
+  z-index: -1;
+}
+
+.gradient-border-image:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.gradient-border-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 2px;
+  background: #1a1a1a;
+}
+
+@keyframes gradientBorder {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 橙色像素风格标题 */
+.pixel-title-orange {
+  font-family: 'Press Start 2P', cursive;
+  color: #f97316;
+  text-shadow: 2px 2px 0 rgba(249, 115, 22, 0.3);
+  letter-spacing: 2px;
+}
+
+/* 橙色主题 */
+.pixel-theme-orange {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background-color: #fffbf5;
+  color: #f97316;
+  image-rendering: pixelated;
+}
+
+/* 橙色像素风格按钮 */
+.pixel-button-orange {
+  position: relative;
+  padding: 8px 16px;
+  background: #f97316;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  image-rendering: pixelated;
+}
+
+.pixel-button-orange::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border: 2px solid #f97316;
+  transition: all 0.2s ease;
+}
+
+.pixel-button-orange:hover {
+  animation: pixelHover 0.5s infinite;
+}

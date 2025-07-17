@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GSAP动画系统演示 - M-profile Lab</title>
+    <meta name="description" content="GSAP动画系统完整演示，展示所有动画效果和功能">
+    
+    <!-- 预加载关键资源 -->
+    <link rel="preload" href="/css/animation-demo.css" as="style">
+    <link rel="preload" href="/js/gsap.js" as="script">
+    <link rel="preload" href="/fonts/PressStart2P-Regular.ttf" as="font" type="font/ttf" crossorigin>
+    
+    <!-- 样式文件 -->
+    <link rel="stylesheet" href="/css/animation-demo.css">
+    <link rel="stylesheet" href="/src/styles/pixel-theme.css">
+    
+    <!-- GSAP库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/TextPlugin.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'PressStart2P', monospace, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 60px 0;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        
+        .demo-nav {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 40px 0;
+        }
+        
+        .nav-button {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            font-size: 0.9rem;
+        }
+        
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .nav-button.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .demo-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 40px;
+            margin: 30px 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        
+        .demo-section h2 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+        
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin: 30px 0;
+        }
+        
+        .demo-item {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .demo-item:hover {
+            border-color: #007bff;
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0, 123, 255, 0.2);
+        }
+        
+        .demo-element {
+            width: 80px;
+            height: 80px;
+            margin: 20px auto;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .demo-element:hover {
+            transform: scale(1.05);
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        .control-button {
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+        
+        .control-button:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        
+        .theme-selector {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .theme-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            border: 3px solid white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .theme-button:hover {
+            transform: scale(1.1);
+        }
+        
+        .theme-button.active {
+            border-color: #333;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .theme-female { background: linear-gradient(135deg, #ff69b4, #ff1493); }
+        .theme-male { background: linear-gradient(135deg, #4169e1, #1e90ff); }
+        .theme-s { background: linear-gradient(135deg, #dc143c, #b22222); }
+        
+        .performance-panel {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .metric {
+            text-align: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff88;
+        }
+        
+        .metric-label {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .code-example {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .highlight {
+            color: #ffd700;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 40px 0;
+            color: rgba(255, 255, 255, 0.8);
+        }
+        
+        .footer a {
+            color: #ffd700;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .demo-section {
+                padding: 20px;
+            }
+            
+            .demo-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                justify-content: center;
+            }
+        }
+        
+        /* 动画类 */
+        .fade-in {
+            animation: fadeIn 1s ease-out forwards;
+        }
+        
+        .slide-up {
+            animation: slideUp 0.8s ease-out forwards;
+        }
+        
+        .bounce-in {
+            animation: bounceIn 1s ease-out forwards;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes bounceIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.3);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            70% {
+                transform: scale(0.9);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 头部 -->
+        <header class="header">
+            <h1 id="main-title">GSAP动画系统演示</h1>
+            <p id="main-subtitle">探索强大的动画效果和交互体验</p>
+        </header>
+        
+        <!-- 导航 -->
+        <nav class="demo-nav">
+            <button class="nav-button active" data-section="basic">基础动画</button>
+            <button class="nav-button" data-section="advanced">高级效果</button>
+            <button class="nav-button" data-section="interactive">交互动画</button>
+            <button class="nav-button" data-section="themes">主题切换</button>
+            <button class="nav-button" data-section="performance">性能监控</button>
+            <button class="nav-button" data-section="examples">代码示例</button>
+        </nav>
+        
+        <!-- 基础动画演示 -->
+        <section id="basic" class="demo-section">
+            <h2>基础动画效果</h2>
+            <div class="demo-grid">
+                <div class="demo-item">
+                    <h3>淡入淡出</h3>
+                    <div class="demo-element" style="background: #ff69b4;" data-animation="fade">
+                        FADE
+                    </div>
+                    <div class="controls">
+                        <button class="control-button" onclick="animateFade()">淡入</button>
+                        <button class="control-button" onclick="animateFadeOut()">淡出</button>
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>缩放动画</h3>
+                    <div class="demo-element" style="background: #4169e1;" data-animation="scale">
+                        SCALE
+                    </div>
+                    <div class="controls">
+                        <button class="control-button" onclick="animateScale()">放大</button>
+                        <button class="control-button" onclick="animateScaleDown()">缩小</button>
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>旋转动画</h3>
+                    <div class="demo-element" style="background: #32cd32;" data-animation="rotate">
+                        ROTATE
+                    </div>
+                    <div class="controls">
+                        <button class="control-button" onclick="animateRotate()">旋转</button>
+                        <button class="control-button" onclick="animateRotateReverse()">反转</button>
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>移动动画</h3>
+                    <div class="demo-element" style="background: #ffa500;" data-animation="move">
+                        MOVE
+                    </div>
+                    <div class="controls">
+                        <button class="control-button" onclick="animateMove()">移动</button>
+                        <button class="control-button" onclick="animateReset()">重置</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 高级效果演示 -->
+        <section id="advanced" class="demo-section" style="display: none;">
+            <h2>高级动画效果</h2>
+            <div class="demo-grid">
+                <div class="demo-item">
+                    <h3>弹性动画</h3>
+                    <div class="demo-element" style="background: #9370db;" data-animation="elastic">
+                        ELASTIC
+                    </div>
+                    <div class="controls">
+                        <button class="control-button" onclick="animateElastic()">弹性效果</button>
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>路径动画</h3>
+                    <div style="position: relative; height: 120px;">
+                        <svg width="100%" height="120" style="position: absolute;">
+                            <path id="motion-path" d="M20,60 Q150,20 280,60 T540,60" 
+                                  stroke="#ddd" stroke-width="2" fill="none"/>
+                        </svg>
+                        <div class="demo-element" style="background: #ff6347; position: absolute;" 
+                             data-animation="path">PATH</div>
+                    </div>
+                    <div class="controls">
+                        <button class="control-button" onclick="animatePath()">路径动画</button>
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>变形动画</h3>
+                    <div class="demo-element" style="background: #20b2aa;" data-animation="morph">
+                        MORPH
+                    </div>
+                    <div class="controls">
+                        <button class="control-button" onclick="animateMorph()">变形</button>
+                    </div>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>粒子效果</h3>
+                    <div id="particle-container" style="height: 120px; position: relative; overflow: hidden;">
+                        <div class="demo-element" style="background: #ff1493;" data-animation="particle">
+                            PARTICLE
+                        </div>
+                    </div>
+                    <div class="controls">
+                        <button class="control-button" onclick="animateParticles()">粒子爆炸</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 交互动画演示 -->
+        <section id="interactive" class="demo-section" style="display: none;">
+            <h2>交互动画效果</h2>
+            <div class="demo-grid">
+                <div class="demo-item">
+                    <h3>悬停效果</h3>
+                    <div class="demo-element hover-demo" style="background: #ff69b4;">
+                        HOVER
+                    </div>
+                    <p>鼠标悬停查看效果</p>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>点击反馈</h3>
+                    <div class="demo-element click-demo" style="background: #4169e1;">
+                        CLICK
+                    </div>
+                    <p>点击查看反馈动画</p>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>拖拽动画</h3>
+                    <div class="demo-element drag-demo" style="background: #32cd32;">
+                        DRAG
+                    </div>
+                    <p>拖拽元素查看效果</p>
+                </div>
+                
+                <div class="demo-item">
+                    <h3>滚动触发</h3>
+                    <div style="height: 200px; overflow-y: auto; border: 2px solid #ddd; border-radius: 8px;">
+                        <div style="height: 100px; padding: 20px;">向下滚动</div>
+                        <div class="demo-element scroll-demo" style="background: #ffa500;">
+                            SCROLL
+                        </div>
+                        <div style="height: 100px; padding: 20px;">继续滚动</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 主题切换演示 -->
+        <section id="themes" class="demo-section" style="display: none;">
+            <h2>主题动画切换</h2>
+            
+            <div class="theme-selector">
+                <div class="theme-button theme-female active" data-theme="female" title="女生主题"></div>
+                <div class="theme-button theme-male" data-theme="male" title="男生主题"></div>
+                <div class="theme-button theme-s" data-theme="s" title="S主题"></div>
+            </div>
+            
+            <div id="theme-demo-area" style="text-align: center; padding: 40px;">
+                <div id="theme-display" style="width: 200px; height: 200px; margin: 0 auto; border-radius: 20px; 
+                     background: linear-gradient(135deg, #ff69b4, #ff1493); display: flex; align-items: center; 
+                     justify-content: center; color: white; font-size: 1.2rem; font-weight: bold;">
+                    女生主题
+                </div>
+            </div>
+            
+            <div class="code-example">
+                <div class="highlight">// 主题切换动画示例</div>
+gsap.to(element, {
+    background: "linear-gradient(135deg, #4169e1, #1e90ff)",
+    borderRadius: "50%",
+    duration: 1,
+    ease: "power2.inOut"
+});
+            </div>
+        </section>
+        
+        <!-- 性能监控演示 -->
+        <section id="performance" class="demo-section" style="display: none;">
+            <h2>性能监控面板</h2>
+            
+            <div class="performance-panel">
+                <h3 style="margin-bottom: 20px; text-align: center;">实时性能指标</h3>
+                <div class="performance-metrics">
+                    <div class="metric">
+                        <div class="metric-value" id="fps-value">60</div>
+                        <div class="metric-label">FPS</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="memory-value">45</div>
+                        <div class="metric-label">内存 (MB)</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="animations-value">0</div>
+                        <div class="metric-label">活跃动画</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value" id="performance-score">A+</div>
+                        <div class="metric-label">性能评级</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="control-button" onclick="startPerformanceTest()">开始性能测试</button>
+                <button class="control-button" onclick="stopPerformanceTest()">停止测试</button>
+                <button class="control-button" onclick="resetPerformanceMetrics()">重置指标</button>
+            </div>
+        </section>
+        
+        <!-- 代码示例 -->
+        <section id="examples" class="demo-section" style="display: none;">
+            <h2>代码示例和教程</h2>
+            
+            <div style="margin: 30px 0;">
+                <h3>基础动画</h3>
+                <div class="code-example">
+<span class="highlight">// 基础GSAP动画</span>
+gsap.to(".element", {
+    x: 100,
+    y: 50,
+    rotation: 360,
+    scale: 1.5,
+    duration: 2,
+    ease: "power2.out"
+});
+
+<span class="highlight">// 时间轴动画</span>
+const tl = gsap.timeline();
+tl.to(".element", { x: 100, duration: 1 })
+  .to(".element", { y: 50, duration: 1 })
+  .to(".element", { rotation: 360, duration: 1 });
+                </div>
+            </div>
+            
+            <div style="margin: 30px 0;">
+                <h3>滚动触发动画</h3>
+                <div class="code-example">
+<span class="highlight">// ScrollTrigger插件</span>
+gsap.registerPlugin(ScrollTrigger);
+
+gsap.to(".scroll-element", {
+    x: 100,
+    duration: 2,
+    scrollTrigger: {
+        trigger: ".scroll-element",
+        start: "top 80%",
+        end: "bottom 20%",
+        scrub: 1
+    }
+});
+                </div>
+            </div>
+            
+            <div style="margin: 30px 0;">
+                <h3>React集成</h3>
+                <div class="code-example">
+<span class="highlight">// React Hook使用</span>
+import { useGSAP } from './animations/hooks/useGSAP';
+
+function MyComponent() {
+    const { animate } = useGSAP();
+    
+    const handleClick = () => {
+        animate(ref.current, {
+            scale: 1.2,
+            duration: 0.3,
+            yoyo: true,
+            repeat: 1
+        });
+    };
+    
+    return &lt;div ref={ref} onClick={handleClick}&gt;Click me&lt;/div&gt;;
+}
+                </div>
+            </div>
+            
+            <div style="margin: 30px 0;">
+                <h3>性能优化</h3>
+                <div class="code-example">
+<span class="highlight">// 性能优化技巧</span>
+// 1. 使用transform属性而不是改变layout
+gsap.to(element, { x: 100, y: 50 }); // 好
+gsap.to(element, { left: 100, top: 50 }); // 避免
+
+// 2. 启用GPU加速
+gsap.set(element, { force3D: true });
+
+// 3. 批量处理动画
+gsap.set([el1, el2, el3], { opacity: 0 });
+gsap.to([el1, el2, el3], { opacity: 1, stagger: 0.1 });
+                </div>
+            </div>
+        </section>
+        
+        <!-- 页脚 -->
+        <footer class="footer">
+            <p>GSAP动画系统演示 | 
+               <a href="https://github.com/your-repo" target="_blank">查看源码</a> | 
+               <a href="/GSAP_ANIMATION_SYSTEM_DOCUMENTATION.md" target="_blank">完整文档</a>
+            </p>
+            <p style="margin-top: 10px; font-size: 0.8rem;">
+                使用 GSAP 3.12+ 构建 | 支持现代浏览器 | 移动端优化
+            </p>
+        </footer>
+    </div>
+    
+    <script>
+        // 全局变量
+        let currentTheme = 'female';
+        let performanceInterval;
+        let animationCount = 0;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAnimations();
+            setupNavigation();
+            setupInteractiveElements();
+            startPerformanceMonitoring();
+        });
+        
+        // 初始化动画
+        function initializeAnimations() {
+            // 标题动画
+            gsap.to("#main-title", {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                ease: "power2.out"
+            });
+            
+            gsap.to("#main-subtitle", {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                delay: 0.3,
+                ease: "power2.out"
+            });
+            
+            // 章节动画
+            gsap.to(".demo-section", {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.2,
+                ease: "power2.out"
+            });
+        }
+        
+        // 设置导航
+        function setupNavigation() {
+            const navButtons = document.querySelectorAll('.nav-button');
+            const sections = document.querySelectorAll('.demo-section');
+            
+            navButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const targetSection = button.dataset.section;
+                    
+                    // 更新按钮状态
+                    navButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    // 显示对应章节
+                    sections.forEach(section => {
+                        if (section.id === targetSection) {
+                            section.style.display = 'block';
+                            gsap.fromTo(section, 
+                                { opacity: 0, y: 30 },
+                                { opacity: 1, y: 0, duration: 0.5 }
+                            );
+                        } else {
+                            section.style.display = 'none';
+                        }
+                    });
+                });
+            });
+        }
+        
+        // 设置交互元素
+        function setupInteractiveElements() {
+            // 悬停效果
+            const hoverElements = document.querySelectorAll('.hover-demo');
+            hoverElements.forEach(element => {
+                element.addEventListener('mouseenter', () => {
+                    gsap.to(element, {
+                        scale: 1.2,
+                        rotation: 5,
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                });
+                
+                element.addEventListener('mouseleave', () => {
+                    gsap.to(element, {
+                        scale: 1,
+                        rotation: 0,
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                });
+            });
+            
+            // 点击效果
+            const clickElements = document.querySelectorAll('.click-demo');
+            clickElements.forEach(element => {
+                element.addEventListener('click', () => {
+                    gsap.to(element, {
+                        scale: 0.9,
+                        duration: 0.1,
+                        yoyo: true,
+                        repeat: 1,
+                        ease: "power2.inOut"
+                    });
+                });
+            });
+            
+            // 拖拽效果
+            const dragElements = document.querySelectorAll('.drag-demo');
+            dragElements.forEach(element => {
+                let isDragging = false;
+                
+                element.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    gsap.to(element, { scale: 1.1, duration: 0.2 });
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (isDragging) {
+                        gsap.set(element, {
+                            x: e.clientX - element.offsetLeft,
+                            y: e.clientY - element.offsetTop
+                        });
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        gsap.to(element, { scale: 1, duration: 0.2 });
+                    }
+                });
+            });
+            
+            // 滚动触发
+            if (typeof ScrollTrigger !== 'undefined') {
+                gsap.registerPlugin(ScrollTrigger);
+                
+                gsap.to(".scroll-demo", {
+                    rotation: 360,
+                    scale: 1.2,
+                    duration: 1,
+                    scrollTrigger: {
+                        trigger: ".scroll-demo",
+                        start: "top 80%",
+                        end: "bottom 20%",
+                        scrub: 1
+                    }
+                });
+            }
+            
+            // 主题切换
+            const themeButtons = document.querySelectorAll('.theme-button');
+            themeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const theme = button.dataset.theme;
+                    switchTheme(theme);
+                    
+                    // 更新按钮状态
+                    themeButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                });
+            });
+        }
+        
+        // 基础动画函数
+        function animateFade() {
+            const element = document.querySelector('[data-animation="fade"]');
+            gsap.fromTo(element, { opacity: 0 }, { opacity: 1, duration: 1 });
+            updateAnimationCount();
+        }
+        
+        function animateFadeOut() {
+            const element = document.querySelector('[data-animation="fade"]');
+            gsap.to(element, { opacity: 0.3, duration: 1 });
+            updateAnimationCount();
+        }
+        
+        function animateScale() {
+            const element = document.querySelector('[data-animation="scale"]');
+            gsap.to(element, { scale: 1.5, duration: 0.5, yoyo: true, repeat: 1 });
+            updateAnimationCount();
+        }
+        
+        function animateScaleDown() {
+            const element = document.querySelector('[data-animation="scale"]');
+            gsap.to(element, { scale: 0.5, duration: 0.5, yoyo: true, repeat: 1 });
+            updateAnimationCount();
+        }
+        
+        function animateRotate() {
+            const element = document.querySelector('[data-animation="rotate"]');
+            gsap.to(element, { rotation: 360, duration: 1, ease: "power2.out" });
+            updateAnimationCount();
+        }
+        
+        function animateRotateReverse() {
+            const element = document.querySelector('[data-animation="rotate"]');
+            gsap.to(element, { rotation: -360, duration: 1, ease: "power2.out" });
+            updateAnimationCount();
+        }
+        
+        function animateMove() {
+            const element = document.querySelector('[data-animation="move"]');
+            gsap.to(element, { x: 100, y: 20, duration: 1, ease: "bounce.out" });
+            updateAnimationCount();
+        }
+        
+        function animateReset() {
+            const element = document.querySelector('[data-animation="move"]');
+            gsap.to(element, { x: 0, y: 0, duration: 0.5 });
+            updateAnimationCount();
+        }
+        
+        // 高级动画函数
+        function animateElastic() {
+            const element = document.querySelector('[data-animation="elastic"]');
+            gsap.to(element, { 
+                scale: 1.5, 
+                duration: 1, 
+                ease: "elastic.out(1, 0.3)",
+                yoyo: true,
+                repeat: 1
+            });
+            updateAnimationCount();
+        }
+        
+        function animatePath() {
+            const element = document.querySelector('[data-animation="path"]');
+            if (typeof MotionPathPlugin !== 'undefined') {
+                gsap.to(element, {
+                    motionPath: "#motion-path",
+                    duration: 3,
+                    ease: "power2.inOut"
+                });
+            } else {
+                // 简化版路径动画
+                gsap.to(element, {
+                    x: 200,
+                    y: -20,
+                    duration: 1.5,
+                    ease: "power2.inOut",
+                    yoyo: true,
+                    repeat: 1
+                });
+            }
+            updateAnimationCount();
+        }
+        
+        function animateMorph() {
+            const element = document.querySelector('[data-animation="morph"]');
+            gsap.to(element, {
+                borderRadius: "50%",
+                width: 120,
+                height: 120,
+                duration: 1,
+                ease: "power2.inOut",
+                yoyo: true,
+                repeat: 1
+            });
+            updateAnimationCount();
+        }
+        
+        function animateParticles() {
+            const container = document.getElementById('particle-container');
+            const colors = ['#ff69b4', '#4169e1', '#32cd32', '#ffa500', '#9370db'];
+            
+            // 创建粒子
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.style.cssText = `
+                    position: absolute;
+                    width: 8px;
+                    height: 8px;
+                    background: ${colors[Math.floor(Math.random() * colors.length)]};
+                    border-radius: 50%;
+                    left: 50%;
+                    top: 50%;
+                `;
+                container.appendChild(particle);
+                
+                // 粒子动画
+                gsap.to(particle, {
+                    x: (Math.random() - 0.5) * 200,
+                    y: (Math.random() - 0.5) * 200,
+                    opacity: 0,
+                    scale: 0,
+                    duration: 1 + Math.random(),
+                    ease: "power2.out",
+                    onComplete: () => particle.remove()
+                });
+            }
+            updateAnimationCount();
+        }
+        
+        // 主题切换
+        function switchTheme(theme) {
+            currentTheme = theme;
+            const display = document.getElementById('theme-display');
+            
+            const themes = {
+                female: {
+                    gradient: 'linear-gradient(135deg, #ff69b4, #ff1493)',
+                    text: '女生主题'
+                },
+                male: {
+                    gradient: 'linear-gradient(135deg, #4169e1, #1e90ff)',
+                    text: '男生主题'
+                },
+                s: {
+                    gradient: 'linear-gradient(135deg, #dc143c, #b22222)',
+                    text: 'S主题'
+                }
+            };
+            
+            gsap.to(display, {
+                background: themes[theme].gradient,
+                duration: 1,
+                ease: "power2.inOut",
+                onUpdate: function() {
+                    display.textContent = themes[theme].text;
+                }
+            });
+            updateAnimationCount();
+        }
+        
+        // 性能监控
+        function startPerformanceMonitoring() {
+            let frameCount = 0;
+            let lastTime = performance.now();
+            
+            function updateFPS() {
+                const currentTime = performance.now();
+                frameCount++;
+                
+                if (currentTime - lastTime >= 1000) {
+                    const fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+                    document.getElementById('fps-value').textContent = fps;
+                    
+                    frameCount = 0;
+                    lastTime = currentTime;
+                }
+                
+                requestAnimationFrame(updateFPS);
+            }
+            
+            requestAnimationFrame(updateFPS);
+            
+            // 模拟内存使用
+            setInterval(() => {
+                const memory = 45 + Math.random() * 10;
+                document.getElementById('memory-value').textContent = Math.round(memory);
+            }, 2000);
+        }
+        
+        function startPerformanceTest() {
+            // 创建大量动画进行压力测试
+            const elements = [];
+            for (let i = 0; i < 50; i++) {
+                const el = document.createElement('div');
+                el.style.cssText = `
+                    position: fixed;
+                    width: 10px;
+                    height: 10px;
+                    background: hsl(${i * 7}, 70%, 60%);
+                    border-radius: 50%;
+                    left: ${Math.random() * window.innerWidth}px;
+                    top: ${Math.random() * window.innerHeight}px;
+                    pointer-events: none;
+                    z-index: 1000;
+                `;
+                document.body.appendChild(el);
+                elements.push(el);
+                
+                gsap.to(el, {
+                    x: (Math.random() - 0.5) * 500,
+                    y: (Math.random() - 0.5) * 500,
+                    rotation: 360,
+                    duration: 2 + Math.random() * 3,
+                    repeat: -1,
+                    yoyo: true,
+                    ease: "sine.inOut"
+                });
+            }
+            
+            // 5秒后清理
+            setTimeout(() => {
+                elements.forEach(el => {
+                    gsap.killTweensOf(el);
+                    el.remove();
+                });
+            }, 5000);
+            
+            updateAnimationCount();
+        }
+        
+        function stopPerformanceTest() {
+            gsap.killTweensOf("*");
+            document.querySelectorAll('[style*="position: fixed"]').forEach(el => {
+                if (el.style.width === '10px') el.remove();
+            });
+            updateAnimationCount();
+        }
+        
+        function resetPerformanceMetrics() {
+            document.getElementById('fps-value').textContent = '60';
+            document.getElementById('memory-value').textContent = '45';
+            document.getElementById('animations-value').textContent = '0';
+            document.getElementById('performance-score').textContent = 'A+';
+            animationCount = 0;
+        }
+        
+        function updateAnimationCount() {
+            animationCount++;
+            document.getElementById('animations-value').textContent = animationCount;
+            
+            // 更新性能评级
+            let score = 'A+';
+            if (animationCount > 50) score = 'B';
+            if (animationCount > 100) score = 'C';
+            document.getElementById('performance-score').textContent = score;
+        }
+        
+        // 键盘快捷键
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey) {
+                switch(e.key) {
+                    case 'A':
+                        e.preventDefault();
+                        stopPerformanceTest();
+                        break;
+                    case 'S':
+                        e.preventDefault();
+                        startPerformanceTest();
+                        break;
+                    case 'R':
+                        e.preventDefault();
+                        resetPerformanceMetrics();
+                        break;
+                }
+            }
+        });
+        
+        // 响应式处理
+        window.addEventListener('resize', () => {
+            ScrollTrigger.refresh();
+        });
+    </script>
+</body>
+</html>

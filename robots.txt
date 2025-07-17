@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /female.html
+Allow: /male.html
+Allow: /s.html
+Allow: /gallery.html
+Allow: /message.html
+
+Sitemap: https://m-profile.top/sitemap.xml 
