@@ -2612,7 +2612,7 @@ function GalleryApp() {
                     color="primary"
                     variant="text"
                     startIcon={<FemaleIcon />}
-                    href="./female.html"
+                    href="/female.html"
                     size="small"
                   >
                     女M版
@@ -2621,7 +2621,7 @@ function GalleryApp() {
                     color="primary"
                     variant="text"
                     startIcon={<MaleIcon />}
-                    href="./male.html"
+                    href="/male.html"
                     size="small"
                   >
                     男M版
@@ -2630,7 +2630,7 @@ function GalleryApp() {
                     color="primary"
                     variant="text"
                     startIcon={<ScienceIcon />}
-                    href="./s.html"
+                    href="/s.html"
                     size="small"
                   >
                     S版
@@ -2639,7 +2639,7 @@ function GalleryApp() {
                     color="primary"
                     variant="text"
                     startIcon={<MessageIcon />}
-                    href="./message.html"
+                    href="/message.html"
                     size="small"
                   >
                     留言板
@@ -2648,7 +2648,7 @@ function GalleryApp() {
                     color="primary"
                     variant="contained"
                     startIcon={<HomeIcon />}
-                    href="./index.html"
+                    href="/index.html"
                     size="small"
                     sx={{ 
                       boxShadow: 1,
@@ -2731,7 +2731,7 @@ function GalleryApp() {
               <ListItem 
                 button 
                 component="a" 
-                href="./female.html"
+                href="/female.html"
                 sx={{ '&:hover': { backgroundColor: 'rgba(249, 115, 22, 0.08)' } }}
               >
                 <ListItemIcon><FemaleIcon sx={{ color: 'primary.main' }} /></ListItemIcon>
@@ -2740,7 +2740,7 @@ function GalleryApp() {
               <ListItem 
                 button 
                 component="a" 
-                href="./male.html"
+                href="/male.html"
                 sx={{ '&:hover': { backgroundColor: 'rgba(249, 115, 22, 0.08)' } }}
               >
                 <ListItemIcon><MaleIcon sx={{ color: 'primary.main' }} /></ListItemIcon>
@@ -2749,7 +2749,7 @@ function GalleryApp() {
               <ListItem 
                 button 
                 component="a" 
-                href="./s.html"
+                href="/s.html"
                 sx={{ '&:hover': { backgroundColor: 'rgba(249, 115, 22, 0.08)' } }}
               >
                 <ListItemIcon><ScienceIcon sx={{ color: 'primary.main' }} /></ListItemIcon>
@@ -2758,7 +2758,7 @@ function GalleryApp() {
               <ListItem 
                 button 
                 component="a" 
-                href="./message.html"
+                href="/message.html"
                 sx={{ '&:hover': { backgroundColor: 'rgba(249, 115, 22, 0.08)' } }}
               >
                 <ListItemIcon><MessageIcon sx={{ color: 'primary.main' }} /></ListItemIcon>
@@ -2767,7 +2767,7 @@ function GalleryApp() {
               <ListItem 
                 button 
                 component="a" 
-                href="./index.html"
+                href="/index.html"
                 sx={{ 
                   backgroundColor: 'rgba(249, 115, 22, 0.08)',
                   '&:hover': { backgroundColor: 'rgba(249, 115, 22, 0.15)' },

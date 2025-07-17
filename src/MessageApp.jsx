@@ -1387,7 +1387,7 @@ function MessageApp() {
                   )}
                   <Button
                     color="inherit"
-                    href="./female.html"
+                    href="/female.html"
                     className="pixel-button-pink"
                     sx={{ color: '#ff69b4' }}
                   >
@@ -1395,7 +1395,7 @@ function MessageApp() {
                   </Button>
                   <Button
                     color="inherit"
-                    href="./male.html"
+                    href="/male.html"
                     className="pixel-button-pink"
                     sx={{ color: '#ff69b4' }}
                   >
@@ -1403,7 +1403,7 @@ function MessageApp() {
                   </Button>
                   <Button
                     color="inherit"
-                    href="./s.html"
+                    href="/s.html"
                     className="pixel-button-pink"
                     sx={{ color: '#ff69b4' }}
                   >
@@ -1412,7 +1412,7 @@ function MessageApp() {
                   <Button
                     color="inherit"
                     startIcon={<CollectionsIcon />}
-                    href="./gallery.html"
+                    href="/gallery.html"
                     className="pixel-button-pink"
                     sx={{ color: '#ff69b4' }}
                   >
@@ -1421,7 +1421,7 @@ function MessageApp() {
                   <Button
                     color="inherit"
                     startIcon={<HomeIcon />}
-                    href="./index.html"
+                    href="/index.html"
                     className="pixel-button-pink"
                     sx={{ color: '#ff69b4' }}
                   >
@@ -1473,23 +1473,23 @@ function MessageApp() {
                   <ListItemText primary="退出管理" sx={{ color: '#ff69b4' }} />
                 </ListItem>
               )}
-              <ListItem button component="a" href="./female.html">
+              <ListItem button component="a" href="/female.html">
                 <ListItemIcon><FemaleIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>
                 <ListItemText primary="女M版" sx={{ color: '#ff69b4' }} />
               </ListItem>
-              <ListItem button component="a" href="./male.html">
+              <ListItem button component="a" href="/male.html">
                 <ListItemIcon><MaleIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>
                 <ListItemText primary="男M版" sx={{ color: '#ff69b4' }} />
               </ListItem>
-              <ListItem button component="a" href="./s.html">
+              <ListItem button component="a" href="/s.html">
                 <ListItemIcon><ScienceIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>
                 <ListItemText primary="S版" sx={{ color: '#ff69b4' }} />
               </ListItem>
-              <ListItem button component="a" href="./gallery.html">
+              <ListItem button component="a" href="/gallery.html">
                 <ListItemIcon><CollectionsIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>
                 <ListItemText primary="图库" sx={{ color: '#ff69b4' }} />
               </ListItem>
-              <ListItem button component="a" href="./index.html">
+              <ListItem button component="a" href="/index.html">
                 <ListItemIcon><HomeIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>
                 <ListItemText primary="返回首页" sx={{ color: '#ff69b4' }} />
               </ListItem>
