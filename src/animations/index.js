@@ -35,7 +35,7 @@ export {
 export { default as PageTransition } from './components/PageTransition'
 export { default as LoadingAnimation, LoadingPresets, createLoadingPreset } from './components/LoadingAnimation'
 export { default as ScrollTrigger, ScrollTriggerPresets, createScrollTriggerPreset, refreshAllScrollTriggers, killAllScrollTriggers } from './components/ScrollTrigger'
-export { default as AnimatedChart, ChartAnimationPresets } from './components/AnimatedChart'
+export { default as AnimatedChart, ChartAnimationPresets, AnimatedRadarChart, AnimatedBarChart, AnimatedCounter } from './components/AnimatedChart'
 export { default as ReportAnimation, ReportAnimationPresets, createReportAnimationPreset } from './components/ReportAnimation'
 export { default as AnimationControlPanel } from './components/AnimationControlPanel'
 
