@@ -25,10 +25,17 @@ import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 
 // GSAP动画系统导入
 import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-
-// 注册GSAP插件
-gsap.registerPlugin(ScrollTrigger)
+// 仅在浏览器环境中导入ScrollTrigger
+let ScrollTrigger;
+if (typeof window !== 'undefined') {
+  import('gsap/ScrollTrigger').then(module => {
+    ScrollTrigger = module.ScrollTrigger;
+    // 注册GSAP插件
+    gsap.registerPlugin(ScrollTrigger);
+  }).catch(err => {
+    console.warn('ScrollTrigger加载失败:', err);
+  });
+}
 
 const RATING_OPTIONS = ['SSS', 'SS', 'S', 'Q', 'N', 'W']
 const CATEGORIES = {
@@ -145,52 +152,57 @@ function App() {
 
   // 初始化GSAP和页面动画
   useEffect(() => {
-    // 页面入场动画
-    const tl = gsap.timeline();
-    
-    // 标题动画 - 从上方淡入
-    tl.from('.pixel-title-pink, h1, h2, h3', {
-      opacity: 0,
-      y: -30,
-      duration: 0.8,
-      ease: "power2.out",
-      stagger: 0.15
-    })
-    
-    // 卡片动画 - 从下方滑入并缩放
-    .from('.pixel-card-pink, .MuiPaper-root:not(.MuiAppBar-root)', {
-      opacity: 0,
-      y: 40,
-      scale: 0.95,
-      duration: 0.6,
-      ease: "back.out(1.2)",
-      stagger: 0.1
-    }, "-=0.4")
-    
-    // 按钮动画 - 弹跳效果
-    .from('.pixel-button-pink, .MuiButton-root', {
-      opacity: 0,
-      scale: 0.8,
-      duration: 0.5,
-      ease: "elastic.out(1, 0.5)",
-      stagger: 0.08
-    }, "-=0.3")
-    
-    // 表单元素动画
-    .from('.MuiTextField-root, .MuiSelect-root, .MuiChip-root', {
-      opacity: 0,
-      x: -20,
-      duration: 0.4,
-      ease: "power2.out",
-      stagger: 0.05
-    }, "-=0.2");
-    
-    console.log('🎬 页面动画已初始化');
-    
-    return () => {
-      // 清理动画
-      tl.kill();
-    };
+    try {
+      // 页面入场动画
+      const tl = gsap.timeline();
+      
+      // 标题动画 - 从上方淡入
+      tl.from('.pixel-title-pink, h1, h2, h3', {
+        opacity: 0,
+        y: -30,
+        duration: 0.8,
+        ease: "power2.out",
+        stagger: 0.15
+      })
+      
+      // 卡片动画 - 从下方滑入并缩放
+      .from('.pixel-card-pink, .MuiPaper-root:not(.MuiAppBar-root)', {
+        opacity: 0,
+        y: 40,
+        scale: 0.95,
+        duration: 0.6,
+        ease: "back.out(1.2)",
+        stagger: 0.1
+      }, "-=0.4")
+      
+      // 按钮动画 - 弹跳效果
+      .from('.pixel-button-pink, .MuiButton-root', {
+        opacity: 0,
+        scale: 0.8,
+        duration: 0.5,
+        ease: "elastic.out(1, 0.5)",
+        stagger: 0.08
+      }, "-=0.3")
+      
+      // 表单元素动画
+      .from('.MuiTextField-root, .MuiSelect-root, .MuiChip-root', {
+        opacity: 0,
+        x: -20,
+        duration: 0.4,
+        ease: "power2.out",
+        stagger: 0.05
+      }, "-=0.2");
+      
+      console.log('🎬 页面动画已初始化');
+      
+      return () => {
+        // 清理动画
+        tl.kill();
+      };
+    } catch (error) {
+      console.warn('页面动画初始化失败:', error);
+      // 即使动画失败，也不影响页面正常显示
+    }
   }, []);
 
   // 页面加载时初始化数据
