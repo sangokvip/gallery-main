@@ -17,7 +17,6 @@
     "@mui/material": "^5.14.5",
     "@supabase/supabase-js": "^2.49.4",
     "file-saver": "^2.0.5",
-    "gsap": "^3.13.0",
     "html2canvas": "^1.4.1",
     "html2pdf.js": "^0.10.3",
     "react": "^18.2.0",
@@ -30,7 +29,6 @@
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.3",
-    "terser": "^5.43.1",
     "vite": "^4.4.5"
   }
 }

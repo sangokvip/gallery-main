@@ -22,17 +22,6 @@ import { testRecordsApi } from './utils/supabase'
 import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 
-// GSAP动画系统导入
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { initializeGSAP } from './animations/config/gsapConfig'
-import gsapManager from './animations/core/GSAPManager'
-import { pageAnimations } from './animations/presets/pageAnimations'
-import { AnimatedRadarChart, AnimatedBarChart, AnimatedCounter } from './animations/components/AnimatedChart'
-
-// 注册GSAP插件
-gsap.registerPlugin(ScrollTrigger)
-
 // 使用黑白像素风格的Footer
 
 const MENU_ITEMS = [
@@ -154,58 +143,6 @@ function App() {
   const [diagnosticReport, setDiagnosticReport] = useState(null)
   const [showDiagnosticButton, setShowDiagnosticButton] = useState(false)
   const reportRef = useRef(null)
-
-  // 初始化GSAP和页面动画 - 男生版蓝色主题
-  useEffect(() => {
-    // 初始化GSAP配置
-    initializeGSAP()
-    
-    // 男生版页面入场动画 - 硬朗风格
-    const tl = gsap.timeline()
-    
-    // 标题动画 - 从左侧滑入
-    tl.from('h1, h2, h3', {
-      opacity: 0,
-      x: -50,
-      duration: 0.6,
-      ease: "power3.out",
-      stagger: 0.1
-    })
-    
-    // 卡片动画 - 3D翻转效果
-    .from('.MuiPaper-root:not(.MuiAppBar-root)', {
-      opacity: 0,
-      rotationY: 15,
-      transformOrigin: "left center",
-      duration: 0.7,
-      ease: "power2.out",
-      stagger: 0.12
-    }, "-=0.3")
-    
-    // 按钮动画 - 从底部弹起
-    .from('.MuiButton-root', {
-      opacity: 0,
-      y: 30,
-      scale: 0.9,
-      duration: 0.5,
-      ease: "back.out(2)",
-      stagger: 0.08
-    }, "-=0.4")
-    
-    // 表单元素动画
-    .from('.MuiTextField-root, .MuiSelect-root, .MuiChip-root', {
-      opacity: 0,
-      x: -20,
-      duration: 0.4,
-      ease: "power2.out",
-      stagger: 0.05
-    }, "-=0.2")
-    
-    // 注册到GSAP管理器
-    gsapManager.timelines.set('male-page-entrance', tl)
-    
-    console.log('🎬 男生版页面动画已初始化')
-  }, [])
 
   // 页面加载时初始化数据
   useEffect(() => {
@@ -1269,16 +1206,17 @@ function App() {
                 mb: { xs: 1, md: 2 },
                 position: 'relative'
               }}>
-                <AnimatedRadarChart
-                  data={getRadarData()}
+                <RadarChart
                   width={window.innerWidth < 768 ? Math.min(320, window.innerWidth - 60) : 500}
                   height={window.innerWidth < 768 ? Math.min(250, window.innerWidth - 60) : 350}
-                  stroke="#1E3D59"
-                  fill="#1E3D59"
-                  fillOpacity={0.6}
-                  theme="male"
-                  animationDelay={0.2}
-                />
+                  data={getRadarData()}
+                  style={{ margin: '0 auto' }}
+                >
+                  <PolarGrid />
+                  <PolarAngleAxis dataKey="category" />
+                  <PolarRadiusAxis angle={30} domain={[0, 6]} />
+                  <Radar name="得分" dataKey="value" stroke="#1E3D59" fill="#1E3D59" fillOpacity={0.6} />
+                </RadarChart>
               </Box>
 
               {/* 用户提示信息 - 紧跟雷达图 */}

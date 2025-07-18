@@ -23,16 +23,6 @@ import { testRecordsApi } from './utils/supabase'
 import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 
-// GSAP动画系统导入
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { initializeGSAP } from './animations/config/gsapConfig'
-import gsapManager from './animations/core/GSAPManager'
-import { pageAnimations } from './animations/presets/pageAnimations'
-
-// 注册GSAP插件
-gsap.registerPlugin(ScrollTrigger)
-
 // MENU_ITEMS定义移到函数组件内部
 
 const RATING_OPTIONS = ['SSS', 'SS', 'S', 'Q', 'N', 'W']
@@ -151,61 +141,6 @@ function SApp() {
   const [diagnosticReport, setDiagnosticReport] = useState(null)
   const [showDiagnosticButton, setShowDiagnosticButton] = useState(false)
   const reportRef = useRef(null)
-
-  // 初始化GSAP和页面动画 - S版红色主题
-  useEffect(() => {
-    // 初始化GSAP配置
-    initializeGSAP()
-    
-    // S版页面入场动画 - 强烈戏剧化风格
-    const tl = gsap.timeline()
-    
-    // 标题动画 - 爆炸式缩放
-    tl.from('h1, h2, h3', {
-      opacity: 0,
-      scale: 1.3,
-      rotation: 5,
-      duration: 0.5,
-      ease: "back.out(2)",
-      stagger: 0.08
-    })
-    
-    // 卡片动画 - 旋转滑入
-    .from('.MuiPaper-root:not(.MuiAppBar-root)', {
-      opacity: 0,
-      rotation: 8,
-      scale: 0.8,
-      y: 40,
-      duration: 0.6,
-      ease: "back.out(1.7)",
-      stagger: 0.1
-    }, "-=0.3")
-    
-    // 按钮动画 - 震动效果
-    .from('.MuiButton-root', {
-      opacity: 0,
-      scale: 0.7,
-      rotation: -3,
-      duration: 0.4,
-      ease: "elastic.out(1.2, 0.3)",
-      stagger: 0.06
-    }, "-=0.4")
-    
-    // 表单元素动画
-    .from('.MuiTextField-root, .MuiSelect-root, .MuiChip-root', {
-      opacity: 0,
-      x: -15,
-      rotation: 2,
-      duration: 0.3,
-      ease: "power2.out",
-      stagger: 0.04
-    }, "-=0.2")
-    
-    // 注册到GSAP管理器
-    gsapManager.timelines.set('s-page-entrance', tl)
-    
-    console.log('🎬 S版页面动画已初始化')
-  }, [])
 
   // 页面加载时初始化数据
   useEffect(() => {

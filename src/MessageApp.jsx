@@ -23,16 +23,6 @@ import './styles/pixel-theme.css'
 import { messagesApi } from './utils/supabase'
 import { v4 as uuidv4 } from 'uuid'; // 导入 uuid
 
-// GSAP动画系统导入
-import { gsap } from 'gsap'
-import { ScrollTrigger } from 'gsap/ScrollTrigger'
-import { initializeGSAP } from './animations/config/gsapConfig'
-import gsapManager from './animations/core/GSAPManager'
-import { pageAnimations } from './animations/presets/pageAnimations'
-
-// 注册GSAP插件
-gsap.registerPlugin(ScrollTrigger)
-
 const theme = createTheme({
   palette: {
     primary: {
@@ -754,48 +744,6 @@ function MessageApp() {
   });
   const [newReactionCount, setNewReactionCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  // 初始化GSAP和页面动画 - 留言板社交主题
-  useEffect(() => {
-    // 初始化GSAP配置
-    initializeGSAP()
-    
-    // 留言板页面入场动画 - 社交互动风格
-    const tl = gsap.timeline()
-    
-    // 标题和导航动画
-    tl.from('h1, h2, h3, .MuiAppBar-root', {
-      opacity: 0,
-      y: -20,
-      duration: 0.6,
-      ease: "power2.out",
-      stagger: 0.1
-    })
-    
-    // 消息气泡动画 - 错落入场
-    .from('.message-bubble, .MuiPaper-root:not(.MuiAppBar-root)', {
-      opacity: 0,
-      scale: 0.9,
-      y: 20,
-      duration: 0.5,
-      ease: "back.out(1.3)",
-      stagger: 0.08
-    }, "-=0.3")
-    
-    // 输入框和按钮动画
-    .from('.MuiTextField-root, .MuiButton-root', {
-      opacity: 0,
-      y: 30,
-      duration: 0.4,
-      ease: "power2.out",
-      stagger: 0.05
-    }, "-=0.2")
-    
-    // 注册到GSAP管理器
-    gsapManager.timelines.set('message-page-entrance', tl)
-    
-    console.log('🎬 留言板页面动画已初始化')
-  }, [])
 
   // 在组件挂载时设置状态
   useEffect(() => {
