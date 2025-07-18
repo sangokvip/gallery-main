@@ -23,6 +23,13 @@ import { testRecordsApi } from './utils/supabase'
 import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 
+// GSAP动画系统导入
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+// 注册GSAP插件
+gsap.registerPlugin(ScrollTrigger)
+
 const RATING_OPTIONS = ['SSS', 'SS', 'S', 'Q', 'N', 'W']
 const CATEGORIES = {
   '👑 性奴': ['🔞 强奸', '👥 轮奸', '💋 口爆', '💦 颜射', '💉 内射', '🍑 肛交', '🔧 器具折磨', '⚡️ 强制高潮', '💧 潮吹失禁', '🎭 自慰展示', '🚫 禁止高潮', '🔄 扩张阴道', '⭕️ 扩张肛门', '🔄 双阳具插入', '➕ 多阳具插入', '✌️ 双插'],
@@ -135,6 +142,56 @@ function App() {
   const [diagnosticReport, setDiagnosticReport] = useState(null)
   const [showDiagnosticButton, setShowDiagnosticButton] = useState(false)
   const reportRef = useRef(null)
+
+  // 初始化GSAP和页面动画
+  useEffect(() => {
+    // 页面入场动画
+    const tl = gsap.timeline();
+    
+    // 标题动画 - 从上方淡入
+    tl.from('.pixel-title-pink, h1, h2, h3', {
+      opacity: 0,
+      y: -30,
+      duration: 0.8,
+      ease: "power2.out",
+      stagger: 0.15
+    })
+    
+    // 卡片动画 - 从下方滑入并缩放
+    .from('.pixel-card-pink, .MuiPaper-root:not(.MuiAppBar-root)', {
+      opacity: 0,
+      y: 40,
+      scale: 0.95,
+      duration: 0.6,
+      ease: "back.out(1.2)",
+      stagger: 0.1
+    }, "-=0.4")
+    
+    // 按钮动画 - 弹跳效果
+    .from('.pixel-button-pink, .MuiButton-root', {
+      opacity: 0,
+      scale: 0.8,
+      duration: 0.5,
+      ease: "elastic.out(1, 0.5)",
+      stagger: 0.08
+    }, "-=0.3")
+    
+    // 表单元素动画
+    .from('.MuiTextField-root, .MuiSelect-root, .MuiChip-root', {
+      opacity: 0,
+      x: -20,
+      duration: 0.4,
+      ease: "power2.out",
+      stagger: 0.05
+    }, "-=0.2");
+    
+    console.log('🎬 页面动画已初始化');
+    
+    return () => {
+      // 清理动画
+      tl.kill();
+    };
+  }, []);
 
   // 页面加载时初始化数据
   useEffect(() => {
@@ -662,6 +719,69 @@ function App() {
     setSnackbarOpen(true);
   };
 
+  // 添加按钮交互动画
+  const handleButtonHover = (e, isEnter) => {
+    const button = e.currentTarget
+    
+    if (isEnter) {
+      gsap.to(button, {
+        scale: 1.02,
+        y: -2,
+        boxShadow: "0 8px 25px rgba(255, 105, 180, 0.3)",
+        duration: 0.3,
+        ease: "power2.out"
+      })
+    } else {
+      gsap.to(button, {
+        scale: 1,
+        y: 0,
+        boxShadow: "0 4px 12px rgba(255, 105, 180, 0.1)",
+        duration: 0.3,
+        ease: "power2.out"
+      })
+    }
+  }
+
+  // 添加按钮点击动画
+  const handleButtonClick = (e) => {
+    const button = e.currentTarget
+    
+    gsap.timeline()
+      .to(button, {
+        scale: 0.95,
+        duration: 0.1,
+        ease: "power2.inOut"
+      })
+      .to(button, {
+        scale: 1.02,
+        duration: 0.2,
+        ease: "elastic.out(1, 0.3)"
+      })
+  }
+
+  // 添加卡片悬停动画
+  const handleCardHover = (e, isEnter) => {
+    const card = e.currentTarget
+    
+    if (isEnter) {
+      gsap.to(card, {
+        scale: 1.02,
+        y: -5,
+        boxShadow: "0 12px 30px rgba(255, 105, 180, 0.2)",
+        duration: 0.3,
+        ease: "power2.out"
+      })
+    } else {
+      gsap.to(card, {
+        scale: 1,
+        y: 0,
+        boxShadow: "0 4px 12px rgba(255, 105, 180, 0.1)",
+        duration: 0.3,
+        ease: "power2.out"
+      })
+    }
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <Box sx={{ 
@@ -716,10 +836,54 @@ function App() {
               flex: '1 1 auto',
               justifyContent: 'flex-end'
             }}>
-              <Button color="inherit" startIcon={<HomeIcon />} href="/index.html" className="pixel-button-pink" sx={{ color: '#1E3D59' }}>首页</Button>
-              <Button color="inherit" startIcon={<ScienceIcon />} href="/s.html" className="pixel-button-pink" sx={{ color: '#1E3D59' }}>S版</Button>
-              <Button color="inherit" startIcon={<MaleIcon />} href="/male.html" className="pixel-button-pink" sx={{ color: '#1E3D59' }}>男生版</Button>
-              <Button color="inherit" startIcon={<MessageIcon />} href="/message.html" className="pixel-button-pink" sx={{ color: '#1E3D59' }}>留言板</Button>
+              <Button 
+                color="inherit" 
+                startIcon={<HomeIcon />} 
+                href="/index.html" 
+                className="pixel-button-pink" 
+                sx={{ color: '#1E3D59' }}
+                onMouseEnter={(e) => handleButtonHover(e, true)}
+                onMouseLeave={(e) => handleButtonHover(e, false)}
+                onClick={handleButtonClick}
+              >
+                首页
+              </Button>
+              <Button 
+                color="inherit" 
+                startIcon={<ScienceIcon />} 
+                href="/s.html" 
+                className="pixel-button-pink" 
+                sx={{ color: '#1E3D59' }}
+                onMouseEnter={(e) => handleButtonHover(e, true)}
+                onMouseLeave={(e) => handleButtonHover(e, false)}
+                onClick={handleButtonClick}
+              >
+                S版
+              </Button>
+              <Button 
+                color="inherit" 
+                startIcon={<MaleIcon />} 
+                href="/male.html" 
+                className="pixel-button-pink" 
+                sx={{ color: '#1E3D59' }}
+                onMouseEnter={(e) => handleButtonHover(e, true)}
+                onMouseLeave={(e) => handleButtonHover(e, false)}
+                onClick={handleButtonClick}
+              >
+                男生版
+              </Button>
+              <Button 
+                color="inherit" 
+                startIcon={<MessageIcon />} 
+                href="/message.html" 
+                className="pixel-button-pink" 
+                sx={{ color: '#1E3D59' }}
+                onMouseEnter={(e) => handleButtonHover(e, true)}
+                onMouseLeave={(e) => handleButtonHover(e, false)}
+                onClick={handleButtonClick}
+              >
+                留言板
+              </Button>
               <Button
                 color="inherit"
                 startIcon={<PersonIcon />}
