@@ -153,51 +153,67 @@ function App() {
   // 初始化GSAP和页面动画
   useEffect(() => {
     try {
-      // 页面入场动画
-      const tl = gsap.timeline();
-      
-      // 标题动画 - 从上方淡入
-      tl.from('.pixel-title-pink, h1, h2, h3', {
-        opacity: 0,
-        y: -30,
-        duration: 0.8,
-        ease: "power2.out",
-        stagger: 0.15
-      })
-      
-      // 卡片动画 - 从下方滑入并缩放
-      .from('.pixel-card-pink, .MuiPaper-root:not(.MuiAppBar-root)', {
-        opacity: 0,
-        y: 40,
-        scale: 0.95,
-        duration: 0.6,
-        ease: "back.out(1.2)",
-        stagger: 0.1
-      }, "-=0.4")
-      
-      // 按钮动画 - 弹跳效果
-      .from('.pixel-button-pink, .MuiButton-root', {
-        opacity: 0,
-        scale: 0.8,
-        duration: 0.5,
-        ease: "elastic.out(1, 0.5)",
-        stagger: 0.08
-      }, "-=0.3")
-      
-      // 表单元素动画
-      .from('.MuiTextField-root, .MuiSelect-root, .MuiChip-root', {
-        opacity: 0,
-        x: -20,
-        duration: 0.4,
-        ease: "power2.out",
-        stagger: 0.05
-      }, "-=0.2");
-      
-      console.log('🎬 页面动画已初始化');
+      // 确保DOM元素已经加载完成
+      setTimeout(() => {
+        // 页面入场动画
+        const tl = gsap.timeline({
+          defaults: {
+            clearProps: "all" // 动画完成后清除所有应用的属性，防止干扰布局
+          }
+        });
+        
+        // 标题动画 - 从上方淡入
+        tl.from('.pixel-title-pink, h1, h2, h3', {
+          opacity: 0,
+          y: -30,
+          duration: 0.6,
+          ease: "power2.out",
+          stagger: 0.1,
+          clearProps: "all"
+        })
+        
+        // 卡片动画 - 从下方滑入并缩放
+        .from('.pixel-card-pink, .MuiPaper-root:not(.MuiAppBar-root):not(.MuiDrawer-paper)', {
+          opacity: 0,
+          y: 20,
+          scale: 0.98,
+          duration: 0.5,
+          ease: "back.out(1.2)",
+          stagger: 0.05,
+          clearProps: "all"
+        }, "-=0.3")
+        
+        // 按钮动画 - 弹跳效果
+        .from('.pixel-button-pink, .MuiButton-root', {
+          opacity: 0,
+          scale: 0.9,
+          duration: 0.4,
+          ease: "back.out(1.5)",
+          stagger: 0.03,
+          clearProps: "all"
+        }, "-=0.2")
+        
+        // 表单元素动画
+        .from('.MuiTextField-root, .MuiSelect-root, .MuiChip-root', {
+          opacity: 0,
+          x: -10,
+          duration: 0.3,
+          ease: "power2.out",
+          stagger: 0.03,
+          clearProps: "all"
+        }, "-=0.1");
+        
+        console.log('🎬 页面动画已初始化');
+      }, 100); // 短暂延迟确保DOM已加载
       
       return () => {
         // 清理动画
-        tl.kill();
+        gsap.killTweensOf([
+          '.pixel-title-pink, h1, h2, h3',
+          '.pixel-card-pink, .MuiPaper-root:not(.MuiAppBar-root)',
+          '.pixel-button-pink, .MuiButton-root',
+          '.MuiTextField-root, .MuiSelect-root, .MuiChip-root'
+        ]);
       };
     } catch (error) {
       console.warn('页面动画初始化失败:', error);
