@@ -108,7 +108,6 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      image-rendering: pixelated;
     }
 
     :root {
@@ -119,35 +118,21 @@
       --s-type: #ff4b2b;
       --message: #9c27b0;
       --background: #f5f5f5;
-    }
-
-    @keyframes float {
-      0% {
-        transform: translateY(0);
-      }
-
-      50% {
-        transform: translateY(-4px);
-      }
-
-      100% {
-        transform: translateY(0);
-      }
+      --text-gray: #666;
+      --border-radius: 12px;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
 
     body {
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      padding: 1rem;
+      line-height: 1.6;
+      color: var(--secondary);
+      background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+      min-height: 100vh;
       position: relative;
-      overflow-x: hidden;
     }
 
-    /* 背景装饰元素 */
+    /* 背景装饰 */
     body::before {
       content: '';
       position: fixed;
@@ -156,116 +141,275 @@
       width: 200%;
       height: 200%;
       background:
-        radial-gradient(circle at 20% 80%, rgba(255, 105, 180, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(74, 144, 226, 0.1) 0%, transparent 50%),
-        radial-gradient(circle at 40% 40%, rgba(255, 75, 43, 0.08) 0%, transparent 50%);
+        radial-gradient(circle at 20% 80%, rgba(255, 105, 180, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(74, 144, 226, 0.08) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(255, 75, 43, 0.05) 0%, transparent 50%);
       z-index: -1;
-      animation: backgroundMove 20s ease-in-out infinite;
+      animation: backgroundMove 30s ease-in-out infinite;
     }
 
     @keyframes backgroundMove {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(-20px, -10px) rotate(1deg); }
+      66% { transform: translate(20px, 10px) rotate(-1deg); }
+    }
 
-      0%,
-      100% {
-        transform: translate(0, 0) rotate(0deg);
-      }
-
-      33% {
-        transform: translate(-20px, -10px) rotate(1deg);
-      }
-
-      66% {
-        transform: translate(20px, 10px) rotate(-1deg);
-      }
+    .page-wrapper {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
     }
 
     .container {
-      width: 100%;
-      max-width: 800px;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+
+    /* Header */
+    .site-header {
+      padding: 3rem 0 2rem;
+      text-align: center;
     }
 
     .logo {
-      text-align: center;
-      font-size: 2rem;
+      font-size: 2.5rem;
+      font-weight: bold;
       color: var(--secondary);
-      text-transform: uppercase;
-      margin-bottom: 1rem;
-      letter-spacing: 2px;
+      margin-bottom: 0.5rem;
       font-family: 'Press Start 2P', cursive;
+      text-transform: uppercase;
+      letter-spacing: 3px;
     }
 
-    .card {
-      background: #fff;
-      border: 4px solid #000;
-      box-shadow: 8px 8px 0 #000;
-      padding: 1.5rem;
+    .subtitle {
+      font-size: 1.2rem;
+      color: var(--text-gray);
+      font-weight: 300;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      padding: 2rem 0;
+    }
+
+    .test-section {
+      display: grid;
+      gap: 2rem;
+      margin-bottom: 4rem;
+    }
+
+    .test-card {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 2rem;
+      box-shadow: var(--shadow);
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 1rem;
-      animation: float 3s ease-in-out infinite;
+      gap: 2rem;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .test-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-content {
+      flex: 1;
     }
 
     .card-title {
-      font-size: 1rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
       color: var(--secondary);
+    }
+
+    .card-description {
+      color: var(--text-gray);
+      font-size: 1rem;
+      line-height: 1.5;
     }
 
     .button-group {
       display: flex;
       gap: 1rem;
+      flex-shrink: 0;
     }
 
     .button {
       display: inline-block;
-      padding: 0.8rem 1.2rem;
-      font-size: 0.8rem;
+      padding: 0.8rem 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
       text-decoration: none;
-      color: #fff;
-      border: 3px solid #000;
-      transition: all 0.2s;
+      color: white;
+      border-radius: 8px;
+      transition: all 0.3s ease;
       text-transform: uppercase;
-      white-space: nowrap;
+      letter-spacing: 0.5px;
+      border: none;
+      cursor: pointer;
     }
 
     .button:hover {
-      transform: translate(-4px, -4px);
-      box-shadow: 4px 4px 0 #000;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }
 
     .female-button {
-      background: var(--female);
+      background: linear-gradient(135deg, var(--female) 0%, #ff1493 100%);
     }
 
     .male-button {
-      background: var(--male);
+      background: linear-gradient(135deg, var(--male) 0%, #2c5aa0 100%);
     }
 
     .s-button {
-      background: var(--s-type);
+      background: linear-gradient(135deg, var(--s-type) 0%, #e63946 100%);
     }
 
     .message-button {
-      background: var(--message);
+      background: linear-gradient(135deg, var(--message) 0%, #7b1fa2 100%);
       font-family: 'Press Start 2P', cursive;
+      font-size: 0.7rem;
     }
 
-    @media (max-width: 640px) {
+    /* Features Section */
+    .features-section {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .features-title {
+      font-size: 2rem;
+      font-weight: 600;
+      margin-bottom: 3rem;
+      color: var(--secondary);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+
+    .feature-card {
+      background: white;
+      padding: 2rem;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      transition: transform 0.3s ease;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .feature-card:hover {
+      transform: translateY(-3px);
+    }
+
+    .feature-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .feature-title.science {
+      color: var(--female);
+    }
+
+    .feature-title.free {
+      color: var(--male);
+    }
+
+    .feature-title.privacy {
+      color: var(--s-type);
+    }
+
+    .feature-description {
+      color: var(--text-gray);
+      line-height: 1.6;
+    }
+
+    /* Footer */
+    .site-footer {
+      background: rgba(0, 0, 0, 0.05);
+      padding: 3rem 0 2rem;
+      margin-top: auto;
+    }
+
+    .footer-content {
+      text-align: center;
+    }
+
+    .copyright {
+      font-size: 0.9rem;
+      color: var(--text-gray);
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .disclaimer {
+      font-size: 0.8rem;
+      color: #999;
+      margin-bottom: 2rem;
+    }
+
+    .footer-nav {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .footer-link {
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .footer-link.female {
+      color: var(--female);
+    }
+
+    .footer-link.male {
+      color: var(--male);
+    }
+
+    .footer-link.s-type {
+      color: var(--s-type);
+    }
+
+    .footer-link.message {
+      color: var(--message);
+    }
+
+    .footer-link:hover {
+      opacity: 0.8;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
       .container {
-        gap: 1rem;
+        padding: 0 1rem;
       }
 
       .logo {
-        font-size: 1.5rem;
+        font-size: 2rem;
       }
 
-      .card {
+      .subtitle {
+        font-size: 1rem;
+      }
+
+      .test-card {
         flex-direction: column;
         text-align: center;
-        padding: 1rem;
+        gap: 1.5rem;
       }
 
       .button-group {
@@ -277,85 +421,126 @@
         width: 100%;
         text-align: center;
       }
+
+      .features-title {
+        font-size: 1.5rem;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      .footer-nav {
+        flex-direction: column;
+        gap: 1rem;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .site-header {
+        padding: 2rem 0 1rem;
+      }
+
+      .logo {
+        font-size: 1.5rem;
+        letter-spacing: 2px;
+      }
+
+      .test-card {
+        padding: 1.5rem;
+      }
+
+      .card-title {
+        font-size: 1.2rem;
+      }
+
+      .feature-card {
+        padding: 1.5rem;
+      }
     }
   </style>
 </head>
 
 <body>
-  <header>
-    <div class="container">
-      <h1 class="logo">M-profile Lab</h1>
-      <p class="subtitle" style="text-align: center; color: #666; margin-bottom: 2rem; font-size: 1.1rem;">专业的人格测试平台，探索你的内在世界</p>
-    </div>
-  </header>
+  <div class="page-wrapper">
+    <header class="site-header">
+      <div class="container">
+        <h1 class="logo">M-profile Lab</h1>
+        <p class="subtitle">专业的人格测试平台，探索你的内在世界</p>
+      </div>
+    </header>
 
-  <main>
-    <div class="container">
-      <section class="test-section">
-        <article class="card" itemscope itemtype="https://schema.org/Service">
-          <header>
-            <h2 class="card-title" itemprop="name">M型人格测试</h2>
-            <p class="card-description" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;" itemprop="description">深入了解你的M型人格特质，通过科学的心理测评发现真实的自我</p>
-          </header>
-          <nav class="button-group" role="navigation" aria-label="M型人格测试选项">
-            <a href="./female.html" class="button female-button" title="女性专用M型人格测试" aria-label="开始女生版M型人格测试">女生版本</a>
-            <a href="./male.html" class="button male-button" title="男性专用M型人格测试" aria-label="开始男生版M型人格测试">男生版本</a>
-          </nav>
-        </article>
+    <main class="main-content">
+      <div class="container">
+        <section class="test-section">
+          <article class="test-card" itemscope itemtype="https://schema.org/Service">
+            <div class="card-content">
+              <h2 class="card-title" itemprop="name">M型人格测试</h2>
+              <p class="card-description" itemprop="description">深入了解你的M型人格特质，通过科学的心理测评发现真实的自我</p>
+            </div>
+            <nav class="button-group" role="navigation" aria-label="M型人格测试选项">
+              <a href="/female.html" class="button female-button" title="女性专用M型人格测试" aria-label="开始女生版M型人格测试">女生版本</a>
+              <a href="/male.html" class="button male-button" title="男性专用M型人格测试" aria-label="开始男生版M型人格测试">男生版本</a>
+            </nav>
+          </article>
 
-        <article class="card" itemscope itemtype="https://schema.org/Service">
-          <header>
-            <h2 class="card-title" itemprop="name">S型人格测试</h2>
-            <p class="card-description" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;" itemprop="description">发现你的S型人格特质，了解你的主导性格倾向和行为模式</p>
-          </header>
-          <nav class="button-group" role="navigation" aria-label="S型人格测试">
-            <a href="./s.html" class="button s-button" title="开始S型人格测试" aria-label="立即开始S型人格测试">开始测试</a>
-          </nav>
-        </article>
+          <article class="test-card" itemscope itemtype="https://schema.org/Service">
+            <div class="card-content">
+              <h2 class="card-title" itemprop="name">S型人格测试</h2>
+              <p class="card-description" itemprop="description">发现你的S型人格特质，了解你的主导性格倾向和行为模式</p>
+            </div>
+            <nav class="button-group" role="navigation" aria-label="S型人格测试">
+              <a href="/s.html" class="button s-button" title="开始S型人格测试" aria-label="立即开始S型人格测试">开始测试</a>
+            </nav>
+          </article>
 
-        <article class="card" itemscope itemtype="https://schema.org/Service">
-          <header>
-            <h2 class="card-title" itemprop="name">社区交流</h2>
-            <p class="card-description" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;" itemprop="description">与其他用户分享测试心得，探讨人格特质和心理健康话题</p>
-          </header>
-          <nav class="button-group" role="navigation" aria-label="社区功能">
-            <a href="./message.html" class="button message-button" title="进入社区留言板" aria-label="访问社区留言板">Dirty Talk</a>
-          </nav>
-        </article>
-      </section>
+          <article class="test-card" itemscope itemtype="https://schema.org/Service">
+            <div class="card-content">
+              <h2 class="card-title" itemprop="name">社区交流</h2>
+              <p class="card-description" itemprop="description">与其他用户分享测试心得，探讨人格特质和心理健康话题</p>
+            </div>
+            <nav class="button-group" role="navigation" aria-label="社区功能">
+              <a href="/message.html" class="button message-button" title="进入社区留言板" aria-label="访问社区留言板">Dirty Talk</a>
+            </nav>
+          </article>
+        </section>
 
-      <section class="features" style="margin-top: 2rem; text-align: center;">
-        <h2 style="font-size: 1.2rem; margin-bottom: 1rem; color: #333;">为什么选择M-profile Lab？</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
-          <div style="padding: 1rem; background: rgba(255,255,255,0.8); border-radius: 8px;">
-            <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: #ff69b4;">🔬 科学专业</h3>
-            <p style="font-size: 0.85rem; color: #666;">基于心理学理论，提供专业可靠的测评结果</p>
+        <section class="features-section">
+          <h2 class="features-title">为什么选择M-profile Lab？</h2>
+          <div class="features-grid">
+            <div class="feature-card">
+              <h3 class="feature-title science">🔬 科学专业</h3>
+              <p class="feature-description">基于心理学理论，提供专业可靠的测评结果</p>
+            </div>
+            <div class="feature-card">
+              <h3 class="feature-title free">🆓 完全免费</h3>
+              <p class="feature-description">所有测试完全免费，无需注册即可使用</p>
+            </div>
+            <div class="feature-card">
+              <h3 class="feature-title privacy">🔒 隐私保护</h3>
+              <p class="feature-description">严格保护用户隐私，测试结果仅供个人参考</p>
+            </div>
           </div>
-          <div style="padding: 1rem; background: rgba(255,255,255,0.8); border-radius: 8px;">
-            <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: #4a90e2;">🆓 完全免费</h3>
-            <p style="font-size: 0.85rem; color: #666;">所有测试完全免费，无需注册即可使用</p>
-          </div>
-          <div style="padding: 1rem; background: rgba(255,255,255,0.8); border-radius: 8px;">
-            <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: #ff4b2b;">🔒 隐私保护</h3>
-            <p style="font-size: 0.85rem; color: #666;">严格保护用户隐私，测试结果仅供个人参考</p>
-          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-content">
+          <p class="copyright">© 2024 M-profile Lab. 专业的人格测试平台</p>
+          <p class="disclaimer">本网站提供的测试结果仅供参考，不能替代专业心理咨询</p>
+          <nav class="footer-nav">
+            <a href="/female.html" class="footer-link female">女M测试</a>
+            <a href="/male.html" class="footer-link male">男M测试</a>
+            <a href="/s.html" class="footer-link s-type">S型测试</a>
+            <a href="/message.html" class="footer-link message">留言板</a>
+          </nav>
         </div>
-      </section>
-    </div>
-  </main>
-
-  <footer style="margin-top: 3rem; text-align: center; padding: 2rem 1rem; background: rgba(0,0,0,0.05);">
-    <div class="container">
-      <p style="color: #666; font-size: 0.85rem; margin-bottom: 0.5rem;">© 2024 M-profile Lab. 专业的人格测试平台</p>
-      <p style="color: #888; font-size: 0.75rem;">本网站提供的测试结果仅供参考，不能替代专业心理咨询</p>
-      <nav style="margin-top: 1rem;">
-        <a href="./female.html" style="color: #ff69b4; text-decoration: none; margin: 0 1rem; font-size: 0.8rem;">女M测试</a>
-        <a href="./male.html" style="color: #4a90e2; text-decoration: none; margin: 0 1rem; font-size: 0.8rem;">男M测试</a>
-        <a href="./s.html" style="color: #ff4b2b; text-decoration: none; margin: 0 1rem; font-size: 0.8rem;">S型测试</a>
-        <a href="./message.html" style="color: #9c27b0; text-decoration: none; margin: 0 1rem; font-size: 0.8rem;">留言板</a>
-      </nav>
-    </div>
-  </footer>
+      </div>
+    </footer>
+  </div>
 </body>
 
 </html>
