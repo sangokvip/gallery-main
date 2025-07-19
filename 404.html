@@ -1,108 +1,237 @@
 <!DOCTYPE html>
-<html lang="zh">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="页面未找到 - M-profile Lab" />
-    <title>404 - 页面未找到 | M-profile Lab</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='16' fill='%23ff69b4'/><path d='M24 12C24 8.68629 20.4183 6 16 6C11.5817 6 8 8.68629 8 12C8 13.6974 9.05546 15.2141 10.7581 16.2371C10.8109 16.2686 10.8419 16.3249 10.8397 16.3841L10.7896 17.6506C10.7816 17.8683 11.0169 18.0073 11.2032 17.8928L12.7361 16.9851C12.7987 16.9457 12.8739 16.9304 12.9478 16.9428C13.9389 17.1404 14.9987 17.2444 16.1023 17.2444C20.4183 17.2444 24 14.5581 24 11.2444V12Z' fill='white'/><circle cx='12' cy='12' r='1.5' fill='%23ff69b4'/><circle cx='16' cy='12' r='1.5' fill='%23ff69b4'/><circle cx='20' cy='12' r='1.5' fill='%23ff69b4'/></svg>" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <style>
-      * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      :root {
-        --primary: #ff69b4;
-        --secondary: #000000;
-        --background: #f5f5f5;
-      }
-
-      @keyframes glitch {
-        0% { transform: translate(0); }
-        20% { transform: translate(-3px, 3px); }
-        40% { transform: translate(-3px, -3px); }
-        60% { transform: translate(3px, 3px); }
-        80% { transform: translate(3px, -3px); }
-        100% { transform: translate(0); }
-      }
-
-      body {
-        min-height: 100vh;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: var(--background);
-        font-family: 'Press Start 2P', cursive;
-        padding: 1rem;
-        text-align: center;
-      }
-
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>页面未找到 - M-profile Lab</title>
+  <meta name="description" content="抱歉，您访问的页面不存在。请返回M-profile Lab首页继续您的人格测试之旅。">
+  <meta name="robots" content="noindex, nofollow">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="页面未找到 - M-profile Lab">
+  <meta property="og:description" content="抱歉，您访问的页面不存在。请返回首页继续您的人格测试之旅。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://gallery-main-rho.vercel.app/404.html">
+  
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='16' fill='%23ff69b4'/><path d='M24 12C24 8.68629 20.4183 6 16 6C11.5817 6 8 8.68629 8 12C8 13.6974 9.05546 15.2141 10.7581 16.2371C10.8109 16.2686 10.8419 16.3249 10.8397 16.3841L10.7896 17.6506C10.7816 17.8683 11.0169 18.0073 11.2032 17.8928L12.7361 16.9851C12.7987 16.9457 12.8739 16.9304 12.9478 16.9428C13.9389 17.1404 14.9987 17.2444 16.1023 17.2444C20.4183 17.2444 24 14.5581 24 11.2444V12Z' fill='white'/><circle cx='12' cy='12' r='1.5' fill='%23ff69b4'/><circle cx='16' cy='12' r='1.5' fill='%23ff69b4'/><circle cx='20' cy='12' r='1.5' fill='%23ff69b4'/></svg>">
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+    
+    .container {
+      text-align: center;
+      max-width: 600px;
+      background: white;
+      padding: 3rem 2rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .error-code {
+      font-size: 6rem;
+      font-weight: bold;
+      color: #ff69b4;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      font-size: 2rem;
+      color: #333;
+      margin-bottom: 1rem;
+    }
+    
+    p {
+      color: #666;
+      font-size: 1.1rem;
+      line-height: 1.6;
+      margin-bottom: 2rem;
+    }
+    
+    .buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      display: inline-block;
+      padding: 0.8rem 1.5rem;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    
+    .btn-primary {
+      background: #ff69b4;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #ff1493;
+      transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+      background: transparent;
+      color: #4a90e2;
+      border-color: #4a90e2;
+    }
+    
+    .btn-secondary:hover {
+      background: #4a90e2;
+      color: white;
+      transform: translateY(-2px);
+    }
+    
+    .popular-links {
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid #eee;
+    }
+    
+    .popular-links h2 {
+      font-size: 1.2rem;
+      color: #333;
+      margin-bottom: 1rem;
+    }
+    
+    .link-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .link-item {
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #333;
+      transition: all 0.3s ease;
+    }
+    
+    .link-item:hover {
+      background: #e9ecef;
+      transform: translateY(-2px);
+    }
+    
+    .link-item h3 {
+      font-size: 1rem;
+      margin-bottom: 0.5rem;
+      color: #ff69b4;
+    }
+    
+    .link-item p {
+      font-size: 0.9rem;
+      color: #666;
+      margin: 0;
+    }
+    
+    @media (max-width: 640px) {
       .container {
-        width: 100%;
-        max-width: 600px;
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
+        padding: 2rem 1rem;
       }
-
+      
       .error-code {
         font-size: 4rem;
-        color: var(--primary);
-        text-shadow: 3px 3px 0 var(--secondary);
-        animation: glitch 1s infinite;
       }
-
-      .error-message {
+      
+      h1 {
         font-size: 1.5rem;
-        color: var(--secondary);
-        margin-bottom: 2rem;
       }
-
-      .button {
-        display: inline-block;
-        padding: 1rem 2rem;
-        font-size: 1rem;
-        text-decoration: none;
-        color: #fff;
-        background: var(--primary);
-        border: 3px solid var(--secondary);
-        transition: all 0.2s;
-        text-transform: uppercase;
-        box-shadow: 5px 5px 0 var(--secondary);
+      
+      .buttons {
+        flex-direction: column;
       }
-
-      .button:hover {
-        transform: translate(-3px, -3px);
-        box-shadow: 8px 8px 0 var(--secondary);
+      
+      .btn {
+        width: 100%;
       }
-
-      @media (max-width: 640px) {
-        .error-code {
-          font-size: 3rem;
-        }
-
-        .error-message {
-          font-size: 1rem;
-        }
-
-        .button {
-          padding: 0.8rem 1.5rem;
-          font-size: 0.8rem;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="container">
-      <h1 class="error-code">404</h1>
-      <p class="error-message">页面未找到</p>
-      <a href="/index.html" class="button">返回首页</a>
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="error-code">404</div>
+    <h1>页面未找到</h1>
+    <p>抱歉，您访问的页面不存在或已被移动。<br>请检查URL是否正确，或者返回首页继续您的人格测试之旅。</p>
+    
+    <div class="buttons">
+      <a href="/" class="btn btn-primary">返回首页</a>
+      <a href="javascript:history.back()" class="btn btn-secondary">返回上页</a>
     </div>
-  </body>
+    
+    <div class="popular-links">
+      <h2>热门页面</h2>
+      <div class="link-grid">
+        <a href="/female.html" class="link-item">
+          <h3>女生版测试</h3>
+          <p>专为女性设计的M型人格测试</p>
+        </a>
+        <a href="/male.html" class="link-item">
+          <h3>男生版测试</h3>
+          <p>专为男性设计的M型人格测试</p>
+        </a>
+        <a href="/s.html" class="link-item">
+          <h3>S型测试</h3>
+          <p>发现你的S型人格特质</p>
+        </a>
+        <a href="/message.html" class="link-item">
+          <h3>社区留言</h3>
+          <p>与其他用户交流测试心得</p>
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // 记录404错误到分析工具
+    if (typeof gtag !== 'undefined') {
+      gtag('event', '404_error', {
+        'event_category': 'Error',
+        'event_label': window.location.pathname,
+        'non_interaction': true
+      });
+    }
+    
+    // 自动重定向常见的错误URL
+    const currentPath = window.location.pathname.toLowerCase();
+    const redirects = {
+      '/index': '/',
+      '/home': '/',
+      '/test': '/s.html',
+      '/female': '/female.html',
+      '/male': '/male.html',
+      '/woman': '/female.html',
+      '/man': '/male.html',
+      '/girl': '/female.html',
+      '/boy': '/male.html'
+    };
+    
+    if (redirects[currentPath]) {
+      setTimeout(() => {
+        window.location.href = redirects[currentPath];
+      }, 3000);
+    }
+  </script>
+</body>
 </html>

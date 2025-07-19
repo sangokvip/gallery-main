@@ -1,9 +1,34 @@
 User-agent: *
 Allow: /
+
+# 允许访问所有重要页面
 Allow: /female.html
 Allow: /male.html
 Allow: /s.html
 Allow: /gallery.html
 Allow: /message.html
 
-Sitemap: https://m-profile.top/sitemap.xml 
+# 允许访问静态资源
+Allow: /assets/
+Allow: /css/
+Allow: /js/
+Allow: /fonts/
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.gif$
+Allow: /*.svg$
+Allow: /*.ico$
+
+# 禁止访问敏感目录
+Disallow: /src/
+Disallow: /node_modules/
+Disallow: /.git/
+Disallow: /.vscode/
+Disallow: /dist/
+
+# 爬取延迟（毫秒）
+Crawl-delay: 1
+
+# Sitemap位置
+Sitemap: https://gallery-main-rho.vercel.app/sitemap.xml 

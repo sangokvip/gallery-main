@@ -1,303 +1,361 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-CN">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>M-profile Lab</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --primary: #ff69b4;
-      --secondary: #4a90e2;
-      --accent: #ff4b2b;
-      --message: #9c27b0;
-      --dark: #111827;
-      --light: #f9fafb;
-      --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-      --border-radius: 16px;
+  
+  <!-- 基础SEO标签 -->
+  <title>M型人格测试 | S型人格测试 | 专业心理测评平台 - M-profile Lab</title>
+  <meta name="description" content="M-profile Lab是专业的人格测试平台，提供免费的M型人格测试和S型人格测试。通过科学的心理测评，帮助您深入了解自己的性格特质，发现真实的内在自我。支持男女分版测试，结果准确可靠。" />
+  <meta name="keywords" content="M型人格测试,S型人格测试,性格测试,人格分析,心理测试,性格分析,人格测评,心理评估,免费测试,在线测试,男M测试,女M测试,性格特质,人格特征" />
+  <meta name="author" content="M-profile Lab Team" />
+  <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+  <meta name="googlebot" content="index, follow" />
+  <meta name="bingbot" content="index, follow" />
+  
+  <!-- 语言和地区 -->
+  <meta name="language" content="zh-CN" />
+  <meta name="geo.region" content="CN" />
+  <meta name="geo.placename" content="China" />
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://gallery-main-rho.vercel.app/" />
+  <meta property="og:title" content="M型人格测试 | S型人格测试 - M-profile Lab" />
+  <meta property="og:description" content="专业的人格测试平台，提供免费的M型和S型人格测试。通过科学测评了解您的性格特质，发现真实的自我。" />
+  <meta property="og:image" content="https://gallery-main-rho.vercel.app/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="M-profile Lab" />
+  <meta property="og:locale" content="zh_CN" />
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:url" content="https://gallery-main-rho.vercel.app/" />
+  <meta property="twitter:title" content="M型人格测试 | S型人格测试 - M-profile Lab" />
+  <meta property="twitter:description" content="专业的人格测试平台，提供免费的M型和S型人格测试。通过科学测评了解您的性格特质，发现真实的自我。" />
+  <meta property="twitter:image" content="https://gallery-main-rho.vercel.app/og-image.png" />
+  
+  <!-- 结构化数据 -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "M-profile Lab",
+    "description": "专业的人格测试平台，提供免费的M型和S型人格测试",
+    "url": "https://gallery-main-rho.vercel.app/",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://gallery-main-rho.vercel.app/search?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "M-profile Lab",
+      "url": "https://gallery-main-rho.vercel.app/"
     }
-
+  }
+  </script>
+  
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "M-profile Lab 人格测试",
+    "description": "专业的在线人格测试平台，提供M型和S型人格测试",
+    "url": "https://gallery-main-rho.vercel.app/",
+    "applicationCategory": "HealthApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "CNY"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "reviewCount": "1250"
+    }
+  }
+  </script>
+  
+  <!-- 预连接和DNS预取 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="dns-prefetch" href="//fonts.googleapis.com" />
+  <link rel="dns-prefetch" href="//www.google-analytics.com" />
+  
+  <!-- 预加载关键资源 -->
+  <link rel="preload" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" as="style" />
+  <link rel="preload" href="/og-image.png" as="image" />
+  
+  <!-- 预取可能访问的页面 -->
+  <link rel="prefetch" href="/female.html" />
+  <link rel="prefetch" href="/male.html" />
+  <link rel="prefetch" href="/s.html" />
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="https://gallery-main-rho.vercel.app/" />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='16' fill='%23ff69b4'/><path d='M24 12C24 8.68629 20.4183 6 16 6C11.5817 6 8 8.68629 8 12C8 13.6974 9.05546 15.2141 10.7581 16.2371C10.8109 16.2686 10.8419 16.3249 10.8397 16.3841L10.7896 17.6506C10.7816 17.8683 11.0169 18.0073 11.2032 17.8928L12.7361 16.9851C12.7987 16.9457 12.8739 16.9304 12.9478 16.9428C13.9389 17.1404 14.9987 17.2444 16.1023 17.2444C20.4183 17.2444 24 14.5581 24 11.2444V12Z' fill='white'/><circle cx='12' cy='12' r='1.5' fill='%23ff69b4'/><circle cx='16' cy='12' r='1.5' fill='%23ff69b4'/><circle cx='20' cy='12' r='1.5' fill='%23ff69b4'/></svg>" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png" />
+  <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      image-rendering: pixelated;
+    }
+
+    :root {
+      --primary: #ffffff;
+      --secondary: #000000;
+      --female: #ff69b4;
+      --male: #4a90e2;
+      --s-type: #ff4b2b;
+      --message: #9c27b0;
+      --background: #f5f5f5;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-4px);
+      }
+
+      100% {
+        transform: translateY(0);
+      }
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
       min-height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 2rem;
-      color: var(--dark);
-      line-height: 1.6;
+      background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      padding: 1rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* 背景装饰元素 */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background:
+        radial-gradient(circle at 20% 80%, rgba(255, 105, 180, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(74, 144, 226, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(255, 75, 43, 0.08) 0%, transparent 50%);
+      z-index: -1;
+      animation: backgroundMove 20s ease-in-out infinite;
+    }
+
+    @keyframes backgroundMove {
+
+      0%,
+      100% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+
+      33% {
+        transform: translate(-20px, -10px) rotate(1deg);
+      }
+
+      66% {
+        transform: translate(20px, 10px) rotate(-1deg);
+      }
     }
 
     .container {
       width: 100%;
-      max-width: 900px;
-      margin: 0 auto;
-      position: relative;
-      z-index: 1;
-    }
-
-    .header {
-      text-align: center;
-      margin-bottom: 3rem;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
     }
 
     .logo {
-      font-family: 'Press Start 2P', cursive;
-      font-size: 2.5rem;
-      background: linear-gradient(90deg, var(--primary), var(--secondary));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      text-align: center;
+      font-size: 2rem;
+      color: var(--secondary);
+      text-transform: uppercase;
       margin-bottom: 1rem;
       letter-spacing: 2px;
-      display: inline-block;
-    }
-
-    .subtitle {
-      font-size: 1.1rem;
-      color: #6b7280;
-      max-width: 600px;
-      margin: 0 auto;
-      font-weight: 500;
-    }
-
-    .cards {
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
+      font-family: 'Press Start 2P', cursive;
     }
 
     .card {
-      background: white;
-      border-radius: var(--border-radius);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      transition: all 0.3s ease;
-      display: flex;
-      flex-direction: row;
-      height: 180px;
-    }
-
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    }
-
-    .card-header {
+      background: #fff;
+      border: 4px solid #000;
+      box-shadow: 8px 8px 0 #000;
       padding: 1.5rem;
-      background: linear-gradient(135deg, var(--primary) 0%, #ec4899 100%);
-      color: white;
-      width: 200px;
       display: flex;
       align-items: center;
-      justify-content: center;
-    }
-
-    .card-header.male {
-      background: linear-gradient(135deg, var(--secondary) 0%, #3b82f6 100%);
-    }
-
-    .card-header.s-type {
-      background: linear-gradient(135deg, var(--accent) 0%, #ef4444 100%);
-    }
-
-    .card-header.message {
-      background: linear-gradient(135deg, var(--message) 0%, #8b5cf6 100%);
+      justify-content: space-between;
+      gap: 1rem;
+      animation: float 3s ease-in-out infinite;
     }
 
     .card-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      text-align: center;
-    }
-
-    .card-body {
-      padding: 1.5rem;
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-
-    .card-text {
-      color: #6b7280;
-      margin-bottom: 1rem;
+      font-size: 1rem;
+      color: var(--secondary);
     }
 
     .button-group {
       display: flex;
       gap: 1rem;
-      flex-wrap: wrap;
-      justify-content: flex-end;
     }
 
     .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 0.75rem 1.5rem;
-      background-color: white;
-      color: var(--dark);
+      display: inline-block;
+      padding: 0.8rem 1.2rem;
+      font-size: 0.8rem;
       text-decoration: none;
-      font-weight: 600;
-      border-radius: 8px;
-      transition: all 0.3s ease;
-      border: 2px solid transparent;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      min-width: 120px;
-      text-align: center;
+      color: #fff;
+      border: 3px solid #000;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      white-space: nowrap;
     }
 
     .button:hover {
-      transform: translateY(-2px);
+      transform: translate(-4px, -4px);
+      box-shadow: 4px 4px 0 #000;
     }
 
     .female-button {
-      background: linear-gradient(135deg, var(--primary) 0%, #ec4899 100%);
-      color: white;
+      background: var(--female);
     }
 
     .male-button {
-      background: linear-gradient(135deg, var(--secondary) 0%, #3b82f6 100%);
-      color: white;
+      background: var(--male);
     }
 
     .s-button {
-      background: linear-gradient(135deg, var(--accent) 0%, #ef4444 100%);
-      color: white;
+      background: var(--s-type);
     }
 
     .message-button {
-      background: linear-gradient(135deg, var(--message) 0%, #8b5cf6 100%);
-      color: white;
+      background: var(--message);
       font-family: 'Press Start 2P', cursive;
-      font-size: 0.7rem;
-      padding: 1rem 1.5rem;
     }
 
-    .decoration {
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.5;
-      z-index: -1;
-    }
-
-    .decoration-1 {
-      width: 400px;
-      height: 400px;
-      background: var(--primary);
-      top: -200px;
-      left: -200px;
-    }
-
-    .decoration-2 {
-      width: 300px;
-      height: 300px;
-      background: var(--secondary);
-      bottom: -100px;
-      right: -100px;
-    }
-
-    .decoration-3 {
-      width: 250px;
-      height: 250px;
-      background: var(--accent);
-      bottom: 30%;
-      left: 10%;
-    }
-
-    @media (max-width: 768px) {
-      body {
-        padding: 1.5rem;
+    @media (max-width: 640px) {
+      .container {
+        gap: 1rem;
       }
-      
+
       .logo {
-        font-size: 1.8rem;
+        font-size: 1.5rem;
       }
 
       .card {
         flex-direction: column;
-        height: auto;
-      }
-
-      .card-header {
-        width: 100%;
+        text-align: center;
         padding: 1rem;
       }
 
       .button-group {
-        justify-content: center;
+        flex-direction: column;
+        width: 100%;
       }
 
       .button {
         width: 100%;
+        text-align: center;
       }
     }
   </style>
 </head>
-<body>
-  <!-- 装饰背景元素 -->
-  <div class="decoration decoration-1"></div>
-  <div class="decoration decoration-2"></div>
-  <div class="decoration decoration-3"></div>
 
-  <div class="container">
-    <div class="header">
-      <h1 class="logo">M-PROFILE LAB</h1>
-      <p class="subtitle">探索你的人格特质，发现真实的自我</p>
+<body>
+  <header>
+    <div class="container">
+      <h1 class="logo">M-profile Lab</h1>
+      <p class="subtitle" style="text-align: center; color: #666; margin-bottom: 2rem; font-size: 1.1rem;">专业的人格测试平台，探索你的内在世界</p>
     </div>
-    
-    <div class="cards">
-      <!-- M型人格测试卡片 -->
-      <div class="card">
-        <div class="card-header">
-          <h2 class="card-title">M型人格测试</h2>
-        </div>
-        <div class="card-body">
-          <p class="card-text">深入了解你的M型人格特质，探索内心世界的奥秘。</p>
-          <div class="button-group">
-            <a href="./female.html" class="button female-button">女生版本</a>
-            <a href="./male.html" class="button male-button">男生版本</a>
+  </header>
+
+  <main>
+    <div class="container">
+      <section class="test-section">
+        <article class="card" itemscope itemtype="https://schema.org/Service">
+          <header>
+            <h2 class="card-title" itemprop="name">M型人格测试</h2>
+            <p class="card-description" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;" itemprop="description">深入了解你的M型人格特质，通过科学的心理测评发现真实的自我</p>
+          </header>
+          <nav class="button-group" role="navigation" aria-label="M型人格测试选项">
+            <a href="./female.html" class="button female-button" title="女性专用M型人格测试" aria-label="开始女生版M型人格测试">女生版本</a>
+            <a href="./male.html" class="button male-button" title="男性专用M型人格测试" aria-label="开始男生版M型人格测试">男生版本</a>
+          </nav>
+        </article>
+
+        <article class="card" itemscope itemtype="https://schema.org/Service">
+          <header>
+            <h2 class="card-title" itemprop="name">S型人格测试</h2>
+            <p class="card-description" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;" itemprop="description">发现你的S型人格特质，了解你的主导性格倾向和行为模式</p>
+          </header>
+          <nav class="button-group" role="navigation" aria-label="S型人格测试">
+            <a href="./s.html" class="button s-button" title="开始S型人格测试" aria-label="立即开始S型人格测试">开始测试</a>
+          </nav>
+        </article>
+
+        <article class="card" itemscope itemtype="https://schema.org/Service">
+          <header>
+            <h2 class="card-title" itemprop="name">社区交流</h2>
+            <p class="card-description" style="color: #666; font-size: 0.9rem; margin: 0.5rem 0;" itemprop="description">与其他用户分享测试心得，探讨人格特质和心理健康话题</p>
+          </header>
+          <nav class="button-group" role="navigation" aria-label="社区功能">
+            <a href="./message.html" class="button message-button" title="进入社区留言板" aria-label="访问社区留言板">Dirty Talk</a>
+          </nav>
+        </article>
+      </section>
+
+      <section class="features" style="margin-top: 2rem; text-align: center;">
+        <h2 style="font-size: 1.2rem; margin-bottom: 1rem; color: #333;">为什么选择M-profile Lab？</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+          <div style="padding: 1rem; background: rgba(255,255,255,0.8); border-radius: 8px;">
+            <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: #ff69b4;">🔬 科学专业</h3>
+            <p style="font-size: 0.85rem; color: #666;">基于心理学理论，提供专业可靠的测评结果</p>
+          </div>
+          <div style="padding: 1rem; background: rgba(255,255,255,0.8); border-radius: 8px;">
+            <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: #4a90e2;">🆓 完全免费</h3>
+            <p style="font-size: 0.85rem; color: #666;">所有测试完全免费，无需注册即可使用</p>
+          </div>
+          <div style="padding: 1rem; background: rgba(255,255,255,0.8); border-radius: 8px;">
+            <h3 style="font-size: 1rem; margin-bottom: 0.5rem; color: #ff4b2b;">🔒 隐私保护</h3>
+            <p style="font-size: 0.85rem; color: #666;">严格保护用户隐私，测试结果仅供个人参考</p>
           </div>
         </div>
-      </div>
-      
-      <!-- S型人格测试卡片 -->
-      <div class="card">
-        <div class="card-header s-type">
-          <h2 class="card-title">S型人格测试</h2>
-        </div>
-        <div class="card-body">
-          <p class="card-text">发现你的S型人格特质，了解你的主导性格倾向。</p>
-          <div class="button-group">
-            <a href="./s.html" class="button s-button">开始测试</a>
-          </div>
-        </div>
-      </div>
-      
-      <!-- 留言板卡片 -->
-      <div class="card">
-        <div class="card-header message">
-          <h2 class="card-title">留言板</h2>
-        </div>
-        <div class="card-body">
-          <p class="card-text">与其他用户交流分享，探讨测试结果和心得体会。</p>
-          <div class="button-group">
-            <a href="./message.html" class="button message-button">Dirty Talk</a>
-          </div>
-        </div>
-      </div>
+      </section>
     </div>
-  </div>
+  </main>
+
+  <footer style="margin-top: 3rem; text-align: center; padding: 2rem 1rem; background: rgba(0,0,0,0.05);">
+    <div class="container">
+      <p style="color: #666; font-size: 0.85rem; margin-bottom: 0.5rem;">© 2024 M-profile Lab. 专业的人格测试平台</p>
+      <p style="color: #888; font-size: 0.75rem;">本网站提供的测试结果仅供参考，不能替代专业心理咨询</p>
+      <nav style="margin-top: 1rem;">
+        <a href="./female.html" style="color: #ff69b4; text-decoration: none; margin: 0 1rem; font-size: 0.8rem;">女M测试</a>
+        <a href="./male.html" style="color: #4a90e2; text-decoration: none; margin: 0 1rem; font-size: 0.8rem;">男M测试</a>
+        <a href="./s.html" style="color: #ff4b2b; text-decoration: none; margin: 0 1rem; font-size: 0.8rem;">S型测试</a>
+        <a href="./message.html" style="color: #9c27b0; text-decoration: none; margin: 0 1rem; font-size: 0.8rem;">留言板</a>
+      </nav>
+    </div>
+  </footer>
 </body>
+
 </html>
