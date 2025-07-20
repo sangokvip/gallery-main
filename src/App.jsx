@@ -399,6 +399,21 @@ function App() {
   }
 
   const handleExportImage = async () => {
+    // 在导出图片前自动保存测试
+    if (Object.keys(ratings).length > 0 && hasUnsavedChanges) {
+      try {
+        await saveTestRecord();
+        setSnackbarMessage('测试已自动保存并开始导出图片...');
+        setSnackbarOpen(true);
+        // 短暂延迟让用户看到保存消息
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error('自动保存失败:', error);
+        setSnackbarMessage('自动保存失败，但继续导出图片...');
+        setSnackbarOpen(true);
+      }
+    }
+
     if (reportRef.current) {
       try {
         // 创建一个新的容器元素，用于生成图片
@@ -583,6 +598,21 @@ function App() {
   }
 
   const handleExportPDF = async () => {
+    // 在导出PDF前自动保存测试
+    if (Object.keys(ratings).length > 0 && hasUnsavedChanges) {
+      try {
+        await saveTestRecord();
+        setSnackbarMessage('测试已自动保存并开始导出PDF...');
+        setSnackbarOpen(true);
+        // 短暂延迟让用户看到保存消息
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      } catch (error) {
+        console.error('自动保存失败:', error);
+        setSnackbarMessage('自动保存失败，但继续导出PDF...');
+        setSnackbarOpen(true);
+      }
+    }
+
     if (reportRef.current) {
       try {
         const element = reportRef.current
