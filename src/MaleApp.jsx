@@ -312,6 +312,23 @@ function App() {
     setSnackbarOpen(true);
   };
 
+  const handleGenerateReport = async () => {
+    // 在生成报告前自动保存测试
+    if (Object.keys(ratings).length > 0 && hasUnsavedChanges) {
+      try {
+        await saveTestRecord();
+        setSnackbarMessage('测试已自动保存！');
+        setSnackbarOpen(true);
+      } catch (error) {
+        console.error('自动保存失败:', error);
+        setSnackbarMessage('自动保存失败，请稍后手动保存');
+        setSnackbarOpen(true);
+      }
+    }
+    
+    setOpenReport(true);
+  };
+
   const handleRatingChange = (category, item, value) => {
     setRatings(prev => ({
       ...prev,
@@ -1147,7 +1164,7 @@ function App() {
             variant="contained"
             color="primary"
             size="large"
-            onClick={() => setOpenReport(true)}
+            onClick={handleGenerateReport}
             className="pixel-button"
             sx={{ minWidth: 200 }}
           >

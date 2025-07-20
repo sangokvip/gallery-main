@@ -310,6 +310,23 @@ function SApp() {
     setSnackbarOpen(true);
   };
 
+  const handleGenerateReport = async () => {
+    // 在生成报告前自动保存测试
+    if (Object.keys(ratings).length > 0 && hasUnsavedChanges) {
+      try {
+        await saveTestRecord();
+        setSnackbarMessage('测试已自动保存！');
+        setSnackbarOpen(true);
+      } catch (error) {
+        console.error('自动保存失败:', error);
+        setSnackbarMessage('自动保存失败，请稍后手动保存');
+        setSnackbarOpen(true);
+      }
+    }
+    
+    setOpenReport(true);
+  };
+
   // 将MENU_ITEMS移到函数组件内部，这样它可以访问组件的状态设置函数
   const MENU_ITEMS = [
     { icon: <HomeIcon />, text: '首页', href: '/index.html' },
@@ -1079,7 +1096,7 @@ function SApp() {
               variant="contained"
               color="primary"
               size="large"
-              onClick={() => setOpenReport(true)}
+              onClick={handleGenerateReport}
               className="pixel-button-red"
               sx={{ minWidth: 150 }}
             >

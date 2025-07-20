@@ -817,6 +817,23 @@ function App() {
       })
   }
 
+  const handleGenerateReport = async () => {
+    // 在生成报告前自动保存测试
+    if (Object.keys(ratings).length > 0 && hasUnsavedChanges) {
+      try {
+        await saveTestRecord();
+        setSnackbarMessage('测试已自动保存！');
+        setSnackbarOpen(true);
+      } catch (error) {
+        console.error('自动保存失败:', error);
+        setSnackbarMessage('自动保存失败，请稍后手动保存');
+        setSnackbarOpen(true);
+      }
+    }
+    
+    setOpenReport(true);
+  }
+
   // 添加卡片悬停动画
   const handleCardHover = (e, isEnter) => {
     const card = e.currentTarget
@@ -1297,7 +1314,7 @@ function App() {
             variant="contained"
             color="primary"
             size="large"
-            onClick={() => setOpenReport(true)}
+            onClick={handleGenerateReport}
             sx={{ minWidth: 200 }}
             className="pixel-button-pink"
           >
