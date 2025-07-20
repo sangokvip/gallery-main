@@ -36,6 +36,26 @@
       "dest": "/qrcode.png"
     },
     {
+      "src": "/og-image.png",
+      "headers": { "cache-control": "public, max-age=31536000, immutable" },
+      "dest": "/og-image.png"
+    },
+    {
+      "src": "/og-female.png",
+      "headers": { "cache-control": "public, max-age=31536000, immutable" },
+      "dest": "/og-female.png"
+    },
+    {
+      "src": "/og-male.png",
+      "headers": { "cache-control": "public, max-age=31536000, immutable" },
+      "dest": "/og-male.png"
+    },
+    {
+      "src": "/*.png",
+      "headers": { "cache-control": "public, max-age=31536000, immutable" },
+      "dest": "/$1.png"
+    },
+    {
       "src": "/sw.js",
       "dest": "/sw.js",
       "headers": { "cache-control": "public, max-age=0, must-revalidate" }

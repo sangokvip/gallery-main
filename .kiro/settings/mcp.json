@@ -2,7 +2,9 @@
   "mcpServers": {
     "sequential-thinking": {
       "command": "uvx",
-      "args": ["mcp-sequential-thinking@latest"],
+      "args": [
+        "mcp-sequential-thinking@latest"
+      ],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR"
       },
@@ -10,8 +12,10 @@
       "autoApprove": []
     },
     "context-7": {
-      "command": "uvx", 
-      "args": ["mcp-context-7@latest"],
+      "command": "uvx",
+      "args": [
+        "mcp-context-7@latest"
+      ],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR"
       },
@@ -20,7 +24,9 @@
     },
     "feedback-enhanced": {
       "command": "uvx",
-      "args": ["mcp-feedback-enhanced@latest"], 
+      "args": [
+        "mcp-feedback-enhanced@latest"
+      ],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR"
       },
@@ -29,7 +35,9 @@
     },
     "playwright": {
       "command": "uvx",
-      "args": ["mcp-playwright@latest"],
+      "args": [
+        "mcp-playwright@latest"
+      ],
       "env": {
         "FASTMCP_LOG_LEVEL": "ERROR"
       },

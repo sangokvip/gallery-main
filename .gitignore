@@ -135,3 +135,5 @@ dist
 .yarn/install-state.gz
 .pnp.*
 *.md
+.kiro/settings/mcp.json
+.kiro/settings/mcp.json
