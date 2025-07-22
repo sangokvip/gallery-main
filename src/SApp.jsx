@@ -140,12 +140,32 @@ function SApp() {
   const [openDiagnostic, setOpenDiagnostic] = useState(false)
   const [diagnosticReport, setDiagnosticReport] = useState(null)
   const [showDiagnosticButton, setShowDiagnosticButton] = useState(false)
+  const [showStickyGuide, setShowStickyGuide] = useState(false)
   const reportRef = useRef(null)
+  const originalGuideRef = useRef(null)
 
   // 页面加载时初始化数据
   useEffect(() => {
     loadLatestTestRecord();
     loadTestRecords();
+  }, []);
+
+  // 监听滚动，控制动态评分说明的显示
+  useEffect(() => {
+    const handleScroll = () => {
+      if (originalGuideRef.current) {
+        const rect = originalGuideRef.current.getBoundingClientRect();
+        const isVisible = rect.bottom > 0 && rect.top < window.innerHeight;
+        setShowStickyGuide(!isVisible);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // 初始检查
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   // 监听评分变化，标记为有未保存的更改
@@ -702,11 +722,56 @@ function SApp() {
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ 
-        display: 'flex', 
+      <Box sx={{
+        display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh'
       }}>
+
+      {/* 动态置顶评分说明 */}
+      {showStickyGuide && (
+        <Paper elevation={3} className="pixel-card-red" sx={{
+          position: 'fixed',
+          top: { xs: '56px', md: '64px' },
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          p: 1.5,
+          borderRadius: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderBottom: '2px solid #ff0000',
+          animation: 'slideDown 0.3s ease-out',
+          '@keyframes slideDown': {
+            from: { transform: 'translateY(-100%)', opacity: 0 },
+            to: { transform: 'translateY(0)', opacity: 1 }
+          }
+        }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main', textAlign: 'center', fontSize: '0.8rem' }}>
+            评分等级说明
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: { xs: 0.5, md: 1 } }}>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('SSS') }}>SSS</Box>=极度喜欢
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('SS') }}>SS</Box>=喜欢
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('S') }}>S</Box>=接受
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('Q') }}>Q</Box>=好奇可以尝试
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('N') }}>N</Box>=拒绝
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('W') }}>W</Box>=未知
+            </Typography>
+          </Box>
+        </Paper>
+      )}
 
       <AppBar position="sticky" sx={{
         background: 'linear-gradient(135deg, #ff0000 0%, #ff5252 100%)',
@@ -821,45 +886,6 @@ function SApp() {
         </Box>
       </Drawer>
 
-      {/* 评分等级说明 - 独立的sticky元素 */}
-      <Paper elevation={3} className="pixel-card-red" sx={{
-        position: 'sticky',
-        top: { xs: '56px', md: '64px' }, // 考虑AppBar的高度
-        zIndex: 1000,
-        p: { xs: 2, md: 3 },
-        borderRadius: 0,
-        maxWidth: { xs: '95%', md: '80%' },
-        mx: 'auto',
-        mt: 2,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
-        boxShadow: '0 4px 12px rgba(255, 0, 0, 0.2)'
-      }}>
-        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main', textAlign: 'center' }}>
-          评分等级说明
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: { xs: 1, md: 2 } }}>
-          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-            <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('SSS') }}>SSS</Box> = 极度喜欢
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-            <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('SS') }}>SS</Box> = 喜欢
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-            <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('S') }}>S</Box> = 接受
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-            <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('Q') }}>Q</Box> = 好奇可以尝试
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-            <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('N') }}>N</Box> = 拒绝
-          </Typography>
-          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-            <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('W') }}>W</Box> = 未知
-          </Typography>
-        </Box>
-      </Paper>
-
       <Container maxWidth="lg" className="pixel-theme-red" sx={{
         py: 8,
         minHeight: '100vh',
@@ -892,6 +918,32 @@ function SApp() {
           </Typography>
 
         </Box>
+
+        <Paper elevation={3} className="pixel-card-red" sx={{ p: { xs: 2, md: 3 }, borderRadius: 0 }} ref={originalGuideRef}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main', textAlign: 'center' }}>
+            评分等级说明
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: { xs: 1, md: 2 } }}>
+            <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('SSS') }}>SSS</Box> = 极度喜欢
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('SS') }}>SS</Box> = 喜欢
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('S') }}>S</Box> = 接受
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('Q') }}>Q</Box> = 好奇可以尝试
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('N') }}>N</Box> = 拒绝
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: getRatingColor('W') }}>W</Box> = 未知
+            </Typography>
+          </Box>
+        </Paper>
 
         <Box sx={{ mt: 2, mb: 2, display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
           {/* 状态指示器 */}
@@ -1066,26 +1118,17 @@ function SApp() {
                       minWidth: 0,
                       overflow: 'hidden'
                     }}>
-                    <Typography
-                      className={item.length >= 5 ? 'option-text-marquee' : ''}
-                      sx={{
-                        fontWeight: 500,
-                        color: getRating(category, item) ?
-                          `${getRatingColor(getRating(category, item))}` :
-                          'text.primary',
-                        fontSize: { xs: '0.85rem', md: '1rem' },
-                        transition: 'color 0.3s ease',
-                        width: '100%',
-                        // 对于短文字使用省略号
-                        ...(item.length < 5 && {
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        })
-                      }}
-                    >
-                      {item}
-                    </Typography>
+                    <Typography sx={{
+                      fontWeight: 500,
+                      color: getRating(category, item) ?
+                        `${getRatingColor(getRating(category, item))}` :
+                        'text.primary',
+                      fontSize: { xs: '0.85rem', md: '1rem' },
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      transition: 'color 0.3s ease'
+                    }}>{item}</Typography>
                     </Box>
                     <Select
                       size="small"
