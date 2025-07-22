@@ -894,14 +894,14 @@ function App() {
           >
             男M自评报告
           </Typography>
-          <Paper elevation={1} sx={{ 
-            mt: 2, 
-            p: 2, 
+          <Paper elevation={1} sx={{
+            mt: 2,
+            p: 2,
             borderRadius: 2,
             backgroundColor: 'rgba(255, 255, 255, 0.9)',
             maxWidth: { xs: '100%', md: '80%' },
             mx: 'auto'
-          }}>
+          }} className="rating-guide-sticky">
             <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: '#000000', textAlign: 'center' }}>
               评分等级说明
             </Typography>
@@ -1106,23 +1106,41 @@ function App() {
                         '0 2px 6px rgba(0,0,0,0.15)',
                     },
                   }}>
-                    <Box sx={{ 
+                    <Box sx={{
                       display: 'flex',
                       alignItems: 'center',
                       flexGrow: 1,
-                      minWidth: 0
+                      minWidth: 0,
+                      overflow: 'hidden'
                     }}>
-                    <Typography sx={{ 
-                      fontWeight: 500, 
-                      color: getRating(category, item) ? 
-                        `${getRatingColor(getRating(category, item))}` : 
-                        'text.primary',
-                      fontSize: { xs: '0.85rem', md: '1rem' },
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      transition: 'color 0.3s ease'
-                    }}>{item}</Typography>
+                    <Typography
+                      sx={{
+                        fontWeight: 500,
+                        color: getRating(category, item) ?
+                          `${getRatingColor(getRating(category, item))}` :
+                          'text.primary',
+                        fontSize: { xs: '0.85rem', md: '1rem' },
+                        transition: 'color 0.3s ease',
+                        width: '100%',
+                        // 移动端跑马灯效果
+                        '@media (max-width: 768px)': {
+                          overflow: 'hidden',
+                          whiteSpace: 'nowrap',
+                          animation: item.length > 8 ? 'marquee-mobile 6s linear infinite' : 'none',
+                          '&:hover': {
+                            animationPlayState: 'paused'
+                          }
+                        },
+                        // 桌面端省略号
+                        '@media (min-width: 769px)': {
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }
+                      }}
+                    >
+                      {item}
+                    </Typography>
                     </Box>
                     <Select
                       size="small"

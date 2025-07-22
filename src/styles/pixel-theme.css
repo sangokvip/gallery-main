@@ -415,3 +415,79 @@
 .pixel-button-orange:hover {
   animation: pixelHover 0.5s infinite;
 }
+
+/* 跑马灯动画样式 */
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  width: 100%;
+}
+
+.marquee-text {
+  display: inline-block;
+  animation: marquee 8s linear infinite;
+  padding-left: 100%;
+}
+
+.marquee-text:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+/* 只在移动端或文字过长时启用跑马灯 */
+@media (max-width: 768px) {
+  .option-text-mobile {
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+  }
+
+  .option-text-mobile.text-overflow {
+    animation: marquee-mobile 6s linear infinite;
+  }
+
+  .option-text-mobile.text-overflow:hover {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes marquee-mobile {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(0);
+  }
+  75% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* 置顶评分说明样式 */
+.rating-guide-sticky {
+  position: sticky;
+  top: 80px;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.rating-guide-sticky.scrolled {
+  transform: scale(0.9);
+  margin: 8px;
+}
