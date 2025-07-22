@@ -1022,6 +1022,45 @@ function App() {
         </Box>
       </Drawer>
 
+      {/* 评分等级说明 - 独立的sticky元素 */}
+      <Paper elevation={1} sx={{
+        position: 'sticky',
+        top: { xs: '56px', md: '64px' }, // 考虑AppBar的高度
+        zIndex: 1000,
+        mt: 2,
+        p: 2,
+        borderRadius: 0,
+        maxWidth: { xs: '95%', md: '80%' },
+        mx: 'auto',
+        backgroundColor: 'rgba(255, 240, 245, 0.95)',
+        backdropFilter: 'blur(10px)',
+        boxShadow: '0 4px 12px rgba(255, 105, 180, 0.2)'
+      }} className="pixel-card-pink">
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main', textAlign: 'center' }}>
+          评分等级说明
+        </Typography>
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: { xs: 1, md: 2 } }}>
+          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+            <Box component="span" sx={{ fontWeight: 'bold', color: '#FF1493' }}>SSS</Box> = 非常喜欢
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+            <Box component="span" sx={{ fontWeight: 'bold', color: '#FF69B4' }}>SS</Box> = 喜欢
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+            <Box component="span" sx={{ fontWeight: 'bold', color: '#87CEEB' }}>S</Box> = 接受
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+            <Box component="span" sx={{ fontWeight: 'bold', color: '#FFD700' }}>Q</Box> = 不喜欢但会做
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+            <Box component="span" sx={{ fontWeight: 'bold', color: '#FF4500' }}>N</Box> = 拒绝
+          </Typography>
+          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
+            <Box component="span" sx={{ fontWeight: 'bold', color: '#808080' }}>W</Box> = 未知
+          </Typography>
+        </Box>
+      </Paper>
+
       <Container maxWidth="lg" sx={{
         py: 8,
         minHeight: '100vh',
@@ -1053,37 +1092,6 @@ function App() {
             女M自评报告
           </Typography>
           <Box className="pixel-divider-pink" sx={{ mb: 4, mt: 2 }}></Box>
-          <Paper elevation={1} sx={{
-            mt: 2,
-            p: 2,
-            borderRadius: 0,
-            maxWidth: { xs: '100%', md: '80%' },
-            mx: 'auto'
-          }} className="pixel-card-pink rating-guide-sticky">
-            <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main', textAlign: 'center' }}>
-              评分等级说明
-            </Typography>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: { xs: 1, md: 2 } }}>
-              <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-                <Box component="span" sx={{ fontWeight: 'bold', color: '#FF1493' }}>SSS</Box> = 非常喜欢
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-                <Box component="span" sx={{ fontWeight: 'bold', color: '#FF69B4' }}>SS</Box> = 喜欢
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-                <Box component="span" sx={{ fontWeight: 'bold', color: '#87CEEB' }}>S</Box> = 接受
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-                <Box component="span" sx={{ fontWeight: 'bold', color: '#FFD700' }}>Q</Box> = 不喜欢但会做
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-                <Box component="span" sx={{ fontWeight: 'bold', color: '#FF4500' }}>N</Box> = 拒绝
-              </Typography>
-              <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>
-                <Box component="span" sx={{ fontWeight: 'bold', color: '#808080' }}>W</Box> = 未知
-              </Typography>
-            </Box>
-          </Paper>
           <Box sx={{ mt: 3, textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
             {/* 状态指示器 */}
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
