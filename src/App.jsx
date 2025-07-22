@@ -1283,6 +1283,7 @@ function App() {
                       overflow: 'hidden'
                     }}>
                     <Typography
+                      className={item.length >= 5 ? 'option-text-marquee' : ''}
                       sx={{
                         fontWeight: 500,
                         color: getRating(category, item) ?
@@ -1291,21 +1292,12 @@ function App() {
                         fontSize: { xs: '0.85rem', md: '1rem' },
                         transition: 'color 0.3s ease',
                         width: '100%',
-                        // 移动端跑马灯效果
-                        '@media (max-width: 768px)': {
-                          overflow: 'hidden',
-                          whiteSpace: 'nowrap',
-                          animation: item.length > 8 ? 'marquee-mobile 6s linear infinite' : 'none',
-                          '&:hover': {
-                            animationPlayState: 'paused'
-                          }
-                        },
-                        // 桌面端省略号
-                        '@media (min-width: 769px)': {
+                        // 对于短文字使用省略号
+                        ...(item.length < 5 && {
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap'
-                        }
+                        })
                       }}
                     >
                       {item}

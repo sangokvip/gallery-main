@@ -443,20 +443,37 @@
   }
 }
 
-/* 只在移动端或文字过长时启用跑马灯 */
+/* 通用跑马灯效果 - 适用于所有设备 */
+.option-text-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  animation: marquee-universal 8s linear infinite;
+}
+
+.option-text-marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes marquee-universal {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(0);
+  }
+  75% {
+    transform: translateX(-30%);
+  }
+  100% {
+    transform: translateX(-30%);
+  }
+}
+
+/* 移动端跑马灯效果 */
 @media (max-width: 768px) {
-  .option-text-mobile {
-    overflow: hidden;
-    white-space: nowrap;
-    position: relative;
-  }
-
-  .option-text-mobile.text-overflow {
+  .option-text-marquee {
     animation: marquee-mobile 6s linear infinite;
-  }
-
-  .option-text-mobile.text-overflow:hover {
-    animation-play-state: paused;
   }
 }
 
@@ -468,10 +485,10 @@
     transform: translateX(0);
   }
   75% {
-    transform: translateX(-50%);
+    transform: translateX(-40%);
   }
   100% {
-    transform: translateX(-50%);
+    transform: translateX(-40%);
   }
 }
 
