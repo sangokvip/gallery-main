@@ -415,3 +415,22 @@
 .pixel-button-orange:hover {
   animation: pixelHover 0.5s infinite;
 }
+
+
+
+/* 置顶评分说明样式 */
+.rating-guide-sticky {
+  position: sticky;
+  top: 80px;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.rating-guide-sticky.scrolled {
+  transform: scale(0.9);
+  margin: 8px;
+}

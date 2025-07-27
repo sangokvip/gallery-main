@@ -39,10 +39,10 @@ if (typeof window !== 'undefined') {
 
 const RATING_OPTIONS = ['SSS', 'SS', 'S', 'Q', 'N', 'W']
 const CATEGORIES = {
-  '👑 性奴': ['🔞 强奸', '👥 轮奸', '💋 口爆', '💦 颜射', '💉 内射', '🍑 肛交', '🔧 器具折磨', '⚡️ 强制高潮', '💧 潮吹失禁', '🎭 自慰展示', '🚫 禁止高潮', '🔄 扩张阴道', '⭕️ 扩张肛门', '🔄 双阳具插入', '➕ 多阳具插入', '✌️ 双插'],
+  '👑 性奴': ['🔞 强奸', '👥 轮奸', '💋 口爆', '💦 颜射', '💉 内射', '🍑 肛交', '🔧 器具折磨', '⚡️ 强制高潮', '💧 潮吹失禁', '🎭 自慰展示', '🚫 禁止高潮（TD）', '🔄 扩张阴道', '⭕️ 扩张肛门', '🔄 双阳具插入', '➕ 多阳具插入', '✌️ 双插'],
   '🐕 犬奴': ['🔒 囚笼关押', '⛓️ 项圈镣铐', '🍽️ 喂食', '🐾 爬行', '👣 舔足', '👠 踩踏', '🎠 骑乘'],
   '🎎 玩偶奴': ['🎭 角色扮演', '👔 制服诱惑', '🎭 人偶装扮', '💍 乳环', '💎 阴环', '💫 脐环', '✂️ 剃毛', '🔍 内窥镜研究', '🔧 性工具研究', '🎨 作为艺术品', '🪑 作为家具', '🚬 作为烟灰缸', '👗 作为女仆', '🤐 限制说话内容'],
-  '🌲 野奴': ['🌳 野外暴露', '⛓️ 野外奴役', '🏃‍♀️ 野外流放', '🌿 野外玩弄', '🏢 公共场合暴露', '🏛️ 公共场合玩弄', '🎗️ 公开场合捆绑（衣服内）', '📱 公开场合器具（衣服内）', '👀 露阴（像朋友）', '👥 露阴（向生人）', '🔐 贞操带', '📿 公开场合项圈'],
+  '🌲 野奴': ['🌳 野外暴露', '⛓️ 野外奴役', '🏃‍♀️ 野外流放', '🌿 野外玩弄', '🏢 公共场合暴露', '🏛️ 公共场合玩弄', '🎗️ 外出捆绑（衣服内）', '📱 外出器具（衣服内）', '👀 露阴（向朋友）', '👥 露阴（向生人）', '🔐 贞操带', '📿 公开场合项圈'],
   '🐾 兽奴': ['🐕 兽交', '🐺 群兽轮交', '🐎 人兽同交', '🦁 兽虐', '🐜 昆虫爬身'],
   '⚔️ 刑奴': ['👋 耳光', '🤐 口塞', '💇‍♀️ 扯头发', '👢 皮带', '🎯 鞭子', '🎋 藤条', '🪵 木板', '🏏 棍棒', '🖌️ 毛刷', '⚡️ 虐阴', '🔗 紧缚', '⛓️ 吊缚', '🔒 拘束', '📎 乳夹', '⚡️ 电击', '🕯️ 滴蜡', '📍 针刺', '💉 穿孔', '🔥 烙印', '🎨 刺青', '✂️ 切割', '🔥 火刑', '💧 水刑', '😮‍💨 窒息', '👊 体罚', '🧊 冰块'],
   '🚽 厕奴': ['👅 舔精', '🥛 吞精', '💧 唾液', '💦 喝尿', '🚿 尿浴', '👄 舔阴', '💦 放尿', '🚰 灌肠', '👅 舔肛', '💩 排便', '🛁 粪浴', '🍽️ 吃粪', '🤧 吃痰', '🩸 吃经血'],
@@ -148,7 +148,9 @@ function App() {
   const [openDiagnostic, setOpenDiagnostic] = useState(false)
   const [diagnosticReport, setDiagnosticReport] = useState(null)
   const [showDiagnosticButton, setShowDiagnosticButton] = useState(false)
+  const [showStickyGuide, setShowStickyGuide] = useState(false)
   const reportRef = useRef(null)
+  const originalGuideRef = useRef(null)
 
   // 初始化GSAP和页面动画
   useEffect(() => {
@@ -225,6 +227,24 @@ function App() {
   useEffect(() => {
     loadLatestTestRecord();
     loadTestRecords();
+  }, []);
+
+  // 监听滚动，控制动态评分说明的显示
+  useEffect(() => {
+    const handleScroll = () => {
+      if (originalGuideRef.current) {
+        const rect = originalGuideRef.current.getBoundingClientRect();
+        const isVisible = rect.bottom > 0 && rect.top < window.innerHeight;
+        setShowStickyGuide(!isVisible);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll(); // 初始检查
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   // 监听评分变化，标记为有未保存的更改
@@ -859,11 +879,56 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <Box sx={{ 
-        display: 'flex', 
+      <Box sx={{
+        display: 'flex',
         flexDirection: 'column',
         minHeight: '100vh'
       }}>
+
+      {/* 动态置顶评分说明 */}
+      {showStickyGuide && (
+        <Paper elevation={2} sx={{
+          position: 'fixed',
+          top: { xs: '56px', md: '64px' },
+          left: 0,
+          right: 0,
+          zIndex: 1000,
+          p: 1.5,
+          backgroundColor: 'rgba(255, 240, 245, 0.95)',
+          backdropFilter: 'blur(10px)',
+          borderRadius: 0,
+          borderBottom: '2px solid #ff69b4',
+          animation: 'slideDown 0.3s ease-out',
+          '@keyframes slideDown': {
+            from: { transform: 'translateY(-100%)', opacity: 0 },
+            to: { transform: 'translateY(0)', opacity: 1 }
+          }
+        }} className="pixel-card-pink">
+          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main', textAlign: 'center', fontSize: '0.8rem' }}>
+            评分等级说明
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: { xs: 0.5, md: 1 } }}>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: '#FF1493' }}>SSS</Box>=非常喜欢
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: '#FF69B4' }}>SS</Box>=喜欢
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: '#87CEEB' }}>S</Box>=接受
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: '#FFD700' }}>Q</Box>=不喜欢但会做
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: '#FF4500' }}>N</Box>=拒绝
+            </Typography>
+            <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+              <Box component="span" sx={{ fontWeight: 'bold', color: '#808080' }}>W</Box>=未知
+            </Typography>
+          </Box>
+        </Paper>
+      )}
 
       <AppBar position="sticky" sx={{
         background: 'transparent',
@@ -1053,13 +1118,13 @@ function App() {
             女M自评报告
           </Typography>
           <Box className="pixel-divider-pink" sx={{ mb: 4, mt: 2 }}></Box>
-          <Paper elevation={1} sx={{ 
-            mt: 2, 
-            p: 2, 
+          <Paper elevation={1} sx={{
+            mt: 2,
+            p: 2,
             borderRadius: 0,
             maxWidth: { xs: '100%', md: '80%' },
             mx: 'auto'
-          }} className="pixel-card-pink">
+          }} className="pixel-card-pink" id="rating-guide-original" ref={originalGuideRef}>
             <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mb: 1, color: 'primary.main', textAlign: 'center' }}>
               评分等级说明
             </Typography>
@@ -1267,16 +1332,17 @@ function App() {
                         '0 2px 6px rgba(0,0,0,0.15)',
                     },
                   }}>
-                    <Box sx={{ 
+                    <Box sx={{
                       display: 'flex',
                       alignItems: 'center',
                       flexGrow: 1,
-                      minWidth: 0
+                      minWidth: 0,
+                      overflow: 'hidden'
                     }}>
-                    <Typography sx={{ 
-                      fontWeight: 500, 
-                      color: getRating(category, item) ? 
-                        `${getRatingColor(getRating(category, item))}` : 
+                    <Typography sx={{
+                      fontWeight: 500,
+                      color: getRating(category, item) ?
+                        `${getRatingColor(getRating(category, item))}` :
                         'text.primary',
                       fontSize: { xs: '0.85rem', md: '1rem' },
                       overflow: 'hidden',
