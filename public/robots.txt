@@ -31,4 +31,4 @@ Disallow: /dist/
 Crawl-delay: 1
 
 # Sitemap位置
-Sitemap: https://m-profile.top/sitemap.xml 
+Sitemap: https://www.m-profile.top/sitemap.xml 
