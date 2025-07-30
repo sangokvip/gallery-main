@@ -31,4 +31,4 @@ Disallow: /dist/
 Crawl-delay: 1
 
 # Sitemap位置
-Sitemap: https://gallery-main-rho.vercel.app/sitemap.xml 
+Sitemap: https://m-pofile.top/sitemap.xml 
