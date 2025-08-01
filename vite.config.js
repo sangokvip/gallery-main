@@ -27,6 +27,7 @@ export default defineConfig(({ command, mode }) => {
           main: './index.html',
           female: './female.html',
           male: './male.html',
+          lgbt: './lgbt.html',
           s: './s.html',
           message: './message.html',
           gallery: './gallery.html'

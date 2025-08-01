@@ -18,6 +18,7 @@ import CollectionsIcon from '@mui/icons-material/Collections'
 import FemaleIcon from '@mui/icons-material/Female'
 import MaleIcon from '@mui/icons-material/Male'
 import ScienceIcon from '@mui/icons-material/Science'
+import FavoriteIcon from '@mui/icons-material/Favorite'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import './styles/pixel-theme.css'
 import { messagesApi } from './utils/supabase'
@@ -1432,6 +1433,10 @@ function MessageApp() {
               <ListItem button component="a" href="/s.html">
                 <ListItemIcon><ScienceIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>
                 <ListItemText primary="S版" sx={{ color: '#ff69b4' }} />
+              </ListItem>
+              <ListItem button component="a" href="/lgbt.html">
+                <ListItemIcon><FavoriteIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>
+                <ListItemText primary="🏳️‍🌈 LGBT+" sx={{ color: '#ff69b4' }} />
               </ListItem>
               <ListItem button component="a" href="/gallery.html">
                 <ListItemIcon><CollectionsIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>

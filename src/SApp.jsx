@@ -13,12 +13,13 @@ import AutorenewIcon from '@mui/icons-material/Autorenew'
 import CloseIcon from '@mui/icons-material/Close'
 import MaleIcon from '@mui/icons-material/Male'
 import FemaleIcon from '@mui/icons-material/Female'
+import FavoriteIcon from '@mui/icons-material/Favorite'
+import MessageIcon from '@mui/icons-material/Message'
 import SaveIcon from '@mui/icons-material/Save'
 import HistoryIcon from '@mui/icons-material/History'
 import PersonIcon from '@mui/icons-material/Person'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import Footer from './components/Footer'
-import MessageIcon from '@mui/icons-material/Message'
 import { testRecordsApi } from './utils/supabase'
 import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
@@ -828,6 +829,7 @@ function SApp() {
               <Button color="inherit" startIcon={<HomeIcon />} href="/index.html">首页</Button>
               <Button color="inherit" startIcon={<MaleIcon />} href="/male.html">男版</Button>
               <Button color="inherit" startIcon={<FemaleIcon />} href="/female.html">女版</Button>
+              <Button color="inherit" startIcon={<FavoriteIcon />} href="/lgbt.html">🏳️‍🌈 LGBT+</Button>
               <Button color="inherit" startIcon={<MessageIcon />} href="/message.html">留言</Button>
               <Button
                 color="inherit"
@@ -873,6 +875,10 @@ function SApp() {
             <ListItem button component="a" href="/female.html" onClick={() => setMobileMenuOpen(false)}>
               <ListItemIcon><FemaleIcon sx={{ color: '#ff0000' }} /></ListItemIcon>
               <ListItemText primary="女生版" sx={{ color: '#ff0000' }} />
+            </ListItem>
+            <ListItem button component="a" href="/lgbt.html" onClick={() => setMobileMenuOpen(false)}>
+              <ListItemIcon><FavoriteIcon sx={{ color: '#ff0000' }} /></ListItemIcon>
+              <ListItemText primary="🏳️‍🌈 LGBT+" sx={{ color: '#ff0000' }} />
             </ListItem>
             <ListItem button component="a" href="/message.html" onClick={() => setMobileMenuOpen(false)}>
               <ListItemIcon><MessageIcon sx={{ color: '#ff0000' }} /></ListItemIcon>

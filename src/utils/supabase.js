@@ -5,15 +5,33 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('环境变量缺失：', {
+  console.warn('环境变量缺失，数据库功能将被禁用：', {
     url: !!supabaseUrl,
     key: !!supabaseAnonKey
   });
-  throw new Error('缺少 Supabase 环境变量配置')
+  // 不抛出错误，而是创建一个模拟客户端
 }
 
-console.log('Initializing Supabase client with URL:', supabaseUrl);
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// 创建安全的Supabase客户端
+let supabase;
+if (supabaseUrl && supabaseAnonKey) {
+  console.log('Initializing Supabase client with URL:', supabaseUrl);
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+} else {
+  console.warn('Supabase环境变量缺失，使用模拟客户端');
+  // 创建一个模拟客户端，所有方法都返回空结果或错误
+  supabase = {
+    from: () => ({
+      select: () => ({ data: [], error: new Error('数据库未配置') }),
+      insert: () => ({ data: null, error: new Error('数据库未配置') }),
+      update: () => ({ data: null, error: new Error('数据库未配置') }),
+      delete: () => ({ data: null, error: new Error('数据库未配置') }),
+      upsert: () => ({ data: null, error: new Error('数据库未配置') })
+    })
+  };
+}
+
+export { supabase }
 
 // 消息相关的数据库操作
 export const messagesApi = {
@@ -936,6 +954,217 @@ export const testRecordsApi = {
     } catch (error) {
       console.error('获取最新测试记录时发生错误:', error);
       return null; // 不抛出错误，返回null表示没有记录
+    }
+  },
+
+  // 更新测试记录
+  async updateTestRecord(recordId, { userId, nickname, ratings, reportData }) {
+    console.log('正在更新测试记录:', { recordId, userId, nickname });
+    try {
+      // 首先检查表是否存在
+      const tablesStatus = await this.checkTablesExist();
+      if (!tablesStatus.allExist) {
+        throw new Error(`数据库表不存在。缺少的表: ${Object.entries(tablesStatus).filter(([key, exists]) => key !== 'allExist' && !exists).map(([key]) => key).join(', ')}`);
+      }
+
+      // 验证记录是否属于该用户
+      const { data: recordData, error: fetchError } = await supabase
+        .from('test_records')
+        .select('user_id_text')
+        .eq('id', recordId)
+        .single();
+
+      if (fetchError) {
+        console.error('查找记录失败:', fetchError);
+        throw new Error('查找记录时出错');
+      }
+
+      if (recordData.user_id_text !== userId) {
+        throw new Error('您没有权限更新此记录');
+      }
+
+      // 更新用户信息
+      const { error: userError } = await supabase
+        .from('users')
+        .upsert([{
+          id: userId,
+          nickname: nickname || '匿名用户',
+          last_active: new Date().toISOString()
+        }], {
+          onConflict: 'id'
+        });
+
+      if (userError) {
+        console.error('更新用户信息失败:', userError);
+        throw userError;
+      }
+
+      // 更新测试记录
+      const { data: updatedRecord, error: updateError } = await supabase
+        .from('test_records')
+        .update({
+          report_data: reportData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', recordId)
+        .select();
+
+      if (updateError) {
+        console.error('更新测试记录失败:', updateError);
+        throw updateError;
+      }
+
+      // 删除旧的测试结果
+      const { error: deleteResultsError } = await supabase
+        .from('test_results')
+        .delete()
+        .eq('record_id', recordId);
+
+      if (deleteResultsError) {
+        console.error('删除旧测试结果失败:', deleteResultsError);
+        throw deleteResultsError;
+      }
+
+      // 插入新的测试结果
+      const resultEntries = Object.entries(ratings).map(([key, rating]) => {
+        const [category, item] = key.split('-');
+        return {
+          record_id: recordId,
+          category,
+          item,
+          rating,
+          created_at: new Date().toISOString()
+        };
+      });
+
+      if (resultEntries.length > 0) {
+        const { error: resultsError } = await supabase
+          .from('test_results')
+          .insert(resultEntries);
+
+        if (resultsError) {
+          console.error('保存新测试结果失败:', resultsError);
+          throw resultsError;
+        }
+      }
+
+      console.log('测试记录更新成功:', recordId);
+      return updatedRecord[0];
+    } catch (error) {
+      console.error('更新测试记录时发生错误:', error);
+      throw new Error('更新测试记录失败: ' + (error.message || '未知错误'));
+    }
+  },
+
+  // 批量删除测试记录
+  async batchDeleteTestRecords(recordIds, userId) {
+    console.log('正在批量删除测试记录:', { recordIds, userId });
+    try {
+      let successful = 0;
+      let failed = 0;
+      const errors = [];
+
+      for (const recordId of recordIds) {
+        try {
+          await this.deleteTestRecord(recordId, userId);
+          successful++;
+        } catch (error) {
+          failed++;
+          errors.push({ recordId, error: error.message });
+          console.error(`删除记录 ${recordId} 失败:`, error);
+        }
+      }
+
+      return {
+        successful,
+        failed,
+        errors,
+        total: recordIds.length
+      };
+    } catch (error) {
+      console.error('批量删除测试记录时发生错误:', error);
+      throw new Error('批量删除失败: ' + (error.message || '未知错误'));
+    }
+  },
+
+  // 验证测试数据
+  validateTestData({ userId, nickname, testType, ratings, reportData }) {
+    const errors = [];
+
+    // 验证用户ID
+    if (!userId || typeof userId !== 'string' || userId.trim() === '') {
+      errors.push('用户ID不能为空');
+    }
+
+    // 验证测试类型
+    if (!testType || typeof testType !== 'string' || testType.trim() === '') {
+      errors.push('测试类型不能为空');
+    }
+
+    // 验证评分数据
+    if (!ratings || typeof ratings !== 'object') {
+      errors.push('评分数据格式不正确');
+    } else {
+      // 验证评分值
+      const validRatings = ['SSS', 'SS', 'S', 'Q', 'N', 'W', ''];
+      for (const [key, value] of Object.entries(ratings)) {
+        if (!validRatings.includes(value)) {
+          errors.push(`无效的评分值: ${key} = ${value}`);
+        }
+        if (!key.includes('-')) {
+          errors.push(`无效的评分键格式: ${key}`);
+        }
+      }
+    }
+
+    // 验证报告数据
+    if (reportData && typeof reportData !== 'object') {
+      errors.push('报告数据格式不正确');
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  },
+
+  // 获取用户测试统计信息
+  async getUserTestStats(userId) {
+    console.log('正在获取用户测试统计:', userId);
+    try {
+      const { data: records, error } = await supabase
+        .from('test_records')
+        .select('test_type, created_at')
+        .eq('user_id_text', userId);
+
+      if (error) {
+        console.error('获取测试统计失败:', error);
+        throw error;
+      }
+
+      const stats = {
+        totalTests: records.length,
+        testTypes: {},
+        firstTestDate: null,
+        lastTestDate: null
+      };
+
+      if (records.length > 0) {
+        // 统计各类型测试数量
+        records.forEach(record => {
+          stats.testTypes[record.test_type] = (stats.testTypes[record.test_type] || 0) + 1;
+        });
+
+        // 获取首次和最近测试时间
+        const dates = records.map(r => new Date(r.created_at)).sort((a, b) => a - b);
+        stats.firstTestDate = dates[0];
+        stats.lastTestDate = dates[dates.length - 1];
+      }
+
+      return stats;
+    } catch (error) {
+      console.error('获取用户测试统计时发生错误:', error);
+      throw new Error('获取测试统计失败: ' + (error.message || '未知错误'));
     }
   }
 };

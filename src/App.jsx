@@ -12,6 +12,7 @@ import MenuIcon from '@mui/icons-material/Menu'
 import AutorenewIcon from '@mui/icons-material/Autorenew'
 import CloseIcon from '@mui/icons-material/Close'
 import MaleIcon from '@mui/icons-material/Male'
+import FavoriteIcon from '@mui/icons-material/Favorite'
 import MessageIcon from '@mui/icons-material/Message'
 import SaveIcon from '@mui/icons-material/Save'
 import HistoryIcon from '@mui/icons-material/History'
@@ -972,82 +973,55 @@ function App() {
                 
             <Box sx={{
               display: { xs: 'none', md: 'flex' },
-              gap: 2,
+              gap: 1,
               flex: '1 1 auto',
-              justifyContent: 'flex-end'
+              justifyContent: 'flex-end',
+              '& .MuiButton-root': {
+                color: '#1E3D59',
+                fontSize: '0.7rem',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                fontWeight: 600,
+                minWidth: 'auto',
+                px: 1.5,
+                py: 0.5,
+                border: '1px solid rgba(255, 105, 180, 0.3)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 105, 180, 0.1)'
+                }
+              }
             }}>
-              <Button 
-                color="inherit" 
-                startIcon={<HomeIcon />} 
-                href="/index.html" 
-                className="pixel-button-pink" 
-                sx={{ color: '#1E3D59' }}
-                onMouseEnter={(e) => handleButtonHover(e, true)}
-                onMouseLeave={(e) => handleButtonHover(e, false)}
-                onClick={handleButtonClick}
-              >
-                首页
-              </Button>
-              <Button 
-                color="inherit" 
-                startIcon={<ScienceIcon />} 
-                href="/s.html" 
-                className="pixel-button-pink" 
-                sx={{ color: '#1E3D59' }}
-                onMouseEnter={(e) => handleButtonHover(e, true)}
-                onMouseLeave={(e) => handleButtonHover(e, false)}
-                onClick={handleButtonClick}
-              >
-                S版
-              </Button>
-              <Button 
-                color="inherit" 
-                startIcon={<MaleIcon />} 
-                href="/male.html" 
-                className="pixel-button-pink" 
-                sx={{ color: '#1E3D59' }}
-                onMouseEnter={(e) => handleButtonHover(e, true)}
-                onMouseLeave={(e) => handleButtonHover(e, false)}
-                onClick={handleButtonClick}
-              >
-                男生版
-              </Button>
-              <Button 
-                color="inherit" 
-                startIcon={<MessageIcon />} 
-                href="/message.html" 
-                className="pixel-button-pink" 
-                sx={{ color: '#1E3D59' }}
-                onMouseEnter={(e) => handleButtonHover(e, true)}
-                onMouseLeave={(e) => handleButtonHover(e, false)}
-                onClick={handleButtonClick}
-              >
-                留言板
-              </Button>
+              <Button color="inherit" startIcon={<HomeIcon />} href="/index.html">首页</Button>
+              <Button color="inherit" startIcon={<ScienceIcon />} href="/s.html">S版</Button>
+              <Button color="inherit" startIcon={<MaleIcon />} href="/male.html">男生版</Button>
+              <Button color="inherit" startIcon={<FavoriteIcon />} href="/lgbt.html">🏳️‍🌈 LGBT+</Button>
+              <Button color="inherit" startIcon={<MessageIcon />} href="/message.html">留言板</Button>
               <Button
                 color="inherit"
                 startIcon={<PersonIcon />}
                 onClick={() => setOpenUserSettings(true)}
-                className="pixel-button-pink"
                 sx={{
-                  color: '#1E3D59',
-                  minWidth: 'auto',
-                  px: 1,
-                  maxWidth: '120px',
+                  maxWidth: '100px',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap'
                 }}
               >
-                {getNickname()}
+                {getNickname().length > 6 ? getNickname().substring(0, 6) + '...' : getNickname()}
               </Button>
             </Box>
 
             <IconButton
               color="inherit"
-              sx={{ display: { xs: 'block', md: 'none' } }}
+              sx={{ 
+                display: { xs: 'block', md: 'none' },
+                border: '1px solid rgba(255, 105, 180, 0.3)',
+                borderRadius: '4px',
+                padding: '4px',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 105, 180, 0.1)'
+                }
+              }}
               onClick={() => setMobileMenuOpen(true)}
-              className="pixel-button-pink"
             >
               <MenuIcon sx={{ color: '#1E3D59' }} />
             </IconButton>
@@ -1074,6 +1048,10 @@ function App() {
             <ListItem button component="a" href="/male.html" onClick={() => setMobileMenuOpen(false)}>
               <ListItemIcon><MaleIcon sx={{ color: '#1E3D59' }} /></ListItemIcon>
               <ListItemText primary="男生版" sx={{ color: '#1E3D59' }} />
+            </ListItem>
+            <ListItem button component="a" href="/lgbt.html" onClick={() => setMobileMenuOpen(false)}>
+              <ListItemIcon><FavoriteIcon sx={{ color: '#1E3D59' }} /></ListItemIcon>
+              <ListItemText primary="🏳️‍🌈 LGBT+" sx={{ color: '#1E3D59' }} />
             </ListItem>
             <ListItem button component="a" href="/message.html" onClick={() => setMobileMenuOpen(false)}>
               <ListItemIcon><MessageIcon sx={{ color: '#1E3D59' }} /></ListItemIcon>

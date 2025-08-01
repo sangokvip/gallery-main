@@ -1,0 +1,377 @@
+/* LGBT Theme CSS */
+
+.lgbt-theme {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3);
+  background-size: 400% 400%;
+  animation: rainbow 3s ease infinite;
+}
+
+@keyframes rainbow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.lgbt-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 15px;
+  backdrop-filter: blur(10px);
+}
+
+.lgbt-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.2);
+}
+
+.lgbt-button {
+  transition: all 0.3s ease;
+  border-radius: 25px;
+}
+
+.lgbt-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
+}
+
+.lgbt-title {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: rainbow-text 3s ease infinite;
+}
+
+@keyframes rainbow-text {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Pride flag colors */
+.pride-red { color: #e40303; }
+.pride-orange { color: #ff8c00; }
+.pride-yellow { color: #ffed00; }
+.pride-green { color: #008018; }
+.pride-blue { color: #004cff; }
+.pride-purple { color: #732982; }
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .lgbt-card {
+    margin: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .lgbt-button {
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Special effects */
+.rainbow-border {
+  border: 2px solid;
+  border-image: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3) 1;
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Rating interface specific styles */
+.rating-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.rating-item:hover {
+  background-color: rgba(255, 107, 107, 0.08);
+  transform: translateX(4px) scale(1.01);
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.15);
+}
+
+.rating-selector {
+  transition: all 0.2s ease-in-out;
+}
+
+.rating-selector:focus-within {
+  transform: scale(1.05);
+  box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.3);
+}
+
+.category-section {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.category-section:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.15);
+}
+
+.progress-indicator {
+  background: linear-gradient(45deg, rgba(255, 107, 107, 0.05), rgba(78, 205, 196, 0.05));
+  border: 1px solid rgba(255, 107, 107, 0.1);
+}
+
+.progress-bar {
+  background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+  transition: width 0.3s ease-in-out;
+}
+
+.progress-category {
+  transition: all 0.2s ease-in-out;
+}
+
+.progress-category:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 107, 107, 0.1);
+}
+
+/* Rating color indicators */
+.rating-sss { color: #ff6b6b; }
+.rating-ss { color: #4ecdc4; }
+.rating-s { color: #45b7d1; }
+.rating-q { color: #96ceb4; }
+.rating-n { color: #feca57; }
+.rating-w { color: #ff9ff3; }
+
+/* Batch rating selector */
+.batch-rating-selector {
+  transition: all 0.2s ease-in-out;
+}
+
+.batch-rating-selector:hover {
+  transform: scale(1.02);
+}
+
+/* Sticky guide animation */
+.sticky-guide {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Completion celebration */
+.completion-celebration {
+  background: linear-gradient(45deg, rgba(76, 175, 80, 0.1), rgba(139, 195, 74, 0.1));
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  animation: celebrationPulse 2s ease-in-out infinite;
+}
+
+@keyframes celebrationPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.4);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+  }
+}
+
+/* Chart-specific styles */
+.lgbt-chart-container {
+  transition: all 0.3s ease;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.lgbt-chart-container:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.2);
+}
+
+.lgbt-chart-text {
+  font-family: inherit;
+  font-weight: 600;
+}
+
+.lgbt-radar-chart {
+  filter: drop-shadow(0 4px 8px rgba(255, 107, 107, 0.2));
+}
+
+.lgbt-bar-chart {
+  filter: drop-shadow(0 2px 4px rgba(255, 107, 107, 0.1));
+}
+
+/* Chart animations */
+.chart-fade-in {
+  animation: chartFadeIn 1.5s ease-out;
+}
+
+@keyframes chartFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.chart-slide-up {
+  animation: chartSlideUp 1s ease-out;
+}
+
+@keyframes chartSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Chart tooltip styles */
+.lgbt-chart-tooltip {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid #ff6b6b !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  backdrop-filter: blur(10px) !important;
+}
+
+/* Responsive chart adjustments */
+@media (max-width: 768px) {
+  .lgbt-chart-container {
+    margin: 0.5rem 0;
+  }
+  
+  .lgbt-radar-chart {
+    transform: scale(0.9);
+  }
+  
+  .lgbt-bar-chart {
+    transform: scale(0.95);
+  }
+}
+
+@media (max-width: 480px) {
+  .lgbt-radar-chart {
+    transform: scale(0.8);
+  }
+  
+  .lgbt-bar-chart {
+    transform: scale(0.85);
+  }
+}
+
+/* Chart loading animation */
+.chart-loading {
+  animation: chartPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes chartPulse {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+/* Chart grid enhancements */
+.lgbt-chart-grid {
+  stroke: #f0f0f0;
+  stroke-dasharray: 3 3;
+  opacity: 0.7;
+}
+
+/* Chart axis styling */
+.lgbt-chart-axis {
+  font-size: 12px;
+  font-weight: 600;
+  fill: #666;
+}
+
+@media (max-width: 768px) {
+  .lgbt-chart-axis {
+    font-size: 10px;
+  }
+}
+
+/* Chart legend styling */
+.lgbt-chart-legend {
+  font-size: 14px;
+  font-weight: 600;
+  fill: #333;
+}
+
+/* Chart bar styling */
+.lgbt-chart-bar {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.lgbt-chart-bar:hover {
+  opacity: 0.8;
+  filter: brightness(1.1);
+}
+
+/* Chart radar styling */
+.lgbt-chart-radar {
+  transition: all 0.3s ease;
+}
+
+.lgbt-chart-radar:hover {
+  filter: brightness(1.1);
+}

@@ -12,6 +12,7 @@ import MenuIcon from '@mui/icons-material/Menu'
 import AutorenewIcon from '@mui/icons-material/Autorenew'
 import CloseIcon from '@mui/icons-material/Close'
 import FemaleIcon from '@mui/icons-material/Female'
+import FavoriteIcon from '@mui/icons-material/Favorite'
 import SaveIcon from '@mui/icons-material/Save'
 import HistoryIcon from '@mui/icons-material/History'
 import PersonIcon from '@mui/icons-material/Person'
@@ -862,6 +863,7 @@ function App() {
               <Button color="inherit" startIcon={<HomeIcon />} href="/index.html">首页</Button>
               <Button color="inherit" startIcon={<ScienceIcon />} href="/s.html">S版</Button>
               <Button color="inherit" href="/female.html" startIcon={<FemaleIcon />}>女版</Button>
+              <Button color="inherit" href="/lgbt.html" startIcon={<FavoriteIcon />}>🏳️‍🌈 LGBT+</Button>
               <Button color="inherit" href="/message.html" startIcon={<MessageIcon />}>留言</Button>
               <Button
                 color="inherit"
@@ -916,6 +918,10 @@ function App() {
             <ListItem button component="a" href="/female.html" onClick={() => setMobileMenuOpen(false)}>
               <ListItemIcon><FemaleIcon sx={{ color: '#6200ea' }} /></ListItemIcon>
               <ListItemText primary="女生版" sx={{ color: '#6200ea' }} />
+            </ListItem>
+            <ListItem button component="a" href="/lgbt.html" onClick={() => setMobileMenuOpen(false)}>
+              <ListItemIcon><FavoriteIcon sx={{ color: '#6200ea' }} /></ListItemIcon>
+              <ListItemText primary="🏳️‍🌈 LGBT+" sx={{ color: '#6200ea' }} />
             </ListItem>
             <ListItem button component="a" href="/message.html" onClick={() => setMobileMenuOpen(false)}>
               <ListItemIcon><MessageIcon sx={{ color: '#6200ea' }} /></ListItemIcon>
