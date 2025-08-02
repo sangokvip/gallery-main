@@ -4,21 +4,22 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
+
   <!-- 基础SEO标签 -->
   <title>M型人格测试 | S型人格测试 | 专业心理测评平台 - M-profile Lab</title>
-  <meta name="description" content="M-profile Lab是专业的人格测试平台，提供免费的M型人格测试和S型人格测试。通过科学的心理测评，帮助您深入了解自己的性格特质，发现真实的内在自我。支持男女分版测试，结果准确可靠。" />
+  <meta name="description"
+    content="M-profile Lab是专业的人格测试平台，提供免费的M型人格测试和S型人格测试。通过科学的心理测评，帮助您深入了解自己的性格特质，发现真实的内在自我。支持男女分版测试，结果准确可靠。" />
   <meta name="keywords" content="M型人格测试,S型人格测试,性格测试,人格分析,心理测试,性格分析,人格测评,心理评估,免费测试,在线测试,男M测试,女M测试,性格特质,人格特征" />
   <meta name="author" content="M-profile Lab Team" />
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <meta name="googlebot" content="index, follow" />
   <meta name="bingbot" content="index, follow" />
-  
+
   <!-- 语言和地区 -->
   <meta name="language" content="zh-CN" />
   <meta name="geo.region" content="CN" />
   <meta name="geo.placename" content="China" />
-  
+
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://m-profile.top/" />
@@ -36,7 +37,7 @@
   <meta property="twitter:title" content="M型人格测试 | S型人格测试 - M-profile Lab" />
   <meta property="twitter:description" content="专业的人格测试平台，提供免费的M型和S型人格测试。通过科学测评了解您的性格特质，发现真实的自我。" />
   <meta property="twitter:image" content="https://m-profile.top/og-image.png" />
-  
+
   <!-- 结构化数据 -->
   <script type="application/ld+json">
   {
@@ -57,7 +58,7 @@
     }
   }
   </script>
-  
+
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -79,26 +80,27 @@
     }
   }
   </script>
-  
+
   <!-- 预连接和DNS预取 -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="dns-prefetch" href="//fonts.googleapis.com" />
   <link rel="dns-prefetch" href="//www.google-analytics.com" />
-  
+
   <!-- 预加载关键资源 -->
   <link rel="preload" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" as="style" />
   <link rel="preload" href="/og-image.png" as="image" />
-  
+
   <!-- 预取可能访问的页面 -->
   <link rel="prefetch" href="/female.html" />
   <link rel="prefetch" href="/male.html" />
   <link rel="prefetch" href="/s.html" />
   <link rel="prefetch" href="/lgbt.html" />
-  
+
   <!-- Google AdSense -->
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3235450768734080" crossorigin="anonymous"></script>
-  
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3235450768734080"
+    crossorigin="anonymous"></script>
+
   <!-- Canonical URL -->
   <link rel="canonical" href="https://m-profile.top/" />
   <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -153,9 +155,19 @@
     }
 
     @keyframes backgroundMove {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      33% { transform: translate(-20px, -10px) rotate(1deg); }
-      66% { transform: translate(20px, 10px) rotate(-1deg); }
+
+      0%,
+      100% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+
+      33% {
+        transform: translate(-20px, -10px) rotate(1deg);
+      }
+
+      66% {
+        transform: translate(20px, 10px) rotate(-1deg);
+      }
     }
 
     .page-wrapper {
@@ -200,6 +212,7 @@
 
     .test-section {
       display: grid;
+      grid-template-columns: repeat(2, 1fr);
       gap: 2rem;
       margin-bottom: 4rem;
     }
@@ -210,11 +223,12 @@
       padding: 2rem;
       box-shadow: var(--shadow);
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 2rem;
+      flex-direction: column;
+      text-align: center;
+      gap: 1.5rem;
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       border: 1px solid rgba(0, 0, 0, 0.05);
+      min-height: 200px;
     }
 
     .test-card:hover {
@@ -243,6 +257,8 @@
       display: flex;
       gap: 1rem;
       flex-shrink: 0;
+      justify-content: center;
+      flex-wrap: wrap;
     }
 
     .button {
@@ -280,7 +296,7 @@
     .lgbt-button {
       background: linear-gradient(135deg, #e40303 0%, #ff8c00 16.66%, #ffed00 33.33%, #008018 50%, #0066ff 66.66%, #8b00ff 100%);
       color: white;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
       font-weight: 600;
     }
 
@@ -425,6 +441,11 @@
         font-size: 1rem;
       }
 
+      .test-section {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
       .test-card {
         flex-direction: column;
         text-align: center;
@@ -520,7 +541,8 @@
               <p class="card-description" itemprop="description">专为LGBT+群体设计的身份认同和性取向探索工具，帮助您深入了解自己的多元身份</p>
             </div>
             <nav class="button-group" role="navigation" aria-label="LGBT+身份探索">
-              <a href="/lgbt.html" class="button lgbt-button" title="开始LGBT+身份探索测试" aria-label="立即开始LGBT+身份探索">🏳️‍🌈 开始探索</a>
+              <a href="/lgbt.html" class="button lgbt-button" title="开始LGBT+身份探索测试" aria-label="立即开始LGBT+身份探索">🏳️‍🌈
+                开始探索</a>
             </nav>
           </article>
 
