@@ -1360,12 +1360,12 @@ function MessageApp() {
                   </Button>
                   <Button
                     color="inherit"
-                    startIcon={<CollectionsIcon />}
-                    href="/gallery.html"
+                    startIcon={<FavoriteIcon />}
+                    href="/lgbt.html"
                     className="pixel-button-pink"
                     sx={{ color: '#ff69b4' }}
                   >
-                    图库
+                    🏳️‍🌈 LGBT+
                   </Button>
                   <Button
                     color="inherit"
@@ -1438,9 +1438,9 @@ function MessageApp() {
                 <ListItemIcon><FavoriteIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>
                 <ListItemText primary="🏳️‍🌈 LGBT+" sx={{ color: '#ff69b4' }} />
               </ListItem>
-              <ListItem button component="a" href="/gallery.html">
-                <ListItemIcon><CollectionsIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>
-                <ListItemText primary="图库" sx={{ color: '#ff69b4' }} />
+              <ListItem button component="a" href="/lgbt.html">
+                <ListItemIcon><FavoriteIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>
+                <ListItemText primary="🏳️‍🌈 LGBT+" sx={{ color: '#ff69b4' }} />
               </ListItem>
               <ListItem button component="a" href="/index.html">
                 <ListItemIcon><HomeIcon sx={{ color: '#ff69b4' }} /></ListItemIcon>
