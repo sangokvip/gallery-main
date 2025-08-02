@@ -94,6 +94,7 @@
   <link rel="prefetch" href="/female.html" />
   <link rel="prefetch" href="/male.html" />
   <link rel="prefetch" href="/s.html" />
+  <link rel="prefetch" href="/lgbt.html" />
   
   <!-- Google AdSense -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3235450768734080" crossorigin="anonymous"></script>
@@ -276,6 +277,13 @@
       background: linear-gradient(135deg, var(--s-type) 0%, #e63946 100%);
     }
 
+    .lgbt-button {
+      background: linear-gradient(135deg, #e40303 0%, #ff8c00 16.66%, #ffed00 33.33%, #008018 50%, #0066ff 66.66%, #8b00ff 100%);
+      color: white;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      font-weight: 600;
+    }
+
     .message-button {
       background: linear-gradient(135deg, var(--message) 0%, #7b1fa2 100%);
       font-family: 'Press Start 2P', cursive;
@@ -385,6 +393,14 @@
 
     .footer-link.s-type {
       color: var(--s-type);
+    }
+
+    .footer-link.lgbt {
+      background: linear-gradient(135deg, #e40303 0%, #ff8c00 16.66%, #ffed00 33.33%, #008018 50%, #0066ff 66.66%, #8b00ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-weight: 600;
     }
 
     .footer-link.message {
@@ -500,6 +516,16 @@
 
           <article class="test-card" itemscope itemtype="https://schema.org/Service">
             <div class="card-content">
+              <h2 class="card-title" itemprop="name">LGBT+身份探索</h2>
+              <p class="card-description" itemprop="description">专为LGBT+群体设计的身份认同和性取向探索工具，帮助您深入了解自己的多元身份</p>
+            </div>
+            <nav class="button-group" role="navigation" aria-label="LGBT+身份探索">
+              <a href="/lgbt.html" class="button lgbt-button" title="开始LGBT+身份探索测试" aria-label="立即开始LGBT+身份探索">🏳️‍🌈 开始探索</a>
+            </nav>
+          </article>
+
+          <article class="test-card" itemscope itemtype="https://schema.org/Service">
+            <div class="card-content">
               <h2 class="card-title" itemprop="name">社区交流</h2>
               <p class="card-description" itemprop="description">与其他用户分享测试心得，探讨人格特质和心理健康话题</p>
             </div>
@@ -538,6 +564,7 @@
             <a href="/female.html" class="footer-link female">女M测试</a>
             <a href="/male.html" class="footer-link male">男M测试</a>
             <a href="/s.html" class="footer-link s-type">S型测试</a>
+            <a href="/lgbt.html" class="footer-link lgbt">LGBT+探索</a>
             <a href="/message.html" class="footer-link message">留言板</a>
           </nav>
         </div>
