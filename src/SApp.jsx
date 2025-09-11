@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Container, Typography, Paper, Grid, Box, Select, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Snackbar, AppBar, Toolbar, Drawer, List, ListItem, ListItemIcon, ListItemText, createTheme, ThemeProvider, TextField, Chip } from '@mui/material'
+import { Container, Typography, Paper, Grid, Box, Select, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Snackbar, AppBar, Toolbar, Drawer, List, ListItem, ListItemIcon, ListItemText, createTheme, ThemeProvider, TextField, Chip, Popper, Fade, LinearProgress, CircularProgress } from '@mui/material'
 import './styles/pixel-theme.css'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import html2canvas from 'html2canvas'
@@ -20,7 +20,7 @@ import HistoryIcon from '@mui/icons-material/History'
 import PersonIcon from '@mui/icons-material/Person'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import Footer from './components/Footer'
-import { testRecordsApi } from './utils/supabase'
+import { testRecordsApi, testNumberingApi } from './utils/supabase'
 import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 
@@ -142,6 +142,9 @@ function SApp() {
   const [diagnosticReport, setDiagnosticReport] = useState(null)
   const [showDiagnosticButton, setShowDiagnosticButton] = useState(false)
   const [showStickyGuide, setShowStickyGuide] = useState(false)
+  const [userCount, setUserCount] = useState(0)
+  const [generatingReport, setGeneratingReport] = useState(false)
+  const [reportProgress, setReportProgress] = useState(0)
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
 
@@ -149,6 +152,7 @@ function SApp() {
   useEffect(() => {
     loadLatestTestRecord();
     loadTestRecords();
+    loadUserCount();
   }, []);
 
   // 监听滚动，控制动态评分说明的显示
@@ -174,6 +178,18 @@ function SApp() {
     const hasRatings = Object.keys(ratings).length > 0;
     setHasUnsavedChanges(hasRatings);
   }, [ratings]);
+
+  // 获取用户总数（新的编号系统）
+  const loadUserCount = async () => {
+    try {
+      const counterData = await testNumberingApi.getCurrentNumber('s');
+      setUserCount(counterData.current);
+    } catch (error) {
+      console.error('获取用户计数失败:', error);
+      // 使用起始编号作为备选
+      setUserCount(780);
+    }
+  };
 
   // 加载最新的测试记录
   const loadLatestTestRecord = async () => {
@@ -331,6 +347,24 @@ function SApp() {
     setSnackbarOpen(true);
   };
 
+  // 模拟报告生成进度
+  const simulateReportProgress = () => {
+    return new Promise((resolve) => {
+      setReportProgress(0);
+      const interval = setInterval(() => {
+        setReportProgress(prev => {
+          const newProgress = prev + Math.random() * 15 + 5;
+          if (newProgress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => resolve(), 300);
+            return 100;
+          }
+          return newProgress;
+        });
+      }, 200);
+    });
+  };
+
   const handleGenerateReport = async () => {
     // 在生成报告前自动保存测试
     if (Object.keys(ratings).length > 0 && hasUnsavedChanges) {
@@ -345,6 +379,24 @@ function SApp() {
       }
     }
     
+    // 获取新的编号
+    try {
+      const newNumber = await testNumberingApi.getNextNumber('s');
+      setUserCount(newNumber);
+    } catch (error) {
+      console.error('获取新编号失败:', error);
+      // 使用当前编号+1作为备选
+      setUserCount(prev => prev + 1);
+    }
+    
+    // 显示进度条和等待信息
+    setGeneratingReport(true);
+    setReportProgress(0);
+    
+    // 模拟报告生成过程
+    await simulateReportProgress();
+    
+    setGeneratingReport(false);
     setOpenReport(true);
   };
 
@@ -1275,6 +1327,74 @@ function SApp() {
         />
       </Box>
 
+      {/* 报告生成进度对话框 */}
+        <Dialog
+          open={generatingReport}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 4,
+              backgroundColor: '#fff5f5',
+              border: '3px solid #ff0000',
+              boxShadow: '0 8px 32px rgba(255, 0, 0, 0.3)'
+            }
+          }}
+        >
+          <DialogTitle sx={{
+            textAlign: 'center',
+            fontWeight: 'bold',
+            color: '#ff0000',
+            pb: 2
+          }}>
+            正在生成您的专属报告...
+          </DialogTitle>
+          <DialogContent sx={{ px: 4, py: 3 }}>
+            <Box sx={{ textAlign: 'center', mb: 3 }}>
+              <Typography variant="h6" sx={{ color: '#ff0000', mb: 2, fontWeight: 'bold' }}>
+                您是第 {userCount.toLocaleString()} 个参与测试的小可爱 🎉
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3 }}>
+                正在为您生成个性化分析报告...
+              </Typography>
+            </Box>
+            
+            <Box sx={{ mb: 2 }}>
+              <LinearProgress
+                variant="determinate"
+                value={reportProgress}
+                sx={{
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: 'rgba(255, 0, 0, 0.2)',
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: '#ff0000',
+                    borderRadius: 4,
+                    transition: 'transform 0.2s ease-in-out'
+                  }
+                }}
+              />
+            </Box>
+            
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ color: '#ff0000', fontWeight: 'bold' }}>
+                {Math.round(reportProgress)}% 完成
+              </Typography>
+            </Box>
+            
+            {/* 可爱的加载动画 */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <CircularProgress
+                size={40}
+                sx={{
+                  color: '#ff0000',
+                  animationDuration: '1.5s'
+                }}
+              />
+            </Box>
+          </DialogContent>
+        </Dialog>
+
       <Footer pixelStyle={true} redStyle={true} />
       </Box>
 
@@ -1327,6 +1447,9 @@ function SApp() {
           <Box ref={reportRef} sx={{ p: { xs: 1, md: 2 } }}>
             <Typography variant="h4" gutterBottom align="center" sx={{ color: 'red', mb: { xs: 2, md: 3 } }}>
               S型人格测试报告
+            </Typography>
+            <Typography variant="subtitle1" align="center" sx={{ color: 'red', mb: { xs: 2, md: 3 }, fontWeight: 'bold' }}>
+              No.{userCount.toLocaleString().padStart(4, '0')}
             </Typography>
 
             {/* 雷达图部分 */}
@@ -1486,6 +1609,9 @@ function SApp() {
                   display: 'block'
                 }}
               />
+              <Typography variant="subtitle2" sx={{ mt: 2, color: '#ff0000', fontWeight: 'bold' }}>
+                报告编号：No.{userCount.toLocaleString().padStart(4, '0')}
+              </Typography>
             </Box>
           </Box>
         </DialogContent>

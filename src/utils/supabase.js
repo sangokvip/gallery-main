@@ -1546,3 +1546,172 @@ export const galleryApi = {
 };
 
 export default messagesApi;
+
+// 测试编号管理相关的数据库操作
+export const testNumberingApi = {
+  // 获取指定测试类型的当前编号
+  async getCurrentNumber(testType) {
+    console.log('获取当前编号:', testType);
+    try {
+      const { data, error } = await supabase
+        .from('test_type_counters')
+        .select('current_number, start_number')
+        .eq('test_type', testType)
+        .single();
+
+      if (error) {
+        console.error('获取当前编号失败:', error);
+        throw error;
+      }
+
+      if (!data) {
+        console.warn('未找到测试类型:', testType);
+        return { current: 0, start: 0 };
+      }
+
+      return {
+        current: data.current_number || 0,
+        start: data.start_number || 0
+      };
+    } catch (error) {
+      console.error('获取当前编号时发生错误:', error);
+      throw new Error('获取编号失败: ' + (error.message || '未知错误'));
+    }
+  },
+
+  // 获取下一个编号（原子操作）
+  async getNextNumber(testType) {
+    console.log('获取下一个编号:', testType);
+    try {
+      // 使用事务来确保原子性
+      const { data, error } = await supabase
+        .rpc('increment_test_counter', { test_type_input: testType });
+
+      if (error) {
+        console.error('获取下一个编号失败:', error);
+        throw error;
+      }
+
+      console.log('成功获取下一个编号:', data);
+      return data;
+    } catch (error) {
+      console.error('获取下一个编号时发生错误:', error);
+      throw new Error('获取编号失败: ' + (error.message || '未知错误'));
+    }
+  },
+
+  // 初始化测试类型计数器（如果不存在）
+  async initializeCounter(testType, startNumber = 1) {
+    console.log('初始化计数器:', testType, startNumber);
+    try {
+      const { data, error } = await supabase
+        .from('test_type_counters')
+        .upsert({
+          test_type: testType,
+          current_number: startNumber,
+          start_number: startNumber
+        }, {
+          onConflict: 'test_type'
+        })
+        .select();
+
+      if (error) {
+        console.error('初始化计数器失败:', error);
+        throw error;
+      }
+
+      console.log('计数器初始化成功:', data[0]);
+      return data[0];
+    } catch (error) {
+      console.error('初始化计数器时发生错误:', error);
+      throw new Error('初始化计数器失败: ' + (error.message || '未知错误'));
+    }
+  },
+
+  // 重置指定测试类型的计数器
+  async resetCounter(testType, newStartNumber = 1) {
+    console.log('重置计数器:', testType, newStartNumber);
+    try {
+      const { data, error } = await supabase
+        .from('test_type_counters')
+        .update({
+          current_number: newStartNumber,
+          start_number: newStartNumber
+        })
+        .eq('test_type', testType)
+        .select();
+
+      if (error) {
+        console.error('重置计数器失败:', error);
+        throw error;
+      }
+
+      console.log('计数器重置成功:', data[0]);
+      return data[0];
+    } catch (error) {
+      console.error('重置计数器时发生错误:', error);
+      throw new Error('重置计数器失败: ' + (error.message || '未知错误'));
+    }
+  },
+
+  // 获取所有测试类型的计数器状态
+  async getAllCounters() {
+    console.log('获取所有计数器状态');
+    try {
+      const { data, error } = await supabase
+        .from('test_type_counters')
+        .select('*')
+        .order('test_type');
+
+      if (error) {
+        console.error('获取计数器状态失败:', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error('获取计数器状态时发生错误:', error);
+      throw new Error('获取计数器状态失败: ' + (error.message || '未知错误'));
+    }
+  },
+
+  // 验证计数器状态
+  async validateCounters() {
+    console.log('验证计数器状态');
+    try {
+      const counters = await this.getAllCounters();
+      const validation = {
+        valid: true,
+        issues: [],
+        summary: {}
+      };
+
+      const expectedTypes = ['female', 'male', 's', 'lgbt'];
+      
+      for (const testType of expectedTypes) {
+        const counter = counters.find(c => c.test_type === testType);
+        
+        if (!counter) {
+          validation.valid = false;
+          validation.issues.push(`缺少测试类型: ${testType}`);
+          validation.summary[testType] = 'missing';
+        } else if (counter.current_number < counter.start_number) {
+          validation.valid = false;
+          validation.issues.push(`当前编号小于起始编号: ${testType}`);
+          validation.summary[testType] = 'invalid';
+        } else {
+          validation.summary[testType] = {
+            current: counter.current_number,
+            start: counter.start_number,
+            next: counter.current_number + 1
+          };
+        }
+      }
+
+      return validation;
+    } catch (error) {
+      console.error('验证计数器状态时发生错误:', error);
+      throw new Error('验证计数器状态失败: ' + (error.message || '未知错误'));
+    }
+  }
+};

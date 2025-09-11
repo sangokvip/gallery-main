@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Container, Typography, Paper, Grid, Box, Select, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Snackbar, AppBar, Toolbar, Drawer, List, ListItem, ListItemIcon, ListItemText, createTheme, ThemeProvider, TextField, Chip } from '@mui/material'
+import { Container, Typography, Paper, Grid, Box, Select, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Snackbar, AppBar, Toolbar, Drawer, List, ListItem, ListItemIcon, ListItemText, createTheme, ThemeProvider, TextField, Chip, LinearProgress, CircularProgress } from '@mui/material'
 import Footer from './components/Footer'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import html2canvas from 'html2canvas'
@@ -19,7 +19,7 @@ import PersonIcon from '@mui/icons-material/Person'
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import './styles/lgbt-theme.css'
-import { testRecordsApi } from './utils/supabase'
+import { testRecordsApi, testNumberingApi } from './utils/supabase'
 import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 
@@ -154,6 +154,9 @@ function LgbtApp() {
   const [diagnosticReport, setDiagnosticReport] = useState(null)
   const [showDiagnosticButton, setShowDiagnosticButton] = useState(false)
   const [showStickyGuide, setShowStickyGuide] = useState(false)
+  const [userCount, setUserCount] = useState(0)
+  const [generatingReport, setGeneratingReport] = useState(false)
+  const [reportProgress, setReportProgress] = useState(0)
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
 
@@ -232,6 +235,7 @@ function LgbtApp() {
   useEffect(() => {
     loadLatestTestRecord();
     loadTestRecords();
+    loadUserCount();
   }, []);
 
   // 监听滚动，控制动态评分说明的显示
@@ -288,6 +292,18 @@ function LgbtApp() {
       setSnackbarOpen(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 获取用户总数（新的编号系统）
+  const loadUserCount = async () => {
+    try {
+      const counterData = await testNumberingApi.getCurrentNumber('lgbt');
+      setUserCount(counterData.current);
+    } catch (error) {
+      console.error('获取用户计数失败:', error);
+      // 使用起始编号作为备选
+      setUserCount(2340);
     }
   };
 
@@ -842,6 +858,24 @@ function LgbtApp() {
       })
   }
 
+  // 模拟报告生成进度
+  const simulateReportProgress = () => {
+    return new Promise((resolve) => {
+      setReportProgress(0);
+      const interval = setInterval(() => {
+        setReportProgress(prev => {
+          const newProgress = prev + Math.random() * 15 + 5;
+          if (newProgress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => resolve(), 300);
+            return 100;
+          }
+          return newProgress;
+        });
+      }, 200);
+    });
+  };
+
   const handleGenerateReport = async () => {
     // 在生成报告前自动保存测试
     if (Object.keys(ratings).length > 0 && hasUnsavedChanges) {
@@ -856,6 +890,24 @@ function LgbtApp() {
       }
     }
 
+    // 获取新的编号
+    try {
+      const newNumber = await testNumberingApi.getNextNumber('lgbt');
+      setUserCount(newNumber);
+    } catch (error) {
+      console.error('获取新编号失败:', error);
+      // 使用当前编号+1作为备选
+      setUserCount(prev => prev + 1);
+    }
+
+    // 显示进度条和等待信息
+    setGeneratingReport(true);
+    setReportProgress(0);
+    
+    // 模拟报告生成过程
+    await simulateReportProgress();
+    
+    setGeneratingReport(false);
     setOpenReport(true);
   }
 
@@ -1632,6 +1684,16 @@ function LgbtApp() {
                 }}>
                   🏳️‍🌈 LGBT+身份探索报告
                 </Typography>
+                <Typography variant="subtitle1" align="center" sx={{ 
+                  background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  mb: { xs: 2, md: 3 }, 
+                  fontWeight: 'bold' 
+                }}>
+                  No.{userCount.toLocaleString().padStart(4, '0')}
+                </Typography>
 
                 {/* 雷达图部分 */}
                 <Box sx={{
@@ -1790,6 +1852,16 @@ function LgbtApp() {
                       display: 'block'
                     }}
                   />
+                  <Typography variant="subtitle2" sx={{ 
+                    mt: 2, 
+                    background: 'linear-gradient(45deg, #e40303, #ff8c00, #ffed00, #008018, #0066ff, #8b00ff)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    fontWeight: 'bold' 
+                  }}>
+                    报告编号：No.{userCount.toLocaleString().padStart(4, '0')}
+                  </Typography>
                 </Box>
               </Box>
             </DialogContent>
@@ -2181,6 +2253,75 @@ function LgbtApp() {
             }}
           />
         </Box>
+
+        {/* 报告生成进度对话框 */}
+        <Dialog
+          open={generatingReport}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 4,
+              background: 'linear-gradient(135deg, #e40303 0%, #ff8c00 16.66%, #ffed00 33.33%, #008018 50%, #0066ff 66.66%, #8b00ff 100%)',
+              border: '3px solid rgba(255,255,255,0.8)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3)'
+            }
+          }}
+        >
+          <DialogTitle sx={{
+            textAlign: 'center',
+            fontWeight: 'bold',
+            color: 'white',
+            pb: 2,
+            textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+          }}>
+            正在生成您的专属报告...
+          </DialogTitle>
+          <DialogContent sx={{ px: 4, py: 3 }}>
+            <Box sx={{ textAlign: 'center', mb: 3 }}>
+              <Typography variant="h6" sx={{ color: 'white', mb: 2, fontWeight: 'bold', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                您是第 {userCount.toLocaleString()} 个参与测试的小可爱 🎉
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', mb: 3 }}>
+                正在为您生成个性化分析报告...
+              </Typography>
+            </Box>
+            
+            <Box sx={{ mb: 2 }}>
+              <LinearProgress
+                variant="determinate"
+                value={reportProgress}
+                sx={{
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: 'rgba(255,255,255,0.3)',
+                  '& .MuiLinearProgress-bar': {
+                    background: 'linear-gradient(90deg, #e40303, #ff8c00, #ffed00, #008018, #0066ff, #8b00ff)',
+                    borderRadius: 4,
+                    transition: 'transform 0.2s ease-in-out'
+                  }
+                }}
+              />
+            </Box>
+            
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ color: 'white', fontWeight: 'bold', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                {Math.round(reportProgress)}% 完成
+              </Typography>
+            </Box>
+            
+            {/* 可爱的加载动画 */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <CircularProgress
+                size={40}
+                sx={{
+                  color: 'white',
+                  animationDuration: '1.5s'
+                }}
+              />
+            </Box>
+          </DialogContent>
+        </Dialog>
 
         <Footer pixelStyle={true} pinkStyle={true} />
       </Box>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Container, Typography, Paper, Grid, Box, Select, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Snackbar, AppBar, Toolbar, Drawer, List, ListItem, ListItemIcon, ListItemText, createTheme, ThemeProvider, TextField, Chip } from '@mui/material'
+import { Container, Typography, Paper, Grid, Box, Select, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Snackbar, AppBar, Toolbar, Drawer, List, ListItem, ListItemIcon, ListItemText, createTheme, ThemeProvider, TextField, Chip, Popper, Fade, LinearProgress, CircularProgress } from '@mui/material'
 import './styles/pixel-theme.css'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import html2canvas from 'html2canvas'
@@ -17,9 +17,10 @@ import SaveIcon from '@mui/icons-material/Save'
 import HistoryIcon from '@mui/icons-material/History'
 import PersonIcon from '@mui/icons-material/Person'
 import TelegramIcon from '@mui/icons-material/Telegram'
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import Footer from './components/Footer'
 import MessageIcon from '@mui/icons-material/Message'
-import { testRecordsApi } from './utils/supabase'
+import { testRecordsApi, testNumberingApi } from './utils/supabase'
 import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 
@@ -44,6 +45,164 @@ const CATEGORIES = {
   '💭 心奴': ['🗣️ 语言侮辱', '🗣️ 语言侮辱', '😈 人格侮辱', '🧠 思维控制', '🌐 网络控制', '📢 网络公调'],
   '🏠 家奴': ['⏱️ 短期圈养', '📅 长期圈养', '👥 多奴调教', '👑 多主调教', '👥 熟人旁观', '👀 生人旁观', '😈 熟人侮辱', '🗣️ 生人侮辱', '😴 剥夺睡眠', '🌀 催眠', '🧹 家务', '👔 伺候'],
   '🚽 厕奴': ['🚽 伺候小便', '🚽 伺候大便', '🚿 圣水浴', '💧 喝圣水', '🍽️ 圣水食物', '🧻 舔舐厕纸', '🛁 黄金浴', '🍽️ 吃黄金', '🧹 清洁马桶', '🩸 吃红金', '💉 尿液灌肠']
+}
+
+// 测试项目解释映射
+const ITEM_EXPLANATIONS = {
+  '👣 恋足': '与脚部相关的性偏好或行为，强调对脚的喜爱或崇拜。',
+  '🧎 跪拜': '跪在对方脚前，表达顺从或崇拜。',
+  '🦶 足交': '使用脚部刺激伴侣的性器官。',
+  '👃 闻脚': '嗅闻脚部的气味，通常与感官刺激相关。',
+  '👅 舔足(无味)': '舔舐清洁的脚部，注重触觉体验。',
+  '👅 舔足(原味)': '舔舐未清洗的脚部，强调自然气味。',
+  '🧦 舔袜(无味)': '舔舐清洁的袜子，注重袜子的质感。',
+  '🧦 舔袜(原味)': '舔舐未清洗的袜子，强调气味和顺从。',
+  '🤐 袜堵嘴': '将袜子放入嘴中，通常作为顺从或控制的一部分。',
+  '👞 舔鞋(调教用)': '舔舐专门用于调教的鞋子，象征服从。',
+  '👠 舔鞋(户外穿)': '舔舐户外穿过的鞋子，可能涉及气味或污垢。',
+  '🍽️ 足喂食': '用脚将食物喂给对方，强调支配与顺从。',
+  '💧 喝洗脚水': '饮用清洗脚部后的水，象征极端的顺从。',
+  '💦 喝洗袜水': '饮用清洗袜子后的水，类似洗脚水。',
+  '👄 足深喉': '将脚趾深入嘴部，可能涉及控制或挑战。',
+  '🦵 踢打': '用脚轻踢或击打身体，作为支配行为。',
+  '🦶 裸足踩踏': '用裸足踩踏身体，可能涉及轻微疼痛或压力。',
+  '👠 高跟踩踏': '用高跟鞋踩踏，强调疼痛或支配感。',
+  '👑 性奴': '以性为主导的支配与顺从关系，强调性行为的控制与服务。',
+  '👅 舔阴': '口交女性生殖器，通常作为顺从行为。',
+  '👄 舔肛': '口交肛门区域，强调顺从和亲密。',
+  '🚫 禁止射精': '限制或延迟射精，增强控制感。',
+  '🎭 自慰表演': '在支配者面前自慰，强调暴露和服从。',
+  '🔧 器具折磨': '使用性工具（如振动器）进行刺激或控制。',
+  '💦 舔食自己精液': '在射精后舔食自己的精液，象征顺从。',
+  '🍑 肛门插入': '使用手指、玩具等插入肛门。',
+  '⭕️ 扩肛': '使用工具逐渐扩大肛门，需谨慎操作。',
+  '🕳️ 马眼插入': '插入尿道（马眼），需专业知识和卫生保障。',
+  '🎠 木马': '骑在类似木马的装置上，可能涉及束缚或刺激。',
+  '🍆 阳具插入': '使用仿真阳具或其他物体插入，强调支配。',
+  '🐕 狗奴': '模仿狗的行为或角色，强调动物化的顺从和控制。',
+  '🐾 狗姿': '模仿狗的姿势，如四肢着地。',
+  '📿 项圈': '佩戴项圈，象征被支配或"被拥有"。',
+  '⛓️ 镣铐': '使用手铐或脚镣限制行动。',
+  '🏠 看门': '扮演看门犬的角色，象征忠诚。',
+  '🐾 狗爬': '以狗的姿势爬行，强调顺从。',
+  '🦮 室内遛狗': '在室内被牵着"遛"，通常用项圈和绳子。',
+  '💦 狗撒尿': '模仿狗的排尿姿势，可能涉及羞辱。',
+  '👅 狗舔食': '用嘴直接从地面或碗中吃食物。',
+  '🍽️ 口吐食': '支配者将食物吐出，顺从者食用。',
+  '💧 口水': '接受或舔舐支配者的口水。',
+  '🥄 痰盂': '作为"痰盂"接受唾液，强调极端的顺从。',
+  '🎭 狗装': '穿上狗的服装或道具，扮演狗的角色。',
+  '🐶 狗叫': '模仿狗的叫声，增强角色扮演。',
+  '👙 内裤套头': '将内裤套在头上，强调羞辱。',
+  '👃 舔内裤（原味）': '舔舐未清洗的内裤，注重气味。',
+  '🚬 烟灰缸': '作为"烟灰缸"接受烟灰，象征顺从。',
+  '🔒 狗笼关押': '被关在笼子里，模仿狗的圈养。',
+  '⛓️ 圈禁饲养': '长期被限制在特定区域，扮演宠物。',
+  '🎠 骑马': '支配者骑在顺从者身上，模仿马或狗。',
+  '🎎 性玩具': '将被支配者视为性工具或玩物，强调物化和控制。',
+  '🎭 角色扮演': '扮演特定角色（如护士、学生）以增加情趣。',
+  '💍 乳环': '在乳头上佩戴装饰性或功能性环。',
+  '⭕️ 龟头环': '在阴茎头部佩戴环，限制或增强刺激。',
+  '💫 肛环': '在肛门处佩戴环，可能用于装饰或控制。',
+  '🔒 贞操锁': '佩戴装置限制性行为，强调控制。',
+  '🔌 肛塞': '插入肛门的小型装置，可能长期佩戴。',
+  '✍️ 身上写字（可洗）': '在身体上写字，可洗掉，象征标记。',
+  '📝 身上写字（不洗）': '使用持久性颜料写字，强调永久感。',
+  '👗 CD异装': '跨性别装扮，通常为男性穿女性服装。',
+  '✂️ 剃光头': '剃掉头部头发，象征顺从或改造。',
+  '🪒 剃毛': '剃除身体其他部位的毛发，如阴毛。',
+  '🔧 性工具玩弄': '使用性玩具进行刺激或控制。',
+  '🪑 固定在桌椅上': '将身体固定在家具上，限制行动。',
+  '👤 坐脸': '支配者坐在顺从者脸上，可能涉及口交或窒息感。',
+  '💧 灌肠（温和液体）': '使用温和液体（如温水）进行肛门灌洗。',
+  '⚡️ 灌肠（刺激液体）': '使用刺激性液体灌洗，需谨慎。',
+  '📸 拍照/录像（露脸）': '记录场景，包含面部，需明确同意。',
+  '📷 拍照/录像（不露脸）': '记录场景但不显示面部。',
+  '🎯 作为玩具': '被用作性玩具，强调物化。',
+  '🪑 作为家具': '被用作椅子或桌子等，象征物化。',
+  '👔 作为男仆': '扮演仆人角色，服务支配者。',
+  '🐾 兽奴': '模仿动物或与动物相关的极端角色扮演，可能涉及高风险行为。',
+  '🐕 兽交': '模拟与动物的性行为，需注意法律和伦理。',
+  '🐺 群兽轮交': '模拟多个动物的性行为，需谨慎。',
+  '🦁 兽虐': '模拟动物化的虐待场景，需明确界限。',
+  '🐜 昆虫爬身': '让昆虫在身上爬行，强调感官刺激。',
+  '🌲 野奴': '在户外或公共场合进行的支配与顺从行为，强调暴露或冒险。',
+  '🌳 野外奴役': '在户外环境中进行束缚或控制。',
+  '🏃 野外流放': '在野外暂时"放逐"，可能涉及孤独感。',
+  '🌿 野外玩弄': '在户外使用工具或行为进行调教。',
+  '👀 公共场合暴露': '在公共场所暴露身体，需注意法律。',
+  '🏛️ 公共场合玩弄': '在公共场所进行性行为或调教。',
+  '⛓️ 公共场合捆绑': '在公共场所使用绳索等捆绑。',
+  '🔧 公共场合器具': '在公共场所使用性工具。',
+  '🔒 贞操锁': '在户外佩戴贞操装置，强调控制。',
+  '👥 露阳(熟人)': '在熟人面前暴露阴茎，需谨慎。',
+  '👀 露阳(生人)': '在陌生人面前暴露阴茎，需注意法律。',
+  '🐕 野外遛狗': '在户外以狗奴形式被牵引。',
+  '⚔️ 刑奴': '涉及身体惩罚或疼痛的支配行为，需高度注意安全和同意。',
+  '👋 耳光': '轻拍或重击面部，需控制力度。',
+  '🎋 藤条抽打': '使用藤条鞭打身体，需注意安全。',
+  '🎯 鞭打': '使用鞭子抽打，可能造成疼痛。',
+  '🪵 木板拍打': '用木板击打身体，需谨慎。',
+  '🖌️ 毛刷': '用毛刷刺激皮肤，可能涉及瘙痒或轻微疼痛。',
+  '👊 拳脚': '使用拳头或脚击打，需严格控制。',
+  '🤐 口塞': '将物体塞入嘴中，限制言语。',
+  '⛓️ 吊缚': '将身体悬吊，需专业绳艺知识。',
+  '🔒 拘束': '使用器具限制身体移动。',
+  '🔗 捆绑': '使用绳索或其他工具捆绑身体。',
+  '😮‍💨 控制呼吸': '限制呼吸，需极度小心避免危险。',
+  '📎 乳夹': '在乳头上使用夹子，造成轻微疼痛。',
+  '⚖️ 乳头承重': '在乳夹上附加重物，增加刺激。',
+  '🔗 阴茎夹子': '在阴茎上使用夹子，需谨慎。',
+  '📎 阴囊夹子': '在阴囊上使用夹子，需注意安全。',
+  '⚖️ 阴茎吊重物': '在阴茎上悬挂重物，需专业操作。',
+  '⚖️ 阴囊吊重物': '在阴囊上悬挂重物，高风险。',
+  '🎯 鞭打阳具': '鞭打阴茎，需严格控制力度。',
+  '🦶 踢裆': '踢击阴部，需极度小心。',
+  '🪶 瘙痒': '用羽毛等引起瘙痒感，强调感官刺激。',
+  '⚡️ 电击': '使用低压电击设备，需专业设备和知识。',
+  '🕯️ 低温滴蜡': '使用低温蜡烛滴蜡，需确保安全。',
+  '🔥 高温滴蜡': '使用高温蜡烛，需极度小心。',
+  '📍 针刺': '使用针刺皮肤，高风险，需专业操作。',
+  '💉 穿孔': '在身体上进行穿孔，需专业环境。',
+  '👊 体罚': '其他形式的身体惩罚，需明确界限。',
+  '🤐 木乃伊': '用绷带或胶带包裹全身，限制行动。',
+  '💧 水刑': '使用水制造窒息感，极高风险。',
+  '🔥 火刑': '模拟火刑，需确保安全。',
+  '🧊 冰块': '用冰块刺激皮肤，造成冷感。',
+  '🔥 烙印': '在皮肤上烙印，需专业操作。',
+  '✂️ 身体改造': '永久性改变身体外观，需谨慎。',
+  '✂️ 阉割': '移除生殖器官，极高风险，需法律和伦理考虑。',
+  '💭 心奴': '通过心理控制或羞辱实现支配，强调精神层面的顺从。',
+  '🗣️ 语言侮辱': '使用羞辱性语言贬低对方。',
+  '😈 人格侮辱': '攻击对方的人格，需明确同意。',
+  '🧠 思维控制': '通过心理手段控制对方思想或行为。',
+  '🌐 网络控制': '通过网络监控或指令控制对方。',
+  '📢 网络公调': '在网络上公开调教，需注意隐私。',
+  '🏠 家奴': '在家庭或私人环境中进行的长期支配与服务。',
+  '⏱️ 短期圈养': '短时间限制在特定空间，扮演奴役角色。',
+  '📅 长期圈养': '长时间被支配者控制生活。',
+  '👥 多奴调教': '同时调教多个顺从者。',
+  '👑 多主调教': '多个支配者共同调教一人。',
+  '👥 熟人旁观': '熟人观看调教过程，需同意。',
+  '👀 生人旁观': '陌生人观看调教，需注意隐私。',
+  '😈 熟人侮辱': '熟人参与羞辱，需明确界限。',
+  '🗣️ 生人侮辱': '陌生人参与羞辱，需谨慎。',
+  '😴 剥夺睡眠': '限制睡眠时间，需注意健康。',
+  '🌀 催眠': '使用催眠技术影响心理，需专业操作。',
+  '🧹 家务': '承担家务劳动，扮演仆人角色。',
+  '👔 伺候': '为支配者提供日常生活服务。',
+  '🚽 厕奴': '涉及排泄物或卫生相关的极端顺从行为，需高度注意卫生和同意。',
+  '🚽 伺候小便': '协助或接受对方的小便，需卫生保障。',
+  '🚽 伺候大便': '协助或接受对方的大便，高风险。',
+  '🚿 圣水浴': '被小便淋身，需明确同意。',
+  '💧 喝圣水': '饮用小便，需严格卫生控制。',
+  '🍽️ 圣水食物': '将小便混入食物，需注意健康。',
+  '🧻 舔舐厕纸': '舔舐使用过的厕纸，需卫生保障。',
+  '🛁 黄金浴': '被大便接触，需极高卫生标准。',
+  '🍽️ 吃黄金': '食用大便，极高风险，需法律和健康考虑。',
+  '🧹 清洁马桶': '用嘴或手清洁马桶，需注意卫生。',
+  '🩸 吃红金': '涉及经血的食用，高风险。',
+  '💉 尿液灌肠': '用尿液进行灌肠，需专业操作。'
 }
 
 const theme = createTheme({
@@ -144,6 +303,11 @@ function App() {
   const [diagnosticReport, setDiagnosticReport] = useState(null)
   const [showDiagnosticButton, setShowDiagnosticButton] = useState(false)
   const [showStickyGuide, setShowStickyGuide] = useState(false)
+  const [tooltipOpen, setTooltipOpen] = useState({})
+  const [tooltipTimeouts, setTooltipTimeouts] = useState({})
+  const [userCount, setUserCount] = useState(0)
+  const [generatingReport, setGeneratingReport] = useState(false)
+  const [reportProgress, setReportProgress] = useState(0)
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
 
@@ -151,6 +315,7 @@ function App() {
   useEffect(() => {
     loadLatestTestRecord();
     loadTestRecords();
+    loadUserCount();
   }, []);
 
   // 监听滚动，控制动态评分说明的显示
@@ -176,6 +341,18 @@ function App() {
     const hasRatings = Object.keys(ratings).length > 0;
     setHasUnsavedChanges(hasRatings);
   }, [ratings]);
+
+  // 获取用户总数（新的编号系统）
+  const loadUserCount = async () => {
+    try {
+      const counterData = await testNumberingApi.getCurrentNumber('male');
+      setUserCount(counterData.current);
+    } catch (error) {
+      console.error('获取用户计数失败:', error);
+      // 使用起始编号作为备选
+      setUserCount(1560);
+    }
+  };
 
   // 加载最新的测试记录
   const loadLatestTestRecord = async () => {
@@ -333,6 +510,64 @@ function App() {
     setSnackbarOpen(true);
   };
 
+  // 处理提示显示
+  const handleTooltipClick = (itemKey) => {
+    // 清除之前的定时器
+    if (tooltipTimeouts[itemKey]) {
+      clearTimeout(tooltipTimeouts[itemKey]);
+    }
+
+    // 显示提示
+    setTooltipOpen(prev => ({ ...prev, [itemKey]: true }));
+
+    // 设置3秒后自动关闭
+    const timeoutId = setTimeout(() => {
+      setTooltipOpen(prev => ({ ...prev, [itemKey]: false }));
+    }, 3000);
+
+    setTooltipTimeouts(prev => ({ ...prev, [itemKey]: timeoutId }));
+  };
+
+  // 手动关闭提示
+  const handleTooltipClose = (itemKey) => {
+    if (tooltipTimeouts[itemKey]) {
+      clearTimeout(tooltipTimeouts[itemKey]);
+    }
+    setTooltipOpen(prev => ({ ...prev, [itemKey]: false }));
+  };
+
+  // 鼠标悬停显示提示（桌面端）
+  const handleTooltipMouseEnter = (itemKey) => {
+    if (window.innerWidth >= 768) { // 只在桌面端启用
+      setTooltipOpen(prev => ({ ...prev, [itemKey]: true }));
+    }
+  };
+
+  // 鼠标离开隐藏提示（桌面端）
+  const handleTooltipMouseLeave = (itemKey) => {
+    if (window.innerWidth >= 768) { // 只在桌面端启用
+      setTooltipOpen(prev => ({ ...prev, [itemKey]: false }));
+    }
+  };
+
+  // 模拟报告生成进度
+  const simulateReportProgress = () => {
+    return new Promise((resolve) => {
+      setReportProgress(0);
+      const interval = setInterval(() => {
+        setReportProgress(prev => {
+          const newProgress = prev + Math.random() * 15 + 5;
+          if (newProgress >= 100) {
+            clearInterval(interval);
+            setTimeout(() => resolve(), 300);
+            return 100;
+          }
+          return newProgress;
+        });
+      }, 200);
+    });
+  };
+
   const handleGenerateReport = async () => {
     // 在生成报告前自动保存测试
     if (Object.keys(ratings).length > 0 && hasUnsavedChanges) {
@@ -347,6 +582,24 @@ function App() {
       }
     }
     
+    // 获取新的编号
+    try {
+      const newNumber = await testNumberingApi.getNextNumber('male');
+      setUserCount(newNumber);
+    } catch (error) {
+      console.error('获取新编号失败:', error);
+      // 使用当前编号+1作为备选
+      setUserCount(prev => prev + 1);
+    }
+    
+    // 显示进度条和等待信息
+    setGeneratingReport(true);
+    setReportProgress(0);
+    
+    // 模拟报告生成过程
+    await simulateReportProgress();
+    
+    setGeneratingReport(false);
     setOpenReport(true);
   };
 
@@ -1182,7 +1435,8 @@ function App() {
                       alignItems: 'center',
                       flexGrow: 1,
                       minWidth: 0,
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      gap: 0.5
                     }}>
                     <Typography sx={{
                       fontWeight: 500,
@@ -1195,6 +1449,103 @@ function App() {
                       whiteSpace: 'nowrap',
                       transition: 'color 0.3s ease'
                     }}>{item}</Typography>
+                    
+                    {/* 问号提示按钮 */}
+                    <Box sx={{ position: 'relative' }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleTooltipClick(`${category}-${item}`)}
+                        onMouseEnter={() => handleTooltipMouseEnter(`${category}-${item}`)}
+                        onMouseLeave={() => handleTooltipMouseLeave(`${category}-${item}`)}
+                        sx={{
+                          width: 20,
+                          height: 20,
+                          minWidth: 20,
+                          color: 'text.secondary',
+                          '&:hover': {
+                            color: 'primary.main',
+                            backgroundColor: 'rgba(98, 0, 234, 0.04)'
+                          }
+                        }}
+                      >
+                        <HelpOutlineIcon sx={{ fontSize: 14 }} />
+                      </IconButton>
+                      
+                      {/* 提示框 */}
+                      <Popper
+                        open={tooltipOpen[`${category}-${item}`] || false}
+                        anchorEl={document.querySelector(`[data-tooltip-anchor="${category}-${item}"]`)}
+                        placement="top"
+                        transition
+                        sx={{ zIndex: 1300 }}
+                      >
+                        {({ TransitionProps }) => (
+                          <Fade {...TransitionProps} timeout={200}>
+                            <Paper
+                              elevation={8}
+                              sx={{
+                                p: 2,
+                                maxWidth: 300,
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                                color: 'white',
+                                borderRadius: 2,
+                                fontSize: '0.875rem',
+                                lineHeight: 1.4,
+                                position: 'relative',
+                                '&::after': {
+                                  content: '""',
+                                  position: 'absolute',
+                                  bottom: -8,
+                                  left: '50%',
+                                  transform: 'translateX(-50%)',
+                                  width: 0,
+                                  height: 0,
+                                  borderLeft: '8px solid transparent',
+                                  borderRight: '8px solid transparent',
+                                  borderTop: '8px solid rgba(0, 0, 0, 0.9)'
+                                }
+                              }}
+                            >
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1 }}>
+                                <Typography variant="body2" sx={{ color: 'white', fontSize: '0.875rem' }}>
+                                  {ITEM_EXPLANATIONS[item] || '暂无解释'}
+                                </Typography>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => handleTooltipClose(`${category}-${item}`)}
+                                  sx={{
+                                    color: 'white',
+                                    width: 20,
+                                    height: 20,
+                                    minWidth: 20,
+                                    ml: 1,
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(255, 255, 255, 0.1)'
+                                    }
+                                  }}
+                                >
+                                  <CloseIcon sx={{ fontSize: 12 }} />
+                                </IconButton>
+                              </Box>
+                            </Paper>
+                          </Fade>
+                        )}
+                      </Popper>
+                      
+                      {/* 隐藏的锚点元素 */}
+                      <Box
+                        data-tooltip-anchor={`${category}-${item}`}
+                        sx={{
+                          position: 'absolute',
+                          top: -10,
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          width: 1,
+                          height: 1,
+                          pointerEvents: 'none'
+                        }}
+                      />
+                    </Box>
                     </Box>
                     <Select
                       size="small"
@@ -1314,6 +1665,9 @@ function App() {
             <Box ref={reportRef} sx={{ p: { xs: 1, md: 2 } }}>
               <Typography variant="h4" gutterBottom align="center" sx={{ color: '#1E3D59', mb: { xs: 2, md: 3 } }}>
                 男M自评报告
+              </Typography>
+              <Typography variant="subtitle1" align="center" sx={{ color: '#1E3D59', mb: { xs: 2, md: 3 }, fontWeight: 'bold' }}>
+                No.{userCount.toLocaleString().padStart(4, '0')}
               </Typography>
 
               {/* 雷达图部分 */}
@@ -1477,6 +1831,9 @@ function App() {
                     display: 'block'
                   }}
                 />
+                <Typography variant="subtitle2" sx={{ mt: 2, color: '#1E3D59', fontWeight: 'bold' }}>
+                  报告编号：No.{userCount.toLocaleString().padStart(4, '0')}
+                </Typography>
               </Box>
             </Box>
           </DialogContent>
@@ -1838,6 +2195,74 @@ function App() {
           }}
         />
       </Box>
+
+      {/* 报告生成进度对话框 */}
+        <Dialog
+          open={generatingReport}
+          maxWidth="sm"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 4,
+              backgroundColor: '#f0f8ff',
+              border: '3px solid #2196F3',
+              boxShadow: '0 8px 32px rgba(33, 150, 243, 0.3)'
+            }
+          }}
+        >
+          <DialogTitle sx={{
+            textAlign: 'center',
+            fontWeight: 'bold',
+            color: '#2196F3',
+            pb: 2
+          }}>
+            正在生成您的专属报告...
+          </DialogTitle>
+          <DialogContent sx={{ px: 4, py: 3 }}>
+            <Box sx={{ textAlign: 'center', mb: 3 }}>
+              <Typography variant="h6" sx={{ color: '#2196F3', mb: 2, fontWeight: 'bold' }}>
+                您是第 {userCount.toLocaleString()} 个参与测试的小可爱 🎉
+              </Typography>
+              <Typography variant="body1" sx={{ color: 'text.secondary', mb: 3 }}>
+                正在为您生成个性化分析报告...
+              </Typography>
+            </Box>
+            
+            <Box sx={{ mb: 2 }}>
+              <LinearProgress
+                variant="determinate"
+                value={reportProgress}
+                sx={{
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: 'rgba(33, 150, 243, 0.2)',
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: '#2196F3',
+                    borderRadius: 4,
+                    transition: 'transform 0.2s ease-in-out'
+                  }
+                }}
+              />
+            </Box>
+            
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ color: '#2196F3', fontWeight: 'bold' }}>
+                {Math.round(reportProgress)}% 完成
+              </Typography>
+            </Box>
+            
+            {/* 可爱的加载动画 */}
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+              <CircularProgress
+                size={40}
+                sx={{
+                  color: '#2196F3',
+                  animationDuration: '1.5s'
+                }}
+              />
+            </Box>
+          </DialogContent>
+        </Dialog>
 
       <Footer pixelStyle={true} />
       </Box>
