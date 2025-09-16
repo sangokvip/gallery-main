@@ -945,11 +945,12 @@ function AdminAppNew() {
       console.log('✅ 系统统计加载完成:', stats);
       setSystemStats(stats);
 
-      // 2. 加载测试记录列表
-      console.log('📋 步骤2: 加载测试记录...');
-      const { results, total } = await simpleAdminApi.getAllTestResults(filters, 20, 0);
-      console.log(`✅ 测试记录加载完成: ${results.length} 条，总计: ${total}`);
-      setTestResults(results);
+      // 2. 加载最近10条测试记录
+      console.log('📋 步骤2: 加载最近10条测试记录...');
+      const recentFilters = { ...filters };
+      const { results: recentResults, total } = await simpleAdminApi.getAllTestResults(recentFilters, 10, 0);
+      console.log(`✅ 最近测试记录加载完成: ${recentResults.length} 条，总计: ${total}`);
+      setTestResults(recentResults);
 
       console.log('🎉 仪表板数据加载完成！');
       
@@ -1123,7 +1124,7 @@ function AdminAppNew() {
   // 主管理界面
   return (
     <ThemeProvider theme={adminTheme}>
-      <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default', justifyContent: 'center' }}>
         {/* 顶部导航栏 */}
         <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
           <Toolbar>
@@ -1204,7 +1205,9 @@ function AdminAppNew() {
             bgcolor: 'background.default',
             p: 3,
             ml: '240px',
-            mt: '64px'
+            mt: '64px',
+            maxWidth: '1200px',
+            width: '100%'
           }}
         >
           {/* 仪表板标签页 */}
@@ -1444,17 +1447,17 @@ function AdminAppNew() {
                       </TableRow>
                     ) : testResults.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} align="center">
-                          <Box sx={{ py: 4, textAlign: 'center' }}>
-                            <Typography variant="h6" color="text.secondary" gutterBottom>
-                              暂无测试数据
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              系统中还没有任何测试记录
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
+                  <TableCell colSpan={6} align="center">
+                    <Box sx={{ py: 4, textAlign: 'center' }}>
+                      <Typography variant="h6" color="text.secondary" gutterBottom>
+                        暂无最近测试记录
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        系统中还没有任何最近的测试记录
+                      </Typography>
+                    </Box>
+                  </TableCell>
+                </TableRow>
                     ) : (
                       testResults.map((result) => (
                         <TableRow key={result.id} hover>

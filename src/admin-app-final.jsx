@@ -9,40 +9,134 @@ import {
 import {
   Dashboard as DashboardIcon, People as PeopleIcon, Assessment as AssessmentIcon, ExitToApp as ExitToAppIcon,
   Visibility as VisibilityIcon, BarChart as BarChartIcon, TrendingUp as TrendingUpIcon, Refresh as RefreshIcon,
-  DataUsage as DataUsageIcon, Info as InfoIcon, Security as SecurityIcon, Settings as SettingsIcon
+  DataUsage as DataUsageIcon, Info as InfoIcon, Security as SecurityIcon, Settings as SettingsIcon,
+  Today as TodayIcon, AccessTime as AccessTimeIcon, TrendingUp as TrendingIcon
 } from '@mui/icons-material'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
 import { supabase } from './utils/supabase.js'
 import AdminPasswordManager from './AdminPasswordManager.jsx'
+import AdminNavigation from './AdminNavigation.jsx'
 
 // 简化的管理员API
 const simpleAdminApi = {
   async getSystemStats() {
     try {
-      const queries = [
+      console.log('🔄 开始获取增强版系统统计...');
+      
+      // 获取今天的日期（UTC）
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayISO = today.toISOString();
+      
+      console.log('📅 今天日期:', todayISO);
+      
+      // 基础统计查询
+      const basicQueries = [
         supabase.from('users').select('id', { count: 'exact' }),
-        supabase.from('test_records').select('id', { count: 'exact' })
+        supabase.from('test_records').select('id', { count: 'exact' }),
+        // 今日用户数
+        supabase.from('users').select('id', { count: 'exact' }).gte('created_at', todayISO),
+        // 今日测试数
+        supabase.from('test_records').select('id', { count: 'exact' }).gte('created_at', todayISO)
       ];
       
-      const results = await Promise.allSettled(queries);
+      // 各个测试类型的统计
+      const testTypeQueries = [
+        supabase.from('test_records').select('id', { count: 'exact' }).eq('test_type', 'female'),
+        supabase.from('test_records').select('id', { count: 'exact' }).eq('test_type', 'male'),
+        supabase.from('test_records').select('id', { count: 'exact' }).eq('test_type', 's'),
+        supabase.from('test_records').select('id', { count: 'exact' }).eq('test_type', 'lgbt')
+      ];
+      
+      // 今日各个测试类型的统计
+      const todayTestTypeQueries = [
+        supabase.from('test_records').select('id', { count: 'exact' }).eq('test_type', 'female').gte('created_at', todayISO),
+        supabase.from('test_records').select('id', { count: 'exact' }).eq('test_type', 'male').gte('created_at', todayISO),
+        supabase.from('test_records').select('id', { count: 'exact' }).eq('test_type', 's').gte('created_at', todayISO),
+        supabase.from('test_records').select('id', { count: 'exact' }).eq('test_type', 'lgbt').gte('created_at', todayISO)
+      ];
+      
+      console.log('📊 执行所有统计查询...');
+      
+      // 并行执行所有查询
+      const [basicResults, testTypeResults, todayTestTypeResults] = await Promise.all([
+        Promise.allSettled(basicQueries),
+        Promise.allSettled(testTypeQueries),
+        Promise.allSettled(todayTestTypeQueries)
+      ]);
+      
+      // 提取基础统计结果
+      const totalUsers = basicResults[0].status === 'fulfilled' ? (basicResults[0].value.count || 0) : 0;
+      const totalTests = basicResults[1].status === 'fulfilled' ? (basicResults[1].value.count || 0) : 0;
+      const todayUsers = basicResults[2].status === 'fulfilled' ? (basicResults[2].value.count || 0) : 0;
+      const todayTests = basicResults[3].status === 'fulfilled' ? (basicResults[3].value.count || 0) : 0;
+      
+      // 提取各个测试类型的统计
+      const testTypeStats = [
+        {
+          name: '女M测试',
+          type: 'female',
+          count: testTypeResults[0].status === 'fulfilled' ? (testTypeResults[0].value.count || 0) : 0,
+          todayCount: todayTestTypeResults[0].status === 'fulfilled' ? (todayTestTypeResults[0].value.count || 0) : 0,
+          color: '#e91e63'
+        },
+        {
+          name: '男M测试',
+          type: 'male',
+          count: testTypeResults[1].status === 'fulfilled' ? (testTypeResults[1].value.count || 0) : 0,
+          todayCount: todayTestTypeResults[1].status === 'fulfilled' ? (todayTestTypeResults[1].value.count || 0) : 0,
+          color: '#2196f3'
+        },
+        {
+          name: 'S型测试',
+          type: 's',
+          count: testTypeResults[2].status === 'fulfilled' ? (testTypeResults[2].value.count || 0) : 0,
+          todayCount: todayTestTypeResults[2].status === 'fulfilled' ? (todayTestTypeResults[2].value.count || 0) : 0,
+          color: '#ff9800'
+        },
+        {
+          name: 'LGBT+测试',
+          type: 'lgbt',
+          count: testTypeResults[3].status === 'fulfilled' ? (testTypeResults[3].value.count || 0) : 0,
+          todayCount: todayTestTypeResults[3].status === 'fulfilled' ? (todayTestTypeResults[3].value.count || 0) : 0,
+          color: '#9c27b0'
+        }
+      ];
+      
+      console.log('📈 统计结果:');
+      console.log('   总用户数:', totalUsers);
+      console.log('   总测试数:', totalTests);
+      console.log('   今日用户数:', todayUsers);
+      console.log('   今日测试数:', todayTests);
+      console.log('   各类型统计:', testTypeStats);
       
       return {
         overview: {
-          totalUsers: results[0].status === 'fulfilled' ? (results[0].value.count || 0) : 0,
-          totalTests: results[1].status === 'fulfilled' ? (results[1].value.count || 0) : 0,
+          totalUsers,
+          totalTests,
           totalMessages: 0,
           totalImages: 0,
-          todayUsers: 0,
-          todayTests: 0
+          todayUsers,
+          todayTests
         },
-        testTypes: [],
+        testTypes: testTypeStats,
         weeklyTrends: [],
         geoStats: []
       };
+      
     } catch (error) {
-      console.error('获取系统统计失败:', error);
+      console.error('❌ 获取增强版系统统计失败:', error);
+      
+      // 如果主要方法失败，返回基础统计
       return {
-        overview: { totalUsers: 0, totalTests: 0, totalMessages: 0, totalImages: 0, todayUsers: 0, todayTests: 0 },
+        overview: { 
+          totalUsers: 0, 
+          totalTests: 0, 
+          totalMessages: 0, 
+          totalImages: 0, 
+          todayUsers: 0, 
+          todayTests: 0 
+        },
         testTypes: [],
         weeklyTrends: [],
         geoStats: []
@@ -481,8 +575,191 @@ function AdminApp() {
                 </Button>
               </Box>
 
-              {/* 统计卡片 */}
+              {/* 快速导航到所有板块 */}
+              <AdminNavigation currentAdmin={admin} />
+
+              {/* 今日统计卡片 */}
+              <Typography variant="h6" color="primary" sx={{ mb: 2, fontWeight: 'bold' }}>
+                📊 今日实时数据
+              </Typography>
               <Grid container spacing={3} sx={{ mb: 4 }}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box>
+                          <Typography sx={{ opacity: 0.8, mb: 1 }} gutterBottom>
+                            今日测试用户
+                          </Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                            {statsLoading ? <CircularProgress size={32} color="inherit" /> : (systemStats?.overview?.todayUsers || 0)}
+                          </Typography>
+                          <Typography variant="body2" sx={{ opacity: 0.7, mt: 1 }}>
+                            新增用户
+                          </Typography>
+                        </Box>
+                        <PeopleIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white' }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box>
+                          <Typography sx={{ opacity: 0.8, mb: 1 }} gutterBottom>
+                            今日测试数量
+                          </Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                            {statsLoading ? <CircularProgress size={32} color="inherit" /> : (systemStats?.overview?.todayTests || 0)}
+                          </Typography>
+                          <Typography variant="body2" sx={{ opacity: 0.7, mt: 1 }}>
+                            今日完成
+                          </Typography>
+                        </Box>
+                        <AssessmentIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)', color: 'white' }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box>
+                          <Typography sx={{ opacity: 0.8, mb: 1 }} gutterBottom>
+                            总用户数
+                          </Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                            {statsLoading ? <CircularProgress size={32} color="inherit" /> : (systemStats?.overview?.totalUsers || 0)}
+                          </Typography>
+                          <Typography variant="body2" sx={{ opacity: 0.7, mt: 1 }}>
+                            累计用户
+                          </Typography>
+                        </Box>
+                        <PeopleIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)', color: 'white' }}>
+                    <CardContent>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box>
+                          <Typography sx={{ opacity: 0.8, mb: 1 }} gutterBottom>
+                            总测试数
+                          </Typography>
+                          <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                            {statsLoading ? <CircularProgress size={32} color="inherit" /> : (systemStats?.overview?.totalTests || 0)}
+                          </Typography>
+                          <Typography variant="body2" sx={{ opacity: 0.7, mt: 1 }}>
+                            累计测试
+                          </Typography>
+                        </Box>
+                        <AssessmentIcon sx={{ fontSize: 40, opacity: 0.8 }} />
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              {/* 各项目测试数量统计 */}
+              <Typography variant="h6" color="primary" sx={{ mb: 2, fontWeight: 'bold' }}>
+                📈 各项目测试数量统计
+              </Typography>
+              <Grid container spacing={3}>
+                {statsLoading ? (
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                      <CircularProgress />
+                    </Box>
+                  </Grid>
+                ) : (
+                  systemStats?.testTypes?.map((testType, index) => (
+                    <Grid item xs={12} sm={6} md={3} key={index}>
+                      <Card 
+                        sx={{ 
+                          background: `linear-gradient(135deg, ${testType.color} 0%, ${testType.color}aa 100%)`, 
+                          color: 'white',
+                          transition: 'all 0.3s ease',
+                          cursor: 'pointer',
+                          '&:hover': {
+                            transform: 'translateY(-4px)',
+                            boxShadow: '0 12px 30px rgba(0,0,0,0.2)'
+                          }
+                        }}
+                        onClick={() => {
+                          // 点击可以筛选对应类型的测试记录
+                          setFilters({...filters, testType: testType.type});
+                          setSelectedTab(1); // 切换到测评记录标签
+                        }}
+                      >
+                        <CardContent>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Box>
+                              <Typography sx={{ opacity: 0.9, mb: 1 }} gutterBottom>
+                                {testType.name}
+                              </Typography>
+                              <Typography variant="h4" sx={{ fontWeight: 'bold' }}>
+                                {testType.count}
+                              </Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                                  今日: {testType.todayCount}
+                                </Typography>
+                                {testType.todayCount > 0 && (
+                                  <Chip 
+                                    label="+活跃" 
+                                    size="small" 
+                                    sx={{ 
+                                      ml: 1, 
+                                      backgroundColor: 'rgba(255,255,255,0.2)', 
+                                      color: 'white',
+                                      fontSize: '0.7rem'
+                                    }}
+                                  />
+                                )}
+                              </Box>
+                            </Box>
+                            <AssessmentIcon sx={{ fontSize: 32, opacity: 0.8 }} />
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Grid>
+                  ))
+                )}
+              </Grid>
+
+              {/* 今日活跃度提示 */}
+              {!statsLoading && systemStats?.testTypes?.some(type => type.todayCount > 0) && (
+                <Box sx={{ mt: 2, mb: 2 }}>
+                  <Alert 
+                    severity="info" 
+                    sx={{ 
+                      backgroundColor: 'rgba(25, 118, 210, 0.1)',
+                      '& .MuiAlert-icon': {
+                        color: '#1976d2'
+                      }
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <TrendingIcon sx={{ mr: 1 }} />
+                      <Typography variant="body2">
+                        <strong>今日活跃：</strong> 
+                        {systemStats?.testTypes?.filter(type => type.todayCount > 0).length} 个项目有新增测试数据
+                      </Typography>
+                    </Box>
+                  </Alert>
+                </Box>
+              )}
+
+              {/* 原有统计卡片 - 保留作为对比 */}
+              <Typography variant="h6" color="text.secondary" sx={{ mt: 4, mb: 2 }}>
+                📊 基础数据统计
+              </Typography>
+              <Grid container spacing={3}>
                 <Grid item xs={12} sm={6} md={3}>
                   <Card>
                     <CardContent>
