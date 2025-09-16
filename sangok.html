@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>M-Profile Lab 管理后台</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="M-Profile Lab 管理后台 - 专业的人格测试平台管理系统" />
+  <meta name="keywords" content="管理后台,人格测试,数据分析,用户管理" />
+  <meta name="author" content="M-Profile Lab Team" />
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="M-Profile Lab 管理后台" />
+  <meta property="og:description" content="专业的人格测试平台管理系统" />
+  <meta property="og:image" content="https://m-profile.top/og-image.png" />
+  
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image" />
+  <meta property="twitter:title" content="M-Profile Lab 管理后台" />
+  <meta property="twitter:description" content="专业的人格测试平台管理系统" />
+  <meta property="twitter:image" content="https://m-profile.top/og-image.png" />
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='16' fill='%231976d2'/><text x='16' y='20' text-anchor='middle' fill='white' font-size='12' font-weight='bold'>管理</text></svg>">
+  
+  <!-- Security Headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .admin-loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: white;
+      text-align: center;
+    }
+    
+    .admin-loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid #1976d2;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .admin-loading-text {
+      font-size: 18px;
+      font-weight: 500;
+      margin-bottom: 10px;
+    }
+    
+    .admin-loading-subtext {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+    
+    .admin-error {
+      background: rgba(244, 67, 54, 0.9);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      max-width: 400px;
+      margin: 20px;
+    }
+    
+    .admin-error-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .admin-error-message {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 20px;
+    }
+    
+    .admin-error-button {
+      background: white;
+      color: #f44336;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .admin-error-button:hover {
+      background: #f5f5f5;
+      transform: translateY(-1px);
+    }
+    
+    #root {
+      width: 100%;
+      height: 100vh;
+    }
+    
+    /* 响应式设计 */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .admin-loading-spinner {
+        width: 40px;
+        height: 40px;
+      }
+      
+      .admin-loading-text {
+        font-size: 16px;
+      }
+      
+      .admin-loading-subtext {
+        font-size: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div class="admin-loading">
+      <div class="admin-loading-spinner"></div>
+      <div class="admin-loading-text">正在加载管理后台...</div>
+      <div class="admin-loading-subtext">请稍候，系统正在初始化</div>
+    </div>
+  </div>
+  
+  <script type="module" src="/src/admin-app-final.jsx"></script>
+</body>
+</html>

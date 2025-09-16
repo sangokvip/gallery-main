@@ -30,7 +30,8 @@ export default defineConfig(({ command, mode }) => {
           lgbt: './lgbt.html',
           s: './s.html',
           message: './message.html',
-          gallery: './gallery.html'
+          gallery: './gallery.html',
+          sangok: './sangok.html'
         },
         output: {
           manualChunks: undefined,
@@ -41,6 +42,12 @@ export default defineConfig(({ command, mode }) => {
               return `[name].[ext]`;
             }
             return `assets/[name]-[hash].[ext]`;
+          },
+          entryFileNames: (chunkInfo) => {
+            if (chunkInfo.name === 'admin-debug') {
+              return 'assets/admin-debug-[hash].js';
+            }
+            return 'assets/[name]-[hash].js';
           }
         }
       }

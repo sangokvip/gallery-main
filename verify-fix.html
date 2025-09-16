@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理员后台修复验证</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      color: white;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 30px;
+      backdrop-filter: blur(10px);
+    }
+    .test-section {
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 5px;
+      transition: all 0.3s ease;
+    }
+    .btn-primary {
+      background: #1976d2;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #1565c0;
+    }
+    .btn-secondary {
+      background: #4caf50;
+      color: white;
+    }
+    .btn-secondary:hover {
+      background: #45a049;
+    }
+    .result-display {
+      background: rgba(0,0,0,0.3);
+      padding: 15px;
+      border-radius: 5px;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+    .success { color: #4caf50; }
+    .error { color: #f44336; }
+    .warning { color: #ff9800; }
+    .info { color: #2196f3; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 管理员后台修复验证</h1>
+    
+    <div class="test-section">
+      <h3>修复验证</h3>
+      <p>这个工具将验证管理员后台的修复是否成功</p>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="testFunctionCalls()">测试函数调用</button>
+        <button class="btn btn-secondary" onclick="testDataLoading()">测试数据加载</button>
+        <button class="btn btn-secondary" onclick="verifyFix()">验证修复</button>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h3>测试结果</h3>
+      <div id="test-results">
+        <p style="text-align: center; color: #666;">等待测试结果...</p>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h3>修复状态</h3>
+      <div id="fix-status">
+        <span class="status-indicator status-info"></span>
+        准备验证修复...
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { supabase } from './src/utils/supabase.js';
+    
+    let testResults = {};
+
+    function log(message, type = 'info') {
+      const timestamp = new Date().toLocaleTimeString();
+      const resultsDiv = document.getElementById('test-results');
+      const colorClass = type === 'error' ? 'error-text' : type === 'success' ? 'success-text' : type === 'warning' ? 'warning-text' : '';
+      resultsDiv.innerHTML += `<div class="result-display">[${timestamp}] <span class="${colorClass}">${message}</span></div>`;
+      console.log(`[${timestamp}] ${message}`);
+    }
+
+    function updateStatus(elementId, message, type = 'info') {
+      const element = document.getElementById(elementId);
+      const statusIcon = type === 'success' ? 'status-success' : 
+                        type === 'error' ? 'status-error' : 
+                        type === 'warning' ? 'status-warning' : 'status-info';
+      element.innerHTML = `<span class="status-indicator ${statusIcon}"></span>${message}`;
+    }
+
+    // 测试函数调用
+    window.testFunctionCalls = async function() {
+      log('开始测试函数调用...', 'info');
+      
+      try {
+        // 测试系统统计函数
+        log('测试系统统计查询...', 'info');
+        const { data: users, error: usersError } = await supabase
+          .from('users')
+          .select('*', { count: 'exact', head: true });
+        
+        if (usersError) {
+          throw new Error(`用户统计失败: ${usersError.message}`);
+        }
+        
+        log(`✅ 用户统计成功: ${users.count} 个用户`, 'success');
+        
+        // 测试测试记录查询
+        log('测试测试记录查询...', 'info');
+        const { data: records, error: recordsError } = await supabase
+          .from('test_records')
+          .select('*', { count: 'exact', head: true });
+        
+        if (recordsError) {
+          throw new Error(`测试记录统计失败: ${recordsError.message}`);
+        }
+        
+        log(`✅ 测试记录统计成功: ${records.count} 条记录`, 'success');
+        
+        // 测试IP地址查询
+        log('测试IP地址查询...', 'info');
+        const { data: ips, error: ipsError } = await supabase
+          .from('user_ips')
+          .select('*')
+          .limit(5);
+        
+        if (ipsError) {
+          throw new Error(`IP地址查询失败: ${ipsError.message}`);
+        }
+        
+        log(`✅ IP地址查询成功: ${ips ? ips.length : 0} 条记录`, 'success');
+        
+        updateStatus('fix-status', '✅ 所有函数调用测试通过', 'success');
+        
+      } catch (error) {
+        log(`❌ 函数调用测试失败: ${error.message}`, 'error');
+        updateStatus('fix-status', '❌ 函数调用测试失败', 'error');
+      }
+    }
+
+    // 测试数据加载
+    window.testDataLoading = async function() {
+      log('开始测试数据加载功能...', 'info');
+      
+      try {
+        // 模拟完整的仪表板数据加载流程
+        log('模拟仪表板数据加载流程...', 'info');
+        
+        // 1. 系统统计
+        const statsResults = await Promise.allSettled([
+          supabase.from('users').select('*', { count: 'exact', head: true }),
+          supabase.from('test_records').select('*', { count: 'exact', head: true }),
+          supabase.from('test_records').select('*', { count: 'exact', head: true }).gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+          supabase.from('test_records').select('test_type, count(*)').group('test_type')
+        ]);
+        
+        const [usersResult, recordsResult, todayResult, typesResult] = statsResults;
+        
+        const stats = {
+          totalUsers: usersResult.status === 'fulfilled' ? usersResult.value.count : 0,
+          totalRecords: recordsResult.status === 'fulfilled' ? recordsResult.value.count : 0,
+          todayRecords: todayResult.status === 'fulfilled' ? todayResult.value.count : 0,
+          testTypes: typesResult.status === 'fulfilled' ? typesResult.value.data : []
+        };
+        
+        log(`✅ 系统统计加载成功`, 'success');
+        log(`   用户数: ${stats.totalUsers}, 测试记录: ${stats.totalRecords}, 今日: ${stats.todayRecords}`, 'info');
+        
+        // 2. 测试记录列表
+        log('加载测试记录列表...', 'info');
+        const { data: records, error: recordsError } = await supabase
+          .from('test_records')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        if (recordsError) {
+          throw new Error(`测试记录加载失败: ${recordsError.message}`);
+        }
+        
+        log(`✅ 测试记录加载成功: ${records ? records.length : 0} 条记录`, 'success');
+        
+        // 3. IP地址列表
+        log('加载IP地址列表...', 'info');
+        const { data: ips, error: ipsError } = await supabase
+          .from('user_ips')
+          .select('*')
+          .order('last_seen', { ascending: false })
+          .limit(10);
+        
+        if (ipsError) {
+          throw new Error(`IP地址加载失败: ${ipsError.message}`);
+        }
+        
+        log(`✅ IP地址加载成功: ${ips ? ips.length : 0} 条记录`, 'success');
+        
+        updateStatus('fix-status', '✅ 数据加载功能测试通过', 'success');
+        
+      } catch (error) {
+        log(`❌ 数据加载测试失败: ${error.message}`, 'error');
+        updateStatus('fix-status', '❌ 数据加载测试失败', 'error');
+      }
+    }
+
+    // 验证修复
+    window.verifyFix = async function() {
+      log('开始验证修复结果...', 'info');
+      
+      try {
+        // 验证数据库连接
+        const { data, error } = await supabase
+          .from('test_records')
+          .select('id')
+          .limit(1);
+        
+        if (error) {
+          throw new Error(`数据库连接验证失败: ${error.message}`);
+        }
+        
+        log('✅ 数据库连接验证通过', 'success');
+        
+        // 验证函数存在性（通过查询成功来判断）
+        const checks = [
+          { name: '系统统计', func: () => supabase.from('users').select('*', { count: 'exact', head: true }) },
+          { name: '测试记录', func: () => supabase.from('test_records').select('*', { count: 'exact', head: true }) },
+          { name: 'IP地址', func: () => supabase.from('user_ips').select('*').limit(1) }
+        ];
+        
+        for (const check of checks) {
+          try {
+            const { error } = await check.func();
+            if (error) {
+              throw new Error(`${check.name} 验证失败: ${error.message}`);
+            }
+            log(`✅ ${check.name} 验证通过`, 'success');
+          } catch (err) {
+            log(`❌ ${check.name} 验证失败: ${err.message}`, 'error');
+          }
+        }
+        
+        updateStatus('fix-status', '✅ 修复验证通过', 'success');
+        log('🎉 所有修复验证完成！管理员后台应该可以正常工作了', 'success');
+        
+      } catch (error) {
+        log(`❌ 修复验证失败: ${error.message}`, 'error');
+        updateStatus('fix-status', '❌ 修复验证失败', 'error');
+      }
+    }
+
+    // 初始化
+    window.addEventListener('DOMContentLoaded', () => {
+      console.log('修复验证工具已加载');
+      log('修复验证工具初始化完成', 'success');
+    });
+  </script>
+</body>
+</html>

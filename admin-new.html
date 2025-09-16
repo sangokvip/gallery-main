@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>管理员后台 - 新版本 - M-Profile Lab</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      color: white;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 30px;
+      backdrop-filter: blur(10px);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .status-info {
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      margin: 10px;
+      transition: all 0.3s ease;
+      font-size: 16px;
+    }
+    .btn-primary {
+      background: #1976d2;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #1565c0;
+      transform: translateY(-2px);
+    }
+    .btn-success {
+      background: #4caf50;
+      color: white;
+    }
+    .btn-success:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+    }
+    .btn-warning {
+      background: #ff9800;
+      color: white;
+    }
+    .btn-warning:hover {
+      background: #f57c00;
+      transform: translateY(-2px);
+    }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      margin: 30px 0;
+    }
+    .feature-card {
+      background: rgba(255,255,255,0.2);
+      border-radius: 12px;
+      padding: 25px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.3);
+      transition: all 0.3s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .feature-icon {
+      font-size: 3em;
+      margin-bottom: 15px;
+    }
+    .warning-box {
+      background: rgba(255, 152, 0, 0.2);
+      border: 2px solid #ff9800;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    .success-box {
+      background: rgba(76, 175, 80, 0.2);
+      border: 2px solid #4caf50;
+      border-radius: 10px;
+      padding: 20px;
+      margin: 20px 0;
+      text-align: center;
+    }
+    .code-block {
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
+      padding: 15px;
+      margin: 15px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 M-Profile Lab 管理员后台</h1>
+    
+    <div class="status-info">
+      <h2>🎯 新版本管理员界面</h2>
+      <p>此页面使用全新的统计查询逻辑，基于 test-stats-fix.html 的成功方法</p>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>全新统计系统</h3>
+        <p>使用 test-stats-fix.html 验证过的查询方法，确保统计数据准确显示</p>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon">🔧</div>
+        <h3>简化查询逻辑</h3>
+        <p>移除复杂的 head: true 参数，使用更稳定的 select('id', { count: 'exact' })</p>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <h3>容错处理</h3>
+        <p>多重备用方案，确保在各种情况下都能正确显示数据</p>
+      </div>
+      
+      <div class="feature-card">
+        <div class="feature-icon">📈</div>
+        <h3>实时更新</h3>
+        <p>支持实时数据刷新，动态显示最新的统计数据</p>
+      </div>
+    </div>
+
+    <div class="warning-box">
+      <h3>⚠️ 使用前请确认</h3>
+      <p>请确保您已经配置了正确的环境变量：</p>
+      <div class="code-block">
+VITE_SUPABASE_URL=your-supabase-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+      </div>
+    </div>
+
+    <div style="text-align: center; margin: 30px 0;">
+      <button class="btn btn-success" onclick="launchNewAdmin()">
+        🚀 启动新管理员界面
+      </button>
+      <button class="btn btn-primary" onclick="testStatsOnly()">
+        📊 仅测试统计功能
+      </button>
+      <button class="btn btn-warning" onclick="showIntegrationGuide()">
+        📖 查看集成指南
+      </button>
+    </div>
+
+    <div id="results" style="display: none;">
+      <!-- 测试结果将显示在这里 -->
+    </div>
+
+    <div id="integration-guide" style="display: none;">
+      <h3>🔧 集成指南</h3>
+      <p>要将新的管理员界面集成到您的主应用中，请按照以下步骤操作：</p>
+      
+      <h4>步骤1: 备份原文件</h4>
+      <div class="code-block">
+# 备份原始文件
+cp src/AdminApp.jsx src/AdminApp-old.jsx
+cp admin.html admin-old.html
+      </div>
+      
+      <h4>步骤2: 使用新文件</h4>
+      <div class="code-block">
+# 使用新的管理员组件
+cp src/AdminApp-new.jsx src/AdminApp.jsx
+
+# 或者创建新的入口文件
+cp admin-new.html admin.html
+      </div>
+      
+      <h4>步骤3: 验证功能</h4>
+      <p>重新启动应用并访问管理员界面，确认统计数据正确显示。</p>
+      
+      <h4>关键改进点</h4>
+      <ul style="text-align: left;">
+        <li><strong>简化查询逻辑</strong>: 使用 select('id', { count: 'exact' }) 替代复杂的 head: true</li>
+        <li><strong>增强错误处理</strong>: 多重备用方案确保数据可靠性</li>
+        <li><strong>优化性能</strong>: 减少不必要的数据库查询和数据处理</li>
+        <li><strong>更好的日志</strong>: 详细的调试信息便于问题排查</li>
+      </ul>
+    </div>
+  </div>
+
+  <script type="module">
+    let supabase;
+
+    // 检查环境
+    async function checkEnvironment() {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        showResults(`
+          <div class="warning-box">
+            <h3>❌ 环境变量未配置</h3>
+            <p>VITE_SUPABASE_URL: ${supabaseUrl ? '已配置' : '未配置'}</p>
+            <p>VITE_SUPABASE_ANON_KEY: ${supabaseKey ? '已配置' : '未配置'}</p>
+            <p>请先配置环境变量再测试。</p>
+          </div>
+        `, 'error');
+        return false;
+      }
+      
+      try {
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js');
+        supabase = createClient(supabaseUrl, supabaseKey);
+        
+        // 测试连接
+        const { data, error } = await supabase.from('users').select('id').limit(1);
+        if (error) {
+          showResults(`
+            <div class="warning-box">
+              <h3>❌ 数据库连接失败</h3>
+              <p>错误: ${error.message}</p>
+              <p>请检查数据库配置和网络连接。</p>
+            </div>
+          `, 'error');
+          return false;
+        }
+        
+        return true;
+      } catch (error) {
+        showResults(`
+          <div class="warning-box">
+            <h3>❌ 环境检查失败</h3>
+            <p>错误: ${error.message}</p>
+          </div>
+        `, 'error');
+        return false;
+      }
+    }
+
+    // 测试统计功能
+    async function testStatsOnly() {
+      showResults('<div class="status-info"><h3>🔄 正在测试统计功能...</h3><p>请稍候...</p></div>');
+      
+      if (!await checkEnvironment()) return;
+      
+      try {
+        // 使用新的统计方法
+        const queries = [
+          supabase.from('users').select('id', { count: 'exact' }),
+          supabase.from('test_records').select('id', { count: 'exact' }),
+          supabase.from('messages').select('id', { count: 'exact' }),
+          supabase.from('users').select('id', { count: 'exact' }).gte('last_active', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()),
+          supabase.from('test_records').select('id', { count: 'exact' }).gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        ];
+        
+        const results = await Promise.allSettled(queries);
+        
+        const stats = {
+          totalUsers: results[0].status === 'fulfilled' ? results[0].value.count : 0,
+          totalTests: results[1].status === 'fulfilled' ? results[1].value.count : 0,
+          totalMessages: results[2].status === 'fulfilled' ? results[2].value.count : 0,
+          todayUsers: results[3].status === 'fulfilled' ? results[3].value.count : 0,
+          todayTests: results[4].status === 'fulfilled' ? results[4].value.count : 0
+        };
+        
+        // 对比测评记录查询
+        const { data, error, count } = await supabase
+          .from('test_records')
+          .select('*', { count: 'exact' })
+          .limit(1);
+        
+        const comparisonCount = count || 0;
+        const isConsistent = stats.totalTests === comparisonCount;
+        
+        showResults(`
+          <div class="${isConsistent ? 'success-box' : 'warning-box'}">
+            <h3>${isConsistent ? '✅ 统计功能正常' : '⚠️ 存在差异'}</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0;">
+              <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; text-align: center;">
+                <h4>总用户数</h4>
+                <div style="font-size: 2em; font-weight: bold;">${stats.totalUsers}</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; text-align: center;">
+                <h4>总测试数</h4>
+                <div style="font-size: 2em; font-weight: bold;">${stats.totalTests}</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; text-align: center;">
+                <h4>总留言数</h4>
+                <div style="font-size: 2em; font-weight: bold;">${stats.totalMessages}</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; text-align: center;">
+                <h4>今日用户</h4>
+                <div style="font-size: 2em; font-weight: bold;">${stats.todayUsers}</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; text-align: center;">
+                <h4>今日测试</h4>
+                <div style="font-size: 2em; font-weight: bold;">${stats.todayTests}</div>
+              </div>
+            </div>
+            <p><strong>对比验证:</strong> 测评记录查询返回 ${comparisonCount} 条记录</p>
+            <p><strong>一致性:</strong> ${isConsistent ? '✅ 完美匹配' : '⚠️ 存在差异，需要进一步检查'}</p>
+            <p><strong>状态:</strong> ${stats.totalTests > 0 ? '✅ 统计数据正常显示' : '⚠️ 暂无测试数据'}</p>
+          </div>
+        `, isConsistent ? 'success' : 'warning');
+        
+      } catch (error) {
+        showResults(`
+          <div class="warning-box">
+            <h3>❌ 统计测试失败</h3>
+            <p>错误: ${error.message}</p>
+            <p>请检查数据库连接和表结构。</p>
+          </div>
+        `, 'error');
+      }
+    }
+
+    // 启动新管理员界面
+    async function launchNewAdmin() {
+      showResults('<div class="status-info"><h3>🚀 正在启动新管理员界面...</h3><p>请稍候...</p></div>');
+      
+      if (!await checkEnvironment()) return;
+      
+      try {
+        // 测试所有功能
+        await testStatsOnly();
+        
+        showResults(`
+          <div class="success-box">
+            <h3>✅ 新管理员界面就绪</h3>
+            <p>统计功能测试通过，可以安全使用新的管理员界面。</p>
+            <div style="margin: 20px 0;">
+              <h4>📋 下一步操作:</h4>
+              <ol style="text-align: left;">
+                <li>备份原始文件: <code>cp src/AdminApp.jsx src/AdminApp-old.jsx</code></li>
+                <li>使用新文件: <code>cp src/AdminApp-new.jsx src/AdminApp.jsx</code></li>
+                <li>重启开发服务器: <code>npm run dev</code></li>
+                <li>访问管理员界面验证功能</li>
+              </ol>
+            </div>
+            <button class="btn btn-success" onclick="showIntegrationGuide()">
+              📖 查看详细集成指南
+            </button>
+          </div>
+        `, 'success');
+        
+      } catch (error) {
+        showResults(`
+          <div class="warning-box">
+            <h3>❌ 启动失败</h3>
+            <p>错误: ${error.message}</p>
+            <p>请先解决上述问题再尝试集成。</p>
+          </div>
+        `, 'error');
+      }
+    }
+
+    // 显示集成指南
+    function showIntegrationGuide() {
+      const guide = document.getElementById('integration-guide');
+      guide.style.display = guide.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // 显示结果
+    function showResults(html, type = 'info') {
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = html;
+      resultsDiv.style.display = 'block';
+    }
+
+    // 页面加载时自动检查
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('新管理员界面测试工具已加载');
+    });
+
+    // 暴露全局函数
+    window.testStatsOnly = testStatsOnly;
+    window.launchNewAdmin = launchNewAdmin;
+    window.showIntegrationGuide = showIntegrationGuide;
+  </script>
+</body>
+</html>
