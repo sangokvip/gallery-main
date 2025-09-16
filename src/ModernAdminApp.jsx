@@ -556,11 +556,9 @@ function ModernAdminApp() {
             <GlassCard sx={{ maxWidth: 400, width: '100%' }}>
               <Box sx={{ textAlign: 'center', mb: 4 }}>
                 <Typography variant="h4" sx={{ color: modernColors.text.primary, fontWeight: 'bold', mb: 1 }}>
-                  管理员登录
+                  Y R U HERE?
                 </Typography>
-                <Typography variant="body2" sx={{ color: modernColors.text.secondary }}>
-                  欢迎使用现代管理后台
-                </Typography>
+
               </Box>
               
               {loginError && (
@@ -606,7 +604,7 @@ function ModernAdminApp() {
               </form>
               
               <Typography variant="body2" sx={{ color: modernColors.text.muted, textAlign: 'center' }}>
-                管理员账户：adam / Sangok#3
+                Life is a fucking party, and I am here to enjoy it. 
               </Typography>
             </GlassCard>
           </Container>
