@@ -9,19 +9,105 @@ function MinimalAdmin() {
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState('');
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (username === 'admin' && password === 'admin123') {
-      setIsLoggedIn(true);
-      localStorage.setItem('admin_data', JSON.stringify({ username: 'admin', role: 'super_admin' }));
+  // 验证管理员会话
+  const validateAdminSession = () => {
+    try {
+      const adminData = localStorage.getItem('admin_data');
+      if (!adminData) {
+        return false;
+      }
+      
+      let admin;
+      try {
+        admin = JSON.parse(adminData);
+      } catch {
+        localStorage.removeItem('admin_data');
+        return false;
+      }
+      
+      // 验证管理员数据完整性
+      if (!admin || typeof admin !== 'object') {
+        localStorage.removeItem('admin_data');
+        return false;
+      }
+      
+      if (!admin.username || !admin.role || !admin.id) {
+        localStorage.removeItem('admin_data');
+        return false;
+      }
+      
+      // 验证管理员凭据是否仍然有效
+      const validAdmins = [
+        { id: 1, username: 'adam', password: 'Sangok#3', role: 'super_admin', email: 'adam@mprofile.com' }
+      ];
+      
+      const isValidAdmin = validAdmins.some(validAdmin => 
+        validAdmin.id === admin.id && 
+        validAdmin.username === admin.username && 
+        validAdmin.role === admin.role
+      );
+      
+      if (!isValidAdmin) {
+        localStorage.removeItem('admin_data');
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ 验证管理员会话失败:', error);
+      localStorage.removeItem('admin_data');
+      return false;
+    }
+  };
+
+  // 组件加载时验证会话
+  React.useEffect(() => {
+    const isValidSession = validateAdminSession();
+    setIsLoggedIn(isValidSession);
+    if (!isValidSession) {
+      console.log('❌ 管理员会话无效，需要重新登录');
     } else {
-      setError('用户名或密码错误');
+      console.log('✅ 管理员会话有效');
+    }
+  }, []);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    try {
+      // 使用与主应用相同的管理员验证逻辑
+      const validAdmins = [
+        { id: 1, username: 'adam', password: 'Sangok#3', role: 'super_admin', email: 'adam@mprofile.com' }
+      ];
+      
+      const admin = validAdmins.find(a => a.username === username && a.password === password);
+      
+      if (admin) {
+        setIsLoggedIn(true);
+        localStorage.setItem('admin_data', JSON.stringify({ 
+          id: admin.id,
+          username: admin.username, 
+          role: admin.role,
+          email: admin.email
+        }));
+        console.log('✅ 管理员登录成功');
+      } else {
+        setError('用户名或密码错误');
+        console.log('❌ 管理员登录失败: 用户名或密码错误');
+      }
+    } catch (error) {
+      setError('登录失败，请重试');
+      console.error('❌ 管理员登录失败:', error);
     }
   };
 
   const handleLogout = () => {
+    console.log('🚪 执行管理员登出...');
     setIsLoggedIn(false);
     localStorage.removeItem('admin_data');
+    sessionStorage.clear();
+    console.log('✅ 管理员登出成功');
   };
 
   // 如果已登录，显示简单的管理界面
@@ -221,7 +307,7 @@ function MinimalAdmin() {
         </form>
 
         <p style={{ marginTop: '20px', fontSize: '14px', opacity: 0.8 }}>
-          默认管理员账户：admin / admin123
+          默认管理员账户：adam / Sangok#3
         </p>
       </div>
     </div>

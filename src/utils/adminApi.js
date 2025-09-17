@@ -268,15 +268,55 @@ export const simpleAdminApi = {
       // 简单的会话检查
       const adminData = localStorage.getItem('admin_data');
       if (!adminData) {
+        console.log('❌ 未找到管理员会话数据');
         return null;
       }
       
-      const admin = JSON.parse(adminData);
+      let admin;
+      try {
+        admin = JSON.parse(adminData);
+      } catch (parseError) {
+        console.log('❌ 管理员会话数据格式错误，清除会话');
+        localStorage.removeItem('admin_data');
+        return null;
+      }
+      
+      // 验证管理员数据完整性 - 严格验证所有必需字段
+      if (!admin || typeof admin !== 'object') {
+        console.log('❌ 管理员数据不是有效对象，清除会话');
+        localStorage.removeItem('admin_data');
+        return null;
+      }
+      
+      if (!admin.username || !admin.role || !admin.id) {
+        console.log('❌ 管理员数据缺少必需字段，清除会话');
+        localStorage.removeItem('admin_data');
+        return null;
+      }
+      
+      // 验证管理员凭据是否仍然有效
+      const validAdmins = [
+        { id: 1, username: 'adam', password: 'Sangok#3', role: 'super_admin', email: 'adam@mprofile.com' }
+      ];
+      
+      const isValidAdmin = validAdmins.some(validAdmin => 
+        validAdmin.id === admin.id && 
+        validAdmin.username === admin.username && 
+        validAdmin.role === admin.role
+      );
+      
+      if (!isValidAdmin) {
+        console.log('❌ 管理员凭据无效，清除会话');
+        localStorage.removeItem('admin_data');
+        return null;
+      }
+      
       console.log('✅ 管理员会话有效');
       return admin;
       
     } catch (error) {
       console.error('❌ 检查管理员会话失败:', error);
+      localStorage.removeItem('admin_data');
       return null;
     }
   },

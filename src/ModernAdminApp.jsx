@@ -63,7 +63,12 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   ExitToApp as ExitToAppIcon,
-  Info as InfoIcon
+  Info as InfoIcon,
+  OpenInNew as OpenInNewIcon,
+  Forum as ForumIcon,
+  PhotoLibrary as PhotoLibraryIcon,
+  Storage as StorageIcon,
+  HelpOutline as HelpOutlineIcon
 } from '@mui/icons-material';
 import { createTheme, ThemeProvider, styled } from '@mui/material/styles';
 import { supabase } from './utils/supabase.js';
@@ -345,32 +350,154 @@ function ModernAdminApp() {
     }
   };
 
-  // 初始化应用
+  // 🔐 现代认证函数 - 基于admin-minimal.html的成功逻辑
+  const validateAdminSession = () => {
+    try {
+      const adminData = localStorage.getItem('admin_data');
+      if (!adminData) {
+        return false;
+      }
+      
+      let admin;
+      try {
+        admin = JSON.parse(adminData);
+      } catch {
+        localStorage.removeItem('admin_data');
+        return false;
+      }
+      
+      // 验证管理员数据完整性
+      if (!admin || typeof admin !== 'object') {
+        localStorage.removeItem('admin_data');
+        return false;
+      }
+      
+      if (!admin.username || !admin.role || !admin.id) {
+        localStorage.removeItem('admin_data');
+        return false;
+      }
+      
+      // 验证管理员凭据是否仍然有效
+      const validAdmins = [
+        { id: 1, username: 'adam', password: 'Sangok#3', role: 'super_admin', email: 'adam@mprofile.com' }
+      ];
+      
+      const isValidAdmin = validAdmins.some(validAdmin => 
+        validAdmin.id === admin.id && 
+        validAdmin.username === admin.username && 
+        validAdmin.role === admin.role
+      );
+      
+      if (!isValidAdmin) {
+        localStorage.removeItem('admin_data');
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('❌ 验证管理员会话失败:', error);
+      localStorage.removeItem('admin_data');
+      return false;
+    }
+  };
+
+  // 🔐 管理员登录
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    
+    try {
+      console.log('🔐 执行管理员登录...');
+      const adminData = await modernAdminApi.login(loginForm.username, loginForm.password);
+      localStorage.setItem('admin_data', JSON.stringify(adminData));
+      setAdmin(adminData);
+      console.log('✅ 管理员登录成功');
+    } catch (error) {
+      console.error('❌ 管理员登录失败:', error);
+      setLoginError(error.message);
+    }
+  };
+
+  // 🔐 管理员登出
+  const handleLogout = () => {
+    console.log('🚪 执行管理员登出...');
+    setAdmin(null);
+    localStorage.removeItem('admin_data');
+    sessionStorage.clear();
+    console.log('✅ 管理员登出成功');
+  };
+
+  // 🔐 初始化应用 - 验证会话而不是自动登录
   useEffect(() => {
+    const initializeApp = () => {
+      try {
+        console.log('🔍 初始化应用，验证管理员会话...');
+        const isValidSession = validateAdminSession();
+        
+        if (isValidSession) {
+          const adminData = JSON.parse(localStorage.getItem('admin_data'));
+          setAdmin(adminData);
+          console.log('✅ 管理员会话有效，自动登录');
+        } else {
+          console.log('❌ 管理员会话无效，需要登录');
+          setAdmin(null);
+        }
+      } catch (error) {
+        console.error('❌ 应用初始化失败:', error);
+        setAdmin(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     initializeApp();
   }, []);
 
-  // 加载仪表板数据
+  // 加载仪表板数据 - 添加会话验证
   useEffect(() => {
     if (admin && selectedTab === 'dashboard') {
-      loadDashboardData();
+      // 双重验证管理员会话仍然有效
+      const isValidSession = validateAdminSession();
+      if (isValidSession) {
+        loadDashboardData();
+      } else {
+        console.log('❌ 管理员会话验证失败，需要重新登录');
+        setAdmin(null);
+        localStorage.removeItem('admin_data');
+      }
     }
   }, [admin, selectedTab]);
 
-  // 加载测评记录数据
+  // 加载测评记录数据 - 添加会话验证
   useEffect(() => {
     if (admin && selectedTab === 'records') {
-      loadTestResults();
+      // 双重验证管理员会话仍然有效
+      const isValidSession = validateAdminSession();
+      if (isValidSession) {
+        loadTestResults();
+      } else {
+        console.log('❌ 管理员会话验证失败，需要重新登录');
+        setAdmin(null);
+        localStorage.removeItem('admin_data');
+      }
     }
   }, [admin, selectedTab]);
 
   const initializeApp = async () => {
     try {
-      const adminData = await modernAdminApi.login('adam', 'Sangok#3');
-      localStorage.setItem('admin_data', JSON.stringify(adminData));
-      setAdmin(adminData);
+      console.log('🔍 初始化应用，验证管理员会话...');
+      const isValidSession = validateAdminSession();
+      
+      if (isValidSession) {
+        const adminData = JSON.parse(localStorage.getItem('admin_data'));
+        setAdmin(adminData);
+        console.log('✅ 管理员会话有效，自动登录');
+      } else {
+        console.log('❌ 管理员会话无效，需要登录');
+        setAdmin(null);
+      }
     } catch (error) {
-      console.error('初始化失败:', error);
+      console.error('❌ 应用初始化失败:', error);
       setAdmin(null);
     } finally {
       setLoading(false);
@@ -475,27 +602,6 @@ function ModernAdminApp() {
     }
   };
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setLoginError('');
-    setLoading(true);
-
-    try {
-      const adminData = await modernAdminApi.login(loginForm.username, loginForm.password);
-      localStorage.setItem('admin_data', JSON.stringify(adminData));
-      setAdmin(adminData);
-    } catch (error) {
-      setLoginError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('admin_data');
-    setAdmin(null);
-  };
-
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
@@ -556,9 +662,11 @@ function ModernAdminApp() {
             <GlassCard sx={{ maxWidth: 400, width: '100%' }}>
               <Box sx={{ textAlign: 'center', mb: 4 }}>
                 <Typography variant="h4" sx={{ color: modernColors.text.primary, fontWeight: 'bold', mb: 1 }}>
+                  M-Profile Lab 
+                </Typography>
+                <Typography variant="body1" sx={{ color: modernColors.text.secondary }}>
                   Y R U HERE?
                 </Typography>
-
               </Box>
               
               {loginError && (
@@ -604,7 +712,7 @@ function ModernAdminApp() {
               </form>
               
               <Typography variant="body2" sx={{ color: modernColors.text.muted, textAlign: 'center' }}>
-                Life is a fucking party, and I am here to enjoy it. 
+                Life is A Fucking Party
               </Typography>
             </GlassCard>
           </Container>
@@ -710,6 +818,40 @@ function ModernAdminApp() {
                     </ListItem>
                   ))}
                 </List>
+
+                {/* 🔧 管理员工具 - 快速访问 */}
+                <Divider sx={{ my: 3, backgroundColor: modernColors.border }} />
+                <Typography variant="subtitle2" sx={{ color: modernColors.text.muted, mb: 2, px: 2, fontWeight: '600' }}>
+                  🔧 管理员工具
+                </Typography>
+                <List sx={{ py: 0 }}>
+                  {[
+                    { label: '极简管理后台', icon: <DashboardIcon />, url: '/admin-minimal.html', color: modernColors.primary },
+                    { label: '管理后台测试', icon: <AssessmentIcon />, url: '/admin-new.html', color: modernColors.secondary },
+                    { label: '当前实现验证', icon: <SecurityIcon />, url: '/verify-current-admin.html', color: modernColors.accent },
+                    { label: '部署指南', icon: <HelpOutlineIcon />, url: '/DEPLOYMENT-GUIDE.html', color: modernColors.text.muted }
+                  ].map((item, index) => (
+                    <ListItem key={`admin-tool-${index}`} disablePadding sx={{ mb: 1 }}>
+                      <ListItemButton
+                        onClick={() => window.open(item.url, '_blank', 'noopener,noreferrer')}
+                        sx={{
+                          borderRadius: '12px',
+                          backgroundColor: 'transparent',
+                          color: item.color,
+                          '&:hover': {
+                            backgroundColor: 'rgba(99, 102, 241, 0.08)'
+                          }
+                        }}
+                      >
+                        <ListItemIcon sx={{ color: item.color }}>
+                          {item.icon}
+                        </ListItemIcon>
+                        <ListItemText primary={item.label} />
+                        <OpenInNewIcon sx={{ fontSize: 16, color: modernColors.text.muted, ml: 1 }} />
+                      </ListItemButton>
+                    </ListItem>
+                  ))}
+                </List>
               </Box>
             </Drawer>
 
@@ -773,6 +915,48 @@ function ModernAdminApp() {
   );
 }
 
+// 🧭 快速访问按钮组件
+function QuickAccessButton({ label, icon, color, url }) {
+  const handleClick = () => {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <Button
+      variant="outlined"
+      fullWidth
+      startIcon={icon}
+      onClick={handleClick}
+      sx={{
+        background: `linear-gradient(135deg, ${color} 0%, ${color}dd 100%)`,
+        color: 'white',
+        border: 'none',
+        borderRadius: '12px',
+        py: 2,
+        px: 1,
+        fontWeight: '500',
+        fontSize: '0.875rem',
+        '&:hover': {
+          background: `linear-gradient(135deg, ${color}dd 0%, ${color} 100%)`,
+          transform: 'translateY(-2px)',
+          boxShadow: `0 8px 20px ${color}40`
+        },
+        transition: 'all 0.3s ease',
+        textTransform: 'none',
+        '& .MuiButton-startIcon': {
+          mr: 1
+        }
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+        {icon}
+        <span>{label}</span>
+        <OpenInNewIcon sx={{ fontSize: 16, opacity: 0.8 }} />
+      </Box>
+    </Button>
+  );
+}
+
 // 🎯 仪表板视图组件
 function DashboardView({ stats, loading, onRefresh }) {
   return (
@@ -797,6 +981,84 @@ function DashboardView({ stats, loading, onRefresh }) {
           {loading ? <CircularProgress size={20} color="inherit" /> : '刷新数据'}
         </ModernButton>
       </Box>
+
+      {/* 🧭 快速导航 - 玻璃卡片 */}
+      <GlassCard sx={{ mb: 4 }}>
+        <CardContent>
+          <Typography variant="h6" sx={{ color: modernColors.text.primary, mb: 3, fontWeight: '600' }}>
+            🧭 快速导航
+          </Typography>
+          <Typography variant="body2" sx={{ color: modernColors.text.muted, mb: 3 }}>
+            点击以下链接在新窗口中访问各个功能板块
+          </Typography>
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <QuickAccessButton 
+                label="女M测试" 
+                icon={<PeopleIcon />} 
+                color="#ec4899"
+                url="/female.html"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <QuickAccessButton 
+                label="男M测试" 
+                icon={<PeopleIcon />} 
+                color="#3b82f6"
+                url="/male.html"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <QuickAccessButton 
+                label="S型测试" 
+                icon={<AssessmentIcon />} 
+                color="#f59e0b"
+                url="/s.html"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <QuickAccessButton 
+                label="LGBT+测试" 
+                icon={<SecurityIcon />} 
+                color="#8b5cf6"
+                url="/lgbt.html"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <QuickAccessButton 
+                label="留言板" 
+                icon={<ForumIcon />} 
+                color="#06b6d4"
+                url="/message.html"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <QuickAccessButton 
+                label="图库" 
+                icon={<PhotoLibraryIcon />} 
+                color="#10b981"
+                url="/gallery.html"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <QuickAccessButton 
+                label="数据管理" 
+                icon={<StorageIcon />} 
+                color="#f59e0b"
+                url="/data-manager.html"
+              />
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <QuickAccessButton 
+                label="部署指南" 
+                icon={<HelpOutlineIcon />} 
+                color="#6366f1"
+                url="/DEPLOYMENT-GUIDE.html"
+              />
+            </Grid>
+          </Grid>
+        </CardContent>
+      </GlassCard>
 
       {/* 📊 今日实时统计 - 玻璃卡片 */}
       <Typography variant="h6" sx={{ color: modernColors.text.primary, mb: 3, fontWeight: '600' }}>

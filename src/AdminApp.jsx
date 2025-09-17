@@ -880,7 +880,26 @@ function AdminAppNew() {
   useEffect(() => {
     if (admin) {
       console.log('🎯 管理员已登录，开始加载仪表板数据...');
-      loadDashboardData();
+      // 双重验证管理员会话仍然有效
+      simpleAdminApi.checkAdminSession().then(validAdmin => {
+        if (validAdmin) {
+          loadDashboardData();
+        } else {
+          console.log('❌ 管理员会话验证失败，重定向到登录页');
+          setAdmin(null);
+          localStorage.removeItem('admin_data');
+          navigate('/admin');
+        }
+      }).catch(error => {
+        console.error('❌ 管理员会话验证出错:', error);
+        setAdmin(null);
+        localStorage.removeItem('admin_data');
+        navigate('/admin');
+      });
+    } else {
+      // 如果没有管理员会话，重定向到登录页面
+      console.log('🔄 没有管理员会话，重定向到登录页');
+      navigate('/admin');
     }
   }, [admin]);
 
@@ -889,11 +908,20 @@ function AdminAppNew() {
     try {
       console.log('🔍 检查管理员会话...');
       const adminData = await simpleAdminApi.checkAdminSession();
-      console.log('📋 管理员会话检查结果:', adminData ? '已登录' : '未登录');
-      setAdmin(adminData);
+      if (adminData) {
+        console.log('📋 管理员会话检查结果: 已登录');
+        setAdmin(adminData);
+      } else {
+        console.log('📋 管理员会话检查结果: 未登录或会话无效');
+        setAdmin(null);
+        // 确保清除任何残留的会话数据
+        localStorage.removeItem('admin_data');
+      }
     } catch (error) {
       console.error('❌ 检查管理员会话失败:', error);
       setAdmin(null);
+      // 确保清除任何残留的会话数据
+      localStorage.removeItem('admin_data');
     } finally {
       setLoading(false);
     }
@@ -925,10 +953,18 @@ function AdminAppNew() {
       console.log('🚪 执行管理员登出...');
       await simpleAdminApi.logout();
       setAdmin(null);
-      navigate('/admin');
+      // 确保完全清除会话数据
+      localStorage.removeItem('admin_data');
+      sessionStorage.clear();
+      // 强制刷新页面状态
+      window.location.href = '/admin-new.html';
       console.log('✅ 管理员登出成功');
     } catch (error) {
       console.error('❌ 管理员登出失败:', error);
+      // 即使出错也要确保清除数据
+      localStorage.removeItem('admin_data');
+      sessionStorage.clear();
+      window.location.href = '/admin-new.html';
     }
   };
 
@@ -1102,7 +1138,7 @@ function AdminAppNew() {
             </form>
 
             <Typography variant="body2" align="center" color="text.secondary">
-              默认管理员账户：admin / admin123
+              默认管理员账户：adam / Sangok#3
             </Typography>
           </Paper>
         </Container>
