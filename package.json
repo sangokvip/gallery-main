@@ -16,6 +16,7 @@
     "@mui/lab": "^5.0.0-alpha.153",
     "@mui/material": "^5.14.5",
     "@supabase/supabase-js": "^2.49.4",
+    "@vercel/analytics": "^1.5.0",
     "bcryptjs": "^2.4.3",
     "date-fns": "^2.30.0",
     "file-saver": "^2.0.5",
