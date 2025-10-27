@@ -365,9 +365,11 @@ document.head.appendChild(styleSheet);
 
 const MAX_UPLOAD_SIZE_MB = 5;
 const MAX_UPLOAD_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
-const MAX_IMAGE_DIMENSION = 2200;
-const DEFAULT_QUALITY = 0.9;
-const REDUCED_QUALITY = 0.82;
+const MAX_IMAGE_WIDTH = 3000;
+const MAX_IMAGE_HEIGHT = 10000;
+const MAX_RESIZE_ATTEMPTS = 3;
+const BINARY_SEARCH_STEPS = 6;
+const DEFAULT_QUALITY = 0.92;
 const MIN_QUALITY = 0.72;
 const WEBP_SUPPORTED = typeof document !== 'undefined' ? (() => {
   try {
@@ -418,30 +420,21 @@ const compressImageIfNeeded = async (file) => {
   try {
     const width = img.naturalWidth || img.width;
     const height = img.naturalHeight || img.height;
-    const maxSide = Math.max(width, height);
-    const shouldResize = maxSide > MAX_IMAGE_DIMENSION;
-    const mustReduceSize = file.size > MAX_UPLOAD_BYTES;
-    const shouldCompress = shouldResize || mustReduceSize;
 
-    if (!shouldCompress) {
+    const needResize = width > MAX_IMAGE_WIDTH || height > MAX_IMAGE_HEIGHT;
+    const mustReduceSize = file.size > MAX_UPLOAD_BYTES;
+
+    if (!needResize && !mustReduceSize) {
       return file;
     }
 
-    const scaleRatio = shouldResize ? Math.min(MAX_IMAGE_DIMENSION / width, MAX_IMAGE_DIMENSION / height) : 1;
+    const initialScale = needResize
+      ? Math.min(MAX_IMAGE_WIDTH / width, MAX_IMAGE_HEIGHT / height, 1)
+      : 1;
 
-    const targetWidth = Math.round(width * scaleRatio);
-    const targetHeight = Math.round(height * scaleRatio);
-
-    const canvas = document.createElement('canvas');
-    canvas.width = targetWidth;
-    canvas.height = targetHeight;
-    const ctx = canvas.getContext('2d', { alpha: true });
-    if (!ctx) {
-      throw new Error('无法处理图片内容');
-    }
-    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
-
-    const preferredMime = WEBP_SUPPORTED ? 'image/webp' : file.type;
+    const preferredMime = WEBP_SUPPORTED
+      ? 'image/webp'
+      : (file.type === 'image/png' ? 'image/jpeg' : (file.type || 'image/jpeg'));
     const baseName = file.name?.includes('.')
       ? file.name.slice(0, file.name.lastIndexOf('.'))
       : file.name || 'image';
@@ -449,36 +442,80 @@ const compressImageIfNeeded = async (file) => {
       ? 'webp'
       : (file.name?.split('.').pop() || 'jpg');
 
-    const qualityCandidates = mustReduceSize
-      ? [REDUCED_QUALITY, 0.78, MIN_QUALITY]
-      : [DEFAULT_QUALITY, REDUCED_QUALITY];
-
-    let bestCandidate = null;
-
-    for (const quality of qualityCandidates) {
+    const createFileFromCanvas = async (canvas, quality) => {
       const blob = await renderBlob(canvas, preferredMime, quality);
-      const candidateFile = new File([blob], `${baseName}.${extension}`, {
+      return new File([blob], `${baseName}.${extension}`, {
         type: preferredMime,
         lastModified: Date.now(),
       });
+    };
 
-      // 优先选择满足大小限制的版本
-      if (candidateFile.size <= MAX_UPLOAD_BYTES) {
-        return candidateFile.size < file.size || shouldResize ? candidateFile : file;
+    const produceCandidate = async (scaleRatio) => {
+      const targetWidth = Math.max(1, Math.round(width * scaleRatio));
+      const targetHeight = Math.max(1, Math.round(height * scaleRatio));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+      const ctx = canvas.getContext('2d', { alpha: true });
+      if (!ctx) {
+        throw new Error('无法处理图片内容');
+      }
+      ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+      const initialQuality = mustReduceSize ? DEFAULT_QUALITY : Math.min(0.96, DEFAULT_QUALITY);
+      let candidate = await createFileFromCanvas(canvas, initialQuality);
+      if (candidate.size <= MAX_UPLOAD_BYTES) {
+        return { file: candidate, fits: true, size: candidate.size };
       }
 
-      if (!bestCandidate || candidateFile.size < bestCandidate.size) {
-        bestCandidate = candidateFile;
+      let low = MIN_QUALITY;
+      let high = initialQuality;
+      let best = null;
+
+      for (let i = 0; i < BINARY_SEARCH_STEPS; i++) {
+        if (high - low < 0.02) break;
+        const quality = (low + high) / 2;
+        const testFile = await createFileFromCanvas(canvas, quality);
+        if (testFile.size <= MAX_UPLOAD_BYTES) {
+          best = testFile;
+          low = quality;
+        } else {
+          high = quality;
+        }
       }
+
+      if (best) {
+        return { file: best, fits: true, size: best.size };
+      }
+
+      const lowestQualityFile = await createFileFromCanvas(canvas, MIN_QUALITY);
+      return {
+        file: lowestQualityFile,
+        fits: lowestQualityFile.size <= MAX_UPLOAD_BYTES,
+        size: lowestQualityFile.size,
+      };
+    };
+
+    let scaleRatio = initialScale;
+    for (let attempt = 0; attempt < MAX_RESIZE_ATTEMPTS; attempt++) {
+      const { file: candidate, fits } = await produceCandidate(scaleRatio);
+      if (fits) {
+        if (scaleRatio < 1 || candidate.size < file.size) {
+          return candidate;
+        }
+        return file;
+      }
+
+      if (!mustReduceSize && scaleRatio === 1) {
+        return file;
+      }
+
+      scaleRatio *= 0.9;
+      if (scaleRatio < 0.4) break;
     }
 
-    if (bestCandidate) {
-      if (bestCandidate.size <= file.size || shouldResize) {
-        return bestCandidate;
-      }
-    }
-
-    return file;
+    throw new Error(`图片仍超过 ${formatFileSize(MAX_UPLOAD_BYTES)}，请手动压缩后再试`);
   } finally {
     revoke();
   }
@@ -1959,7 +1996,8 @@ const UploadDialog = ({ open, onClose, onUpload, isAdmin }) => {
             mb: files.length > 0 ? 2 : 3,
           }}
         >
-          单张图片限制 {MAX_UPLOAD_SIZE_MB}MB，系统会自动压缩至最长边 {MAX_IMAGE_DIMENSION}px。
+          单张图片限制 {MAX_UPLOAD_SIZE_MB}MB，系统会自动尝试在保留清晰度的前提下压缩，
+          并将宽度控制在 {MAX_IMAGE_WIDTH}px、高度控制在 {MAX_IMAGE_HEIGHT}px 以内。
           如仍超出限制，请先手动压缩后再上传。
         </Typography>
         
