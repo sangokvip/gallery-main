@@ -365,8 +365,10 @@ document.head.appendChild(styleSheet);
 
 const MAX_UPLOAD_SIZE_MB = 5;
 const MAX_UPLOAD_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
-const MAX_IMAGE_DIMENSION = 1600;
-const COMPRESSION_QUALITY = 0.82;
+const MAX_IMAGE_DIMENSION = 2200;
+const DEFAULT_QUALITY = 0.9;
+const REDUCED_QUALITY = 0.82;
+const MIN_QUALITY = 0.72;
 const WEBP_SUPPORTED = typeof document !== 'undefined' ? (() => {
   try {
     const canvas = document.createElement('canvas');
@@ -392,21 +394,34 @@ const loadImageElement = (file) => new Promise((resolve, reject) => {
   img.src = objectUrl;
 });
 
+const renderBlob = (canvas, mimeType, quality) =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('图片压缩失败'));
+        }
+      },
+      mimeType,
+      quality,
+    );
+  });
+
 const compressImageIfNeeded = async (file) => {
   if (typeof window === 'undefined' || !file?.type?.startsWith('image/')) {
     return file;
   }
 
-  const minimumCompressThreshold = 1024 * 1024; // 1MB
   const { img, revoke } = await loadImageElement(file);
   try {
     const width = img.naturalWidth || img.width;
     const height = img.naturalHeight || img.height;
     const maxSide = Math.max(width, height);
     const shouldResize = maxSide > MAX_IMAGE_DIMENSION;
-    const shouldCompressForSize = file.size > minimumCompressThreshold;
-    const shouldForceWebP = WEBP_SUPPORTED && file.type !== 'image/webp';
-    const shouldCompress = shouldResize || shouldCompressForSize || shouldForceWebP || file.size > MAX_UPLOAD_BYTES;
+    const mustReduceSize = file.size > MAX_UPLOAD_BYTES;
+    const shouldCompress = shouldResize || mustReduceSize;
 
     if (!shouldCompress) {
       return file;
@@ -426,31 +441,44 @@ const compressImageIfNeeded = async (file) => {
     }
     ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
 
-    const preferredMime = WEBP_SUPPORTED ? 'image/webp' : 'image/jpeg';
-    const blob = await new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (blobResult) => {
-          if (blobResult) {
-            resolve(blobResult);
-          } else {
-            reject(new Error('图片压缩失败'));
-          }
-        },
-        preferredMime,
-        COMPRESSION_QUALITY
-      );
-    });
-
-    const extension = preferredMime === 'image/webp' ? 'webp' : 'jpg';
+    const preferredMime = WEBP_SUPPORTED ? 'image/webp' : file.type;
     const baseName = file.name?.includes('.')
       ? file.name.slice(0, file.name.lastIndexOf('.'))
       : file.name || 'image';
-    const newFile = new File([blob], `${baseName}.${extension}`, {
-      type: preferredMime,
-      lastModified: Date.now(),
-    });
+    const extension = preferredMime === 'image/webp'
+      ? 'webp'
+      : (file.name?.split('.').pop() || 'jpg');
 
-    return newFile.size < file.size || file.size > MAX_UPLOAD_BYTES ? newFile : file;
+    const qualityCandidates = mustReduceSize
+      ? [REDUCED_QUALITY, 0.78, MIN_QUALITY]
+      : [DEFAULT_QUALITY, REDUCED_QUALITY];
+
+    let bestCandidate = null;
+
+    for (const quality of qualityCandidates) {
+      const blob = await renderBlob(canvas, preferredMime, quality);
+      const candidateFile = new File([blob], `${baseName}.${extension}`, {
+        type: preferredMime,
+        lastModified: Date.now(),
+      });
+
+      // 优先选择满足大小限制的版本
+      if (candidateFile.size <= MAX_UPLOAD_BYTES) {
+        return candidateFile.size < file.size || shouldResize ? candidateFile : file;
+      }
+
+      if (!bestCandidate || candidateFile.size < bestCandidate.size) {
+        bestCandidate = candidateFile;
+      }
+    }
+
+    if (bestCandidate) {
+      if (bestCandidate.size <= file.size || shouldResize) {
+        return bestCandidate;
+      }
+    }
+
+    return file;
   } finally {
     revoke();
   }
