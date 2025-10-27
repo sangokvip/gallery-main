@@ -1208,16 +1208,31 @@ export const galleryApi = {
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2)}.${fileExt}`;
       const filePath = `${userId}/${fileName}`;
 
+      const progressCallback = typeof onProgress === 'function'
+        ? (event) => {
+            if (!event || !event.total) {
+              onProgress(0, event);
+              return;
+            }
+            const percent = Math.round((event.loaded / event.total) * 100);
+            onProgress(percent, event);
+          }
+        : undefined;
+
       // 上传文件到存储
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('gallery')
         .upload(filePath, file, {
-          onUploadProgress: onProgress
+          onUploadProgress: progressCallback
         });
 
       if (uploadError) {
         console.error('文件上传失败:', uploadError);
         throw uploadError;
+      }
+
+      if (typeof onProgress === 'function') {
+        onProgress(100);
       }
 
       // 获取公共URL
@@ -1258,7 +1273,11 @@ export const galleryApi = {
 
     for (let i = 0; i < files.length; i++) {
       try {
-        const result = await this.uploadImage(files[i], userId, metadata, onProgress);
+        const metadataForFile = Array.isArray(metadata) ? (metadata[i] || {}) : metadata;
+        const progressHandler = typeof onProgress === 'function'
+          ? (progress, event) => onProgress(progress, i, event)
+          : undefined;
+        const result = await this.uploadImage(files[i], userId, metadataForFile, progressHandler);
         results.push(result);
       } catch (error) {
         results.push({ success: false, error: error.message });

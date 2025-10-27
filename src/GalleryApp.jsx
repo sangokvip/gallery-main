@@ -363,6 +363,118 @@ styleSheet.type = 'text/css';
 styleSheet.innerText = styles;
 document.head.appendChild(styleSheet);
 
+const MAX_UPLOAD_SIZE_MB = 5;
+const MAX_UPLOAD_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024;
+const MAX_IMAGE_DIMENSION = 1600;
+const COMPRESSION_QUALITY = 0.82;
+const WEBP_SUPPORTED = typeof document !== 'undefined' ? (() => {
+  try {
+    const canvas = document.createElement('canvas');
+    return canvas.toDataURL('image/webp').startsWith('data:image/webp');
+  } catch (error) {
+    return false;
+  }
+})() : false;
+
+const formatFileSize = (bytes) => `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+
+const loadImageElement = (file) => new Promise((resolve, reject) => {
+  const objectUrl = URL.createObjectURL(file);
+  const img = new Image();
+  img.decoding = 'async';
+  img.onload = () => {
+    resolve({ img, revoke: () => URL.revokeObjectURL(objectUrl) });
+  };
+  img.onerror = (error) => {
+    URL.revokeObjectURL(objectUrl);
+    reject(error);
+  };
+  img.src = objectUrl;
+});
+
+const compressImageIfNeeded = async (file) => {
+  if (typeof window === 'undefined' || !file?.type?.startsWith('image/')) {
+    return file;
+  }
+
+  const minimumCompressThreshold = 1024 * 1024; // 1MB
+  const { img, revoke } = await loadImageElement(file);
+  try {
+    const width = img.naturalWidth || img.width;
+    const height = img.naturalHeight || img.height;
+    const maxSide = Math.max(width, height);
+    const shouldResize = maxSide > MAX_IMAGE_DIMENSION;
+    const shouldCompressForSize = file.size > minimumCompressThreshold;
+    const shouldForceWebP = WEBP_SUPPORTED && file.type !== 'image/webp';
+    const shouldCompress = shouldResize || shouldCompressForSize || shouldForceWebP || file.size > MAX_UPLOAD_BYTES;
+
+    if (!shouldCompress) {
+      return file;
+    }
+
+    const scaleRatio = shouldResize ? Math.min(MAX_IMAGE_DIMENSION / width, MAX_IMAGE_DIMENSION / height) : 1;
+
+    const targetWidth = Math.round(width * scaleRatio);
+    const targetHeight = Math.round(height * scaleRatio);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+    const ctx = canvas.getContext('2d', { alpha: true });
+    if (!ctx) {
+      throw new Error('无法处理图片内容');
+    }
+    ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+
+    const preferredMime = WEBP_SUPPORTED ? 'image/webp' : 'image/jpeg';
+    const blob = await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blobResult) => {
+          if (blobResult) {
+            resolve(blobResult);
+          } else {
+            reject(new Error('图片压缩失败'));
+          }
+        },
+        preferredMime,
+        COMPRESSION_QUALITY
+      );
+    });
+
+    const extension = preferredMime === 'image/webp' ? 'webp' : 'jpg';
+    const baseName = file.name?.includes('.')
+      ? file.name.slice(0, file.name.lastIndexOf('.'))
+      : file.name || 'image';
+    const newFile = new File([blob], `${baseName}.${extension}`, {
+      type: preferredMime,
+      lastModified: Date.now(),
+    });
+
+    return newFile.size < file.size || file.size > MAX_UPLOAD_BYTES ? newFile : file;
+  } finally {
+    revoke();
+  }
+};
+
+const ensureImageWithinLimits = async (file) => {
+  if (!file?.type?.startsWith('image/')) {
+    throw new Error('仅支持上传图片文件');
+  }
+
+  let processedFile = file;
+  try {
+    processedFile = await compressImageIfNeeded(file);
+  } catch (error) {
+    console.warn('图片压缩失败，使用原始文件继续上传', error);
+  }
+
+  if (processedFile.size > MAX_UPLOAD_BYTES) {
+    throw new Error(`图片过大，请压缩至 ${formatFileSize(MAX_UPLOAD_BYTES)} 以下（当前 ${formatFileSize(processedFile.size)}）`);
+  }
+
+  return processedFile;
+};
+
 // 图片卡片组件
 const ImageCard = ({ image, onView, onDelete, onEdit, isAdmin, isSelected, isSelectionMode, onSelect, userId }) => {
   const [voteStatus, setVoteStatus] = useState(null);
@@ -652,6 +764,8 @@ const ImageCard = ({ image, onView, onDelete, onEdit, isAdmin, isSelected, isSel
             alt={image.title || '图片'} 
             onLoad={handleImageLoad}
             onError={() => setImageError(true)}
+            loading="lazy"
+            decoding="async"
             className={imageLoaded ? 'image-loaded' : 'image-loading'}
             style={{ 
               width: '100%',
@@ -1373,31 +1487,34 @@ const ImageDetailModal = ({ open, image, onClose, images, currentIndex, onPrevio
           )}
 
           {/* 图片容器 */}
-          <Box
-            ref={imageRef}
+        <Box
+          ref={imageRef}
           sx={{ 
             width: '100%', 
-              height: '100%',
-              overflow: 'auto',
+            height: '100%',
+            overflow: 'auto',
             display: 'flex',
             justifyContent: 'center',
-              alignItems: 'center',
-              padding: 2,
+            alignItems: 'center',
+            padding: 2,
           }}
         >
           <img 
-              src={imageUrl}
-              alt={image.description || ''}
+            src={imageUrl}
+            alt={image?.description || ''}
             onLoad={handleImageLoad}
+            onError={() => setLoading(false)}
+            loading="lazy"
+            decoding="async"
             style={{ 
               maxWidth: '100%', 
               maxHeight: '100%',
-                width: 'auto',
-                height: 'auto',
+              width: 'auto',
+              height: 'auto',
               objectFit: 'contain',
               transform: `scale(${scale})`,
-                transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                display: loading ? 'none' : 'block',
+              transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              display: loading ? 'none' : 'block',
             }} 
           />
         </Box>
@@ -1807,6 +1924,16 @@ const UploadDialog = ({ open, onClose, onUpload, isAdmin }) => {
             />
           </Button>
         </Box>
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'text.secondary',
+            mb: files.length > 0 ? 2 : 3,
+          }}
+        >
+          单张图片限制 {MAX_UPLOAD_SIZE_MB}MB，系统会自动压缩至最长边 {MAX_IMAGE_DIMENSION}px。
+          如仍超出限制，请先手动压缩后再上传。
+        </Typography>
         
         {files.length > 0 && (
             <Box sx={{ 
@@ -1844,6 +1971,8 @@ const UploadDialog = ({ open, onClose, onUpload, isAdmin }) => {
                 <img 
                       src={fileObj.preview}
                   alt="Preview" 
+                  loading="lazy"
+                  decoding="async"
                   style={{ 
                         width: '100%',
                         height: '100%',
@@ -2282,12 +2411,37 @@ function GalleryApp() {
   }, []);
 
   // 修改上传处理函数
-  const handleUpload = useCallback(async (file, metadata, onProgress) => {
+  const handleUpload = useCallback(async (fileInput, metadata, onProgress) => {
     try {
-      if (isAdmin && Array.isArray(file)) {
+      const normalizeToArray = (input) => {
+        if (!input) return [];
+        if (Array.isArray(input)) return input;
+        if (typeof FileList !== 'undefined' && input instanceof FileList) {
+          return Array.from(input);
+        }
+        return [input];
+      };
+
+      const originalFiles = normalizeToArray(fileInput);
+      if (originalFiles.length === 0) {
+        throw new Error('请选择需要上传的图片');
+      }
+
+      const processedFiles = [];
+      for (const originalFile of originalFiles) {
+        try {
+          const preparedFile = await ensureImageWithinLimits(originalFile);
+          processedFiles.push(preparedFile);
+        } catch (error) {
+          console.error('图片校验/压缩失败:', error);
+          throw new Error(`${originalFile?.name || '图片'}上传失败：${error.message}`);
+        }
+      }
+
+      if (isAdmin && processedFiles.length > 1) {
         // 管理员批量上传
-        console.log('开始批量上传:', { fileCount: file.length, metadata });
-        const results = await galleryApi.uploadImages(file, userId, metadata, onProgress);
+        console.log('开始批量上传:', { fileCount: processedFiles.length, metadata });
+        const results = await galleryApi.uploadImages(processedFiles, userId, metadata, onProgress);
         console.log('批量上传结果:', results);
         
         const successCount = results.filter(r => r.success).length;
@@ -2309,9 +2463,9 @@ function GalleryApp() {
         return results;
       } else {
         // 单张图片上传
-        const result = await galleryApi.uploadImage(file, userId, metadata, onProgress);
-      setSnackbarMessage('图片上传成功！');
-      setSnackbarOpen(true);
+        const result = await galleryApi.uploadImage(processedFiles[0], userId, metadata, onProgress);
+        setSnackbarMessage('图片上传成功！');
+        setSnackbarOpen(true);
         // 使用ref中的最新fetchImages函数
         if (fetchImagesRef.current) {
           fetchImagesRef.current();
