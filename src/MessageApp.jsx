@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { Container, Typography, Paper, Box, TextField, Button, AppBar, Toolbar, IconButton, Snackbar, ThemeProvider, createTheme, Dialog, DialogTitle, DialogContent, DialogActions, Divider, CircularProgress, Drawer, List, ListItem, ListItemIcon, ListItemText } from '@mui/material'
+import { Container, Typography, Paper, Box, TextField, Button, AppBar, Toolbar, IconButton, Snackbar, ThemeProvider, createTheme, Dialog, DialogTitle, DialogContent, DialogActions, Divider, CircularProgress, Drawer, List, ListItem, ListItemIcon, ListItemText, Fab, Tooltip } from '@mui/material'
 import HomeIcon from '@mui/icons-material/Home'
 import MenuIcon from '@mui/icons-material/Menu'
 import SendIcon from '@mui/icons-material/Send'
@@ -1472,86 +1472,69 @@ function MessageApp() {
               I Love Dirty Talk
             </Typography>
 
-            {/* Telegram群组提示 */}
+            {/* Gallery 页面入口 */}
             <Paper
-              onClick={() => window.open('https://t.me/+ZEKnJ11Xu8U1ZTll', '_blank')}
               sx={{
-                p: 2,
+                p: { xs: 2, md: 3 },
                 mb: 4,
-                backgroundColor: 'rgba(0, 136, 204, 0.1)',
-                border: '3px solid #0088cc',
-                borderRadius: '12px',
-                cursor: 'pointer',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                maxWidth: '600px',
+                maxWidth: '760px',
                 mx: 'auto',
-                '&:hover': {
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 8px 25px rgba(0, 136, 204, 0.3)',
-                  backgroundColor: 'rgba(0, 136, 204, 0.15)',
-                  borderColor: '#0077b3'
-                },
-                '&:active': {
-                  transform: 'translateY(0)',
-                  transition: 'transform 0.1s'
-                }
+                border: '3px solid rgba(255, 105, 180, 0.6)',
+                background: 'linear-gradient(135deg, rgba(255,105,180,0.12), rgba(255,255,255,0.95))',
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'flex-start', sm: 'center' },
+                gap: { xs: 2, sm: 3 }
               }}
             >
-              <TelegramIcon
+              <Box
                 sx={{
-                  color: '#0088cc',
-                  fontSize: { xs: 28, md: 32 },
+                  width: 64,
+                  height: 64,
+                  borderRadius: '16px',
+                  backgroundColor: 'rgba(255,105,180,0.18)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 6px 16px rgba(255, 105, 180, 0.25)',
                   flexShrink: 0
                 }}
-              />
+              >
+                <CollectionsIcon sx={{ color: '#ff69b4', fontSize: 36 }} />
+              </Box>
               <Box sx={{ flex: 1 }}>
                 <Typography
                   variant="h6"
                   sx={{
-                    color: '#0088cc',
-                    fontWeight: 'bold',
-                    fontSize: { xs: '1rem', md: '1.25rem' },
-                    mb: 0.5
+                    color: '#c13b86',
+                    fontWeight: 700,
+                    mb: 0.5,
+                    textShadow: '1px 1px 0 rgba(74,20,140,0.25)'
                   }}
                 >
-                  加入Telegram交流群
+                  测评图库上线啦！
                 </Typography>
                 <Typography
                   variant="body2"
-                  sx={{
-                    color: '#0077b3',
-                    fontSize: { xs: '0.875rem', md: '1rem' }
-                  }}
+                  sx={{ color: '#4a148c', opacity: 0.85 }}
                 >
-                  寻找同好，分享心得，深度交流
+                  浏览成员上传的测评报告，点赞、评论、收藏灵感，发现更多同好故事。
                 </Typography>
               </Box>
-              <Box
+              <Button
+                variant="contained"
+                color="primary"
+                endIcon={<CollectionsIcon />}
+                component="a"
+                href="/gallery.html"
                 sx={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  backgroundColor: '#0088cc',
-                  animation: 'pulse 2s infinite',
-                  '@keyframes pulse': {
-                    '0%': {
-                      transform: 'scale(1)',
-                      opacity: 1
-                    },
-                    '50%': {
-                      transform: 'scale(1.2)',
-                      opacity: 0.7
-                    },
-                    '100%': {
-                      transform: 'scale(1)',
-                      opacity: 1
-                    }
-                  }
+                  alignSelf: { xs: 'stretch', sm: 'center' },
+                  minWidth: { sm: 160 }
                 }}
-              />
+                className="pixel-button-pink"
+              >
+                进入图库
+              </Button>
             </Paper>
 
             <Box sx={{
@@ -1644,6 +1627,30 @@ function MessageApp() {
               发送
             </Button>
           </Paper>
+
+          {/* Telegram浮动按钮 */}
+          <Tooltip title="加入Telegram交流群" placement="left">
+            <Fab
+              color="primary"
+              aria-label="加入Telegram交流群"
+              onClick={() => window.open('https://t.me/+ZEKnJ11Xu8U1ZTll', '_blank')}
+              sx={{
+                position: 'fixed',
+                bottom: { xs: 140, sm: 160 },
+                right: { xs: 16, sm: 32 },
+                backgroundColor: '#0088cc',
+                color: '#ffffff',
+                border: '3px solid #ffffff',
+                boxShadow: '0 12px 24px rgba(0, 136, 204, 0.4)',
+                '&:hover': {
+                  backgroundColor: '#0077b3',
+                  boxShadow: '0 16px 28px rgba(0, 119, 179, 0.45)'
+                }
+              }}
+            >
+              <TelegramIcon />
+            </Fab>
+          </Tooltip>
 
           {/* 添加编辑反应计数对话框 */}
           <Dialog 
