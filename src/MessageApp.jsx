@@ -1489,11 +1489,10 @@ function MessageApp() {
                   md: 'linear-gradient(135deg, rgba(255,105,180,0.12), rgba(255,255,255,0.95))',
                 },
                 display: 'flex',
-                flexDirection: { xs: 'row', sm: 'row' },
-                flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                flexDirection: { xs: 'column', sm: 'row' },
                 alignItems: { xs: 'center', sm: 'center' },
-                justifyContent: { xs: 'space-between', sm: 'flex-start' },
-                gap: { xs: 1, sm: 3 }
+                textAlign: { xs: 'center', sm: 'inherit' },
+                gap: { xs: 0.75, sm: 3 }
               }}
             >
               <Box
@@ -1507,7 +1506,7 @@ function MessageApp() {
                   justifyContent: 'center',
                   boxShadow: '0 6px 16px rgba(255, 105, 180, 0.25)',
                   flexShrink: 0,
-                  mx: { xs: 0, sm: 0 }
+                  mx: { xs: 'auto', sm: 0 }
                 }}
               >
                 <CollectionsIcon sx={{ color: '#ff69b4', fontSize: { xs: 26, sm: 36 } }} />
@@ -1515,7 +1514,6 @@ function MessageApp() {
               <Box
                 sx={{
                   flex: 1,
-                  minWidth: { xs: 'calc(100% - 60px)', sm: 'auto' },
                   px: { xs: 0.5, sm: 0 }
                 }}
               >
@@ -1525,8 +1523,7 @@ function MessageApp() {
                     color: '#ff69b4',
                     letterSpacing: 1,
                     display: { xs: 'block', sm: 'none' },
-                    mb: 0.25,
-                    textAlign: 'left'
+                    mb: 0.25
                   }}
                 >
                   新功能提示
@@ -1552,7 +1549,7 @@ function MessageApp() {
                     mt: { xs: 0.5, sm: 0 }
                   }}
                 >
-                  看看大家的测评报告吧！找到戳中你XP的那个ta！
+                  浏览成员上传的测评报告，点赞、评论、收藏灵感，发现更多同好故事。
                 </Typography>
               </Box>
               <Button
@@ -1563,10 +1560,11 @@ function MessageApp() {
                 href="/gallery.html"
                 size="small"
                 sx={{
-                  alignSelf: { xs: 'stretch', sm: 'center' },
-                  minWidth: { sm: 160 },
+                  alignSelf: { xs: 'center', sm: 'center' },
+                  minWidth: { xs: 'auto', sm: 160 },
                   fontSize: { xs: '0.8rem', sm: '1rem' },
                   py: { xs: 0.75, sm: 1.5 },
+                  px: { xs: 2.75, sm: 3.5 },
                   mt: { xs: 1, sm: 0 }
                 }}
                 className="pixel-button-pink"
