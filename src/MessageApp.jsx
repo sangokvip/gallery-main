@@ -1475,48 +1475,74 @@ function MessageApp() {
             {/* Gallery 页面入口 */}
             <Paper
               sx={{
-                p: { xs: 2, md: 3 },
-                mb: 4,
-                maxWidth: '760px',
+                p: { xs: 1.5, md: 3 },
+                mb: { xs: 2, md: 4 },
+                maxWidth: 760,
                 mx: 'auto',
-                border: '3px solid rgba(255, 105, 180, 0.6)',
-                background: 'linear-gradient(135deg, rgba(255,105,180,0.12), rgba(255,255,255,0.95))',
+                border: {
+                  xs: '2px solid rgba(255, 105, 180, 0.35)',
+                  md: '3px solid rgba(255, 105, 180, 0.6)',
+                },
+                background: {
+                  xs: 'rgba(255,255,255,0.92)',
+                  md: 'linear-gradient(135deg, rgba(255,105,180,0.12), rgba(255,255,255,0.95))',
+                },
                 display: 'flex',
                 flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: { xs: 'flex-start', sm: 'center' },
-                gap: { xs: 2, sm: 3 }
+                alignItems: { xs: 'stretch', sm: 'center' },
+                gap: { xs: 1.5, sm: 3 }
               }}
             >
               <Box
                 sx={{
-                  width: 64,
-                  height: 64,
+                  width: { xs: 48, sm: 64 },
+                  height: { xs: 48, sm: 64 },
                   borderRadius: '16px',
                   backgroundColor: 'rgba(255,105,180,0.18)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   boxShadow: '0 6px 16px rgba(255, 105, 180, 0.25)',
-                  flexShrink: 0
+                  flexShrink: 0,
+                  mx: { xs: 'auto', sm: 0 }
                 }}
               >
-                <CollectionsIcon sx={{ color: '#ff69b4', fontSize: 36 }} />
+                <CollectionsIcon sx={{ color: '#ff69b4', fontSize: { xs: 28, sm: 36 } }} />
               </Box>
               <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    color: '#ff69b4',
+                    letterSpacing: 1,
+                    display: { xs: 'block', sm: 'none' },
+                    mb: 0.5,
+                    textAlign: { xs: 'center', sm: 'left' }
+                  }}
+                >
+                  新功能提示
+                </Typography>
                 <Typography
                   variant="h6"
                   sx={{
                     color: '#c13b86',
                     fontWeight: 700,
-                    mb: 0.5,
-                    textShadow: '1px 1px 0 rgba(74,20,140,0.25)'
+                    mb: { xs: 0.25, sm: 0.5 },
+                    textShadow: '1px 1px 0 rgba(74,20,140,0.25)',
+                    fontSize: { xs: '1rem', sm: '1.25rem' },
+                    textAlign: { xs: 'center', sm: 'left' }
                   }}
                 >
                   测评图库上线啦！
                 </Typography>
                 <Typography
                   variant="body2"
-                  sx={{ color: '#4a148c', opacity: 0.85 }}
+                  sx={{
+                    color: '#4a148c',
+                    opacity: 0.85,
+                    fontSize: { xs: '0.85rem', sm: '0.9rem' },
+                    textAlign: { xs: 'center', sm: 'left' }
+                  }}
                 >
                   浏览成员上传的测评报告，点赞、评论、收藏灵感，发现更多同好故事。
                 </Typography>
@@ -1529,7 +1555,9 @@ function MessageApp() {
                 href="/gallery.html"
                 sx={{
                   alignSelf: { xs: 'stretch', sm: 'center' },
-                  minWidth: { sm: 160 }
+                  minWidth: { sm: 160 },
+                  fontSize: { xs: '0.85rem', sm: '1rem' },
+                  py: { xs: 1, sm: 1.5 }
                 }}
                 className="pixel-button-pink"
               >
