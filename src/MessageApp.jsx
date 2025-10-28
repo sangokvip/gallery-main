@@ -1552,7 +1552,7 @@ function MessageApp() {
                     mt: { xs: 0.5, sm: 0 }
                   }}
                 >
-                  浏览成员上传的测评报告，点赞、评论、收藏灵感，发现更多同好故事。
+                  看看大家的测评报告吧！找到戳中你XP的那个ta！
                 </Typography>
               </Box>
               <Button
