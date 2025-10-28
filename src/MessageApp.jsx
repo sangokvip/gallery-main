@@ -1475,49 +1475,58 @@ function MessageApp() {
             {/* Gallery 页面入口 */}
             <Paper
               sx={{
-                p: { xs: 1.5, md: 3 },
-                mb: { xs: 2, md: 4 },
+                p: { xs: 1, md: 3 },
+                mb: { xs: 1.5, md: 4 },
                 maxWidth: 760,
                 mx: 'auto',
                 border: {
-                  xs: '2px solid rgba(255, 105, 180, 0.35)',
+                  xs: '1.5px solid rgba(255, 105, 180, 0.3)',
                   md: '3px solid rgba(255, 105, 180, 0.6)',
                 },
+                borderRadius: { xs: 10, md: 12 },
                 background: {
-                  xs: 'rgba(255,255,255,0.92)',
+                  xs: 'rgba(255,255,255,0.95)',
                   md: 'linear-gradient(135deg, rgba(255,105,180,0.12), rgba(255,255,255,0.95))',
                 },
                 display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: { xs: 'stretch', sm: 'center' },
-                gap: { xs: 1.5, sm: 3 }
+                flexDirection: { xs: 'row', sm: 'row' },
+                flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                alignItems: { xs: 'center', sm: 'center' },
+                justifyContent: { xs: 'space-between', sm: 'flex-start' },
+                gap: { xs: 1, sm: 3 }
               }}
             >
               <Box
                 sx={{
-                  width: { xs: 48, sm: 64 },
-                  height: { xs: 48, sm: 64 },
-                  borderRadius: '16px',
+                  width: { xs: 44, sm: 64 },
+                  height: { xs: 44, sm: 64 },
+                  borderRadius: 14,
                   backgroundColor: 'rgba(255,105,180,0.18)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   boxShadow: '0 6px 16px rgba(255, 105, 180, 0.25)',
                   flexShrink: 0,
-                  mx: { xs: 'auto', sm: 0 }
+                  mx: { xs: 0, sm: 0 }
                 }}
               >
-                <CollectionsIcon sx={{ color: '#ff69b4', fontSize: { xs: 28, sm: 36 } }} />
+                <CollectionsIcon sx={{ color: '#ff69b4', fontSize: { xs: 26, sm: 36 } }} />
               </Box>
-              <Box sx={{ flex: 1 }}>
+              <Box
+                sx={{
+                  flex: 1,
+                  minWidth: { xs: 'calc(100% - 60px)', sm: 'auto' },
+                  px: { xs: 0.5, sm: 0 }
+                }}
+              >
                 <Typography
                   variant="overline"
                   sx={{
                     color: '#ff69b4',
                     letterSpacing: 1,
                     display: { xs: 'block', sm: 'none' },
-                    mb: 0.5,
-                    textAlign: { xs: 'center', sm: 'left' }
+                    mb: 0.25,
+                    textAlign: 'left'
                   }}
                 >
                   新功能提示
@@ -1526,11 +1535,10 @@ function MessageApp() {
                   variant="h6"
                   sx={{
                     color: '#c13b86',
-                    fontWeight: 700,
-                    mb: { xs: 0.25, sm: 0.5 },
+                    fontWeight: { xs: 600, sm: 700 },
+                    mb: { xs: 0, sm: 0.5 },
                     textShadow: '1px 1px 0 rgba(74,20,140,0.25)',
-                    fontSize: { xs: '1rem', sm: '1.25rem' },
-                    textAlign: { xs: 'center', sm: 'left' }
+                    fontSize: { xs: '0.95rem', sm: '1.25rem' }
                   }}
                 >
                   测评图库上线啦！
@@ -1540,8 +1548,8 @@ function MessageApp() {
                   sx={{
                     color: '#4a148c',
                     opacity: 0.85,
-                    fontSize: { xs: '0.85rem', sm: '0.9rem' },
-                    textAlign: { xs: 'center', sm: 'left' }
+                    fontSize: { xs: '0.78rem', sm: '0.9rem' },
+                    mt: { xs: 0.5, sm: 0 }
                   }}
                 >
                   浏览成员上传的测评报告，点赞、评论、收藏灵感，发现更多同好故事。
@@ -1553,11 +1561,13 @@ function MessageApp() {
                 endIcon={<CollectionsIcon />}
                 component="a"
                 href="/gallery.html"
+                size="small"
                 sx={{
                   alignSelf: { xs: 'stretch', sm: 'center' },
                   minWidth: { sm: 160 },
-                  fontSize: { xs: '0.85rem', sm: '1rem' },
-                  py: { xs: 1, sm: 1.5 }
+                  fontSize: { xs: '0.8rem', sm: '1rem' },
+                  py: { xs: 0.75, sm: 1.5 },
+                  mt: { xs: 1, sm: 0 }
                 }}
                 className="pixel-button-pink"
               >
