@@ -1189,8 +1189,58 @@ export const galleryApi = {
         throw error;
       }
 
+      const images = data || [];
+
+      let imagesWithCounts = images;
+      let countsEnriched = false;
+      if (images.length > 0) {
+        try {
+          const imageIds = images.map(img => img.id);
+          const { data: votesData, error: votesError } = await supabase
+            .from('gallery_votes')
+            .select('image_id, is_like')
+            .in('image_id', imageIds);
+
+          if (votesError) {
+            console.error('获取图片投票数据失败:', votesError);
+          } else {
+            const voteCountMap = imageIds.reduce((acc, id) => {
+              acc[id] = { likes: 0, dislikes: 0 };
+              return acc;
+            }, {});
+
+            votesData?.forEach(vote => {
+              const bucket = voteCountMap[vote.image_id];
+              if (!bucket) return;
+              if (vote.is_like) {
+                bucket.likes += 1;
+              } else {
+                bucket.dislikes += 1;
+              }
+            });
+
+            imagesWithCounts = images.map(img => ({
+              ...img,
+              likes_count: voteCountMap[img.id]?.likes ?? img.likes ?? 0,
+              dislikes_count: voteCountMap[img.id]?.dislikes ?? img.dislikes ?? 0,
+            }));
+            countsEnriched = true;
+          }
+        } catch (votesFetchError) {
+          console.error('处理图片投票数据时发生错误:', votesFetchError);
+        }
+      }
+
+      if (!countsEnriched) {
+        imagesWithCounts = images.map(img => ({
+          ...img,
+          likes_count: img.likes ?? 0,
+          dislikes_count: img.dislikes ?? 0,
+        }));
+      }
+
       return {
-        data: data || [],
+        data: imagesWithCounts,
         count: count || 0,
         hasMore: (count || 0) > offset + limit
       };
@@ -1452,7 +1502,7 @@ export const galleryApi = {
             .eq('user_id', userId);
 
           if (updateError) throw updateError;
-          return { action: 'updated' };
+          return { action: 'changed' };
         }
       } else {
         // 如果没有投过票，则添加新投票

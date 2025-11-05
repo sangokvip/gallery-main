@@ -592,7 +592,7 @@ const ImageCard = ({ image, onView, onDelete, onEdit, isAdmin, isSelected, isSel
       } else if (result.action === 'removed') {
         setNewLikesCount(prev => prev - 1);
         setVoteStatus(null);
-      } else if (result.action === 'changed') {
+      } else if (result.action === 'changed' || result.action === 'updated') {
         setNewLikesCount(prev => prev + 1);
         setNewDislikesCount(prev => prev - 1);
         setVoteStatus(true);
@@ -618,7 +618,7 @@ const ImageCard = ({ image, onView, onDelete, onEdit, isAdmin, isSelected, isSel
       } else if (result.action === 'removed') {
         setNewDislikesCount(prev => prev - 1);
         setVoteStatus(null);
-      } else if (result.action === 'changed') {
+      } else if (result.action === 'changed' || result.action === 'updated') {
         setNewDislikesCount(prev => prev + 1);
         setNewLikesCount(prev => prev - 1);
         setVoteStatus(false);
