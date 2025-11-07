@@ -20,14 +20,32 @@ if (supabaseUrl && supabaseAnonKey) {
 } else {
   console.warn('Supabase环境变量缺失，使用模拟客户端');
   // 创建一个模拟客户端，所有方法都返回空结果或错误
+  const mockResponse = (data = [], error = new Error('数据库未配置')) => ({ data, error });
+  const createMockBuilder = (response = mockResponse()) => {
+    const builder = {
+      select: () => builder,
+      insert: () => builder,
+      update: () => builder,
+      delete: () => builder,
+      upsert: () => builder,
+      eq: () => builder,
+      in: () => builder,
+      order: () => builder,
+      gte: () => builder,
+      limit: () => builder,
+      single: () => builder,
+      then: (resolve) => resolve(response),
+      catch: (reject) => {
+        if (reject) reject(response.error);
+        return builder;
+      }
+    };
+    return builder;
+  };
+
   supabase = {
-    from: () => ({
-      select: () => ({ data: [], error: new Error('数据库未配置') }),
-      insert: () => ({ data: null, error: new Error('数据库未配置') }),
-      update: () => ({ data: null, error: new Error('数据库未配置') }),
-      delete: () => ({ data: null, error: new Error('数据库未配置') }),
-      upsert: () => ({ data: null, error: new Error('数据库未配置') })
-    })
+    from: () => createMockBuilder(),
+    rpc: () => Promise.resolve({ data: null, error: new Error('数据库未配置') })
   };
 }
 
@@ -62,86 +80,65 @@ export const messagesApi = {
         return [];
       }
 
-      console.log('成功获取原始消息:', messages.length, '条');
+      const messageIds = messages.map(message => message.id);
+      let reactionsByMessage = {};
+      let replyCountsByMessage = {};
 
-      // 获取每条消息的反应数据
-      const messagesWithReactions = await Promise.all(
-        messages.map(async (message) => {
-          try {
-            // 获取点赞数
-            const { data: likes, error: likesError } = await supabase
-              .from('message_reactions')
-              .select('id')
-              .eq('message_id', message.id)
-              .eq('is_like', true);
+      if (messageIds.length > 0) {
+        const [reactionsResult, repliesResult] = await Promise.allSettled([
+          supabase
+            .from('message_reactions')
+            .select('message_id,is_like')
+            .in('message_id', messageIds),
+          supabase
+            .from('message_replies')
+            .select('id,message_id')
+            .in('message_id', messageIds)
+        ]);
 
-            if (likesError) {
-              console.error(`获取消息 ${message.id} 的点赞数失败:`, likesError);
-              return {
-                ...message,
-                reactions: { likes: 0, dislikes: 0 },
-                reply_count: 0
-              };
-            }
-
-            // 获取点踩数
-            const { data: dislikes, error: dislikesError } = await supabase
-              .from('message_reactions')
-              .select('id')
-              .eq('message_id', message.id)
-              .eq('is_like', false);
-
-            if (dislikesError) {
-              console.error(`获取消息 ${message.id} 的点踩数失败:`, dislikesError);
-              return {
-                ...message,
-                reactions: { likes: 0, dislikes: 0 },
-                reply_count: 0
-              };
-            }
-
-            // 获取回复数量
-            const { data: replies, error: repliesError } = await supabase
-              .from('message_replies')
-              .select('id')
-              .eq('message_id', message.id);
-
-            if (repliesError) {
-              console.error(`获取消息 ${message.id} 的回复数失败:`, repliesError);
-              return {
-                ...message,
-                reactions: {
-                  likes: likes?.length || 0,
-                  dislikes: dislikes?.length || 0
-                },
-                reply_count: 0
-              };
-            }
-
-            return {
-              ...message,
-              reactions: {
-                likes: likes?.length || 0,
-                dislikes: dislikes?.length || 0
-              },
-              reply_count: replies?.length || 0
-            };
-          } catch (error) {
-            console.error(`处理消息 ${message.id} 的数据时出错:`, error);
-            // 如果获取反应失败，返回原始消息，但反应数为0
-            return {
-              ...message,
-              reactions: {
-                likes: 0,
-                dislikes: 0
-              },
-              reply_count: 0
-            };
+        if (reactionsResult.status === 'fulfilled') {
+          const { data, error } = reactionsResult.value;
+          if (error) {
+            console.error('获取消息反应失败:', error);
+          } else if (Array.isArray(data)) {
+            reactionsByMessage = data.reduce((acc, reaction) => {
+              if (!acc[reaction.message_id]) {
+                acc[reaction.message_id] = { likes: 0, dislikes: 0 };
+              }
+              if (reaction.is_like) {
+                acc[reaction.message_id].likes += 1;
+              } else {
+                acc[reaction.message_id].dislikes += 1;
+              }
+              return acc;
+            }, {});
           }
-        })
-      );
+        } else {
+          console.error('获取消息反应失败:', reactionsResult.reason);
+        }
+
+        if (repliesResult.status === 'fulfilled') {
+          const { data, error } = repliesResult.value;
+          if (error) {
+            console.error('获取消息回复数量失败:', error);
+          } else if (Array.isArray(data)) {
+            replyCountsByMessage = data.reduce((acc, reply) => {
+              acc[reply.message_id] = (acc[reply.message_id] || 0) + 1;
+              return acc;
+            }, {});
+          }
+        } else {
+          console.error('获取消息回复数量失败:', repliesResult.reason);
+        }
+      }
 
       console.log('成功获取所有消息的反应数据');
+
+      const messagesWithReactions = messages.map(message => ({
+        ...message,
+        reactions: reactionsByMessage[message.id] || { likes: 0, dislikes: 0 },
+        reply_count: replyCountsByMessage[message.id] || 0
+      }));
 
       // 按优先级排序：
       // 1. 管理员消息
@@ -193,37 +190,41 @@ export const messagesApi = {
         throw messagesError;
       }
 
-      // 获取每条消息的反应数据
-      const messagesWithReactions = await Promise.all(
-        messages.map(async (message) => {
-          // 获取点赞数
-          const { data: likes, error: likesError } = await supabase
-            .from('message_reactions')
-            .select('id')
-            .eq('message_id', message.id)
-            .eq('is_like', true);
+      const messageIds = messages.map(message => message.id);
+      let reactionsByMessage = {};
 
-          // 获取点踩数
-          const { data: dislikes, error: dislikesError } = await supabase
-            .from('message_reactions')
-            .select('id')
-            .eq('message_id', message.id)
-            .eq('is_like', false);
+      if (messageIds.length > 0) {
+        const { data, error } = await supabase
+          .from('message_reactions')
+          .select('message_id,is_like')
+          .in('message_id', messageIds);
 
-          if (likesError) console.error('获取点赞数失败:', likesError);
-          if (dislikesError) console.error('获取点踩数失败:', dislikesError);
+        if (error) {
+          console.error('获取热门消息的反应失败:', error);
+        } else if (Array.isArray(data)) {
+          reactionsByMessage = data.reduce((acc, reaction) => {
+            if (!acc[reaction.message_id]) {
+              acc[reaction.message_id] = { likes: 0, dislikes: 0 };
+            }
+            if (reaction.is_like) {
+              acc[reaction.message_id].likes += 1;
+            } else {
+              acc[reaction.message_id].dislikes += 1;
+            }
+            return acc;
+          }, {});
+        }
+      }
 
-          return {
-            ...message,
-            likes: likes?.length || 0,
-            dislikes: dislikes?.length || 0
-          };
-        })
-      );
+      const messagesWithReactions = messages.map(message => ({
+        ...message,
+        likes: reactionsByMessage[message.id]?.likes || 0,
+        dislikes: reactionsByMessage[message.id]?.dislikes || 0
+      }));
 
       // 按点赞数排序并返回前3条
       const topMessages = messagesWithReactions
-        .sort((a, b) => b.likes - a.likes)
+        .sort((a, b) => (b.likes || 0) - (a.likes || 0))
         .slice(0, 3);
 
       console.log('成功获取热门消息:', topMessages);
@@ -497,6 +498,47 @@ export const messagesApi = {
     }
   },
 
+  // 批量获取多个消息的回复
+  async getRepliesForMessages(messageIds = []) {
+    const uniqueIds = Array.from(new Set(messageIds)).filter(Boolean);
+    if (uniqueIds.length === 0) {
+      return {};
+    }
+
+    console.log('正在批量获取消息回复:', uniqueIds.length);
+    try {
+      const { data, error } = await supabase
+        .from('message_replies')
+        .select(`
+          id,
+          message_id,
+          user_id,
+          text,
+          original_text,
+          created_at,
+          is_admin
+        `)
+        .in('message_id', uniqueIds)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('批量获取回复失败:', error);
+        return {};
+      }
+
+      return (data || []).reduce((acc, reply) => {
+        if (!acc[reply.message_id]) {
+          acc[reply.message_id] = [];
+        }
+        acc[reply.message_id].push(reply);
+        return acc;
+      }, {});
+    } catch (error) {
+      console.error('批量获取回复时发生错误:', error);
+      return {};
+    }
+  },
+
   // 创建新回复
   async createReply({ messageId, userId, text, originalText }) {
     console.log('正在创建回复:', { messageId, userId });
@@ -610,6 +652,34 @@ export const messagesApi = {
     } catch (error) {
       console.error('统计留言和回复数量时发生错误:', error);
       return Infinity; // 返回无限大，确保用户无法发送新消息直到错误解决
+    }
+  },
+
+  // 校验管理员密码（依赖Supabase函数 verify_admin_password）
+  async verifyAdminPassword(password) {
+    if (!password) {
+      return { success: false, error: '密码不能为空' };
+    }
+
+    console.log('正在验证管理员密码');
+    try {
+      const { data, error } = await supabase.rpc('verify_admin_password', {
+        input_password: password
+      });
+
+      if (error) {
+        console.error('管理员密码验证失败:', error);
+        return { success: false, error: error.message || '验证失败' };
+      }
+
+      const isValid = !!data?.is_valid;
+      return {
+        success: isValid,
+        error: isValid ? null : '密码不正确'
+      };
+    } catch (error) {
+      console.error('调用管理员验证RPC失败:', error);
+      return { success: false, error: error.message || '验证失败' };
     }
   },
 

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>环境变量检查 - M-Profile Lab</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      color: white;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.1);
+      border-radius: 15px;
+      padding: 30px;
+      backdrop-filter: blur(10px);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    .status-card {
+      background: rgba(255,255,255,0.2);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 15px 0;
+      border-left: 5px solid #4caf50;
+    }
+    .status-card.error {
+      border-left-color: #f44336;
+      background: rgba(244, 67, 54, 0.2);
+    }
+    .status-card.warning {
+      border-left-color: #ff9800;
+      background: rgba(255, 152, 0, 0.2);
+    }
+    .env-var {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      margin: 5px 0;
+      background: rgba(0,0,0,0.2);
+      border-radius: 5px;
+    }
+    .status-badge {
+      padding: 5px 10px;
+      border-radius: 15px;
+      font-size: 0.8em;
+      font-weight: bold;
+    }
+    .status-ok { background: #4caf50; }
+    .status-error { background: #f44336; }
+    .status-warning { background: #ff9800; }
+    .instructions {
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .instructions h3 {
+      margin-top: 0;
+      color: #ffd700;
+    }
+    .instructions ol {
+      padding-left: 20px;
+    }
+    .instructions li {
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+    .code-block {
+      background: rgba(0,0,0,0.3);
+      border-radius: 5px;
+      padding: 10px;
+      margin: 10px 0;
+      font-family: 'Courier New', monospace;
+      font-size: 0.9em;
+      overflow-x: auto;
+    }
+    .action-buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.3s ease;
+    }
+    .btn-primary {
+      background: #1976d2;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #1565c0;
+    }
+    .btn-secondary {
+      background: #4caf50;
+      color: white;
+    }
+    .btn-secondary:hover {
+      background: #45a049;
+    }
+    .btn-warning {
+      background: #ff9800;
+      color: white;
+    }
+    .btn-warning:hover {
+      background: #f57c00;
+    }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 环境变量检查工具</h1>
+    
+    <div id="status-container">
+      <div class="status-card">
+        <h3>📊 环境变量状态</h3>
+        <div id="env-vars"></div>
+      </div>
+    </div>
+
+    <div class="action-buttons">
+      <button class="btn btn-primary" id="check-env-btn">重新检查环境</button>
+      <button class="btn btn-secondary" id="test-db-btn">测试数据库连接</button>
+      <button class="btn btn-warning" id="show-instructions-btn">显示设置指南</button>
+    </div>
+
+    <div id="instructions" class="instructions" style="display: none;">
+      <h3>📋 数据库设置指南</h3>
+      <ol>
+        <li>
+          <strong>创建 Supabase 项目</strong><br>
+          访问 <a href="https://supabase.com" target="_blank" style="color: #ffd700;">Supabase 官网</a> 创建免费项目
+        </li>
+        <li>
+          <strong>获取连接信息</strong><br>
+          在项目设置中找到以下信息：
+          <ul>
+            <li>项目 URL (Project URL)</li>
+            <li>匿名密钥 (Anon Key)</li>
+          </ul>
+        </li>
+        <li>
+          <strong>配置环境变量</strong><br>
+          创建 <code>.env</code> 文件在项目根目录：
+          <div class="code-block">
+VITE_SUPABASE_URL=your-project-url
+VITE_SUPABASE_ANON_KEY=your-anon-key
+          </div>
+        </li>
+        <li>
+          <strong>执行数据库脚本</strong><br>
+          在 Supabase 控制台中依次执行以下 SQL 文件：
+          <ul>
+            <li><code>create_main_tables.sql</code></li>
+            <li><code>create_test_counters_table.sql</code></li>
+            <li><code>create_admin_system.sql</code></li>
+            <li><code>create_replies_table.sql</code></li>
+          </ul>
+        </li>
+        <li>
+          <strong>重启开发服务器</strong><br>
+          重新启动 Vite 开发服务器以应用新的环境变量
+        </li>
+      </ol>
+    </div>
+
+    <div id="test-results" style="display: none;">
+      <!-- 测试结果将显示在这里 -->
+    </div>
+  </div>
+
+  <script type="module">
+    // 将函数定义在全局作用域
+    window.checkEnvironment = function() {
+      const envVars = [
+        { name: 'VITE_SUPABASE_URL', value: import.meta.env.VITE_SUPABASE_URL },
+        { name: 'VITE_SUPABASE_ANON_KEY', value: import.meta.env.VITE_SUPABASE_ANON_KEY }
+      ];
+
+      const container = document.getElementById('env-vars');
+      container.innerHTML = '';
+
+      envVars.forEach(envVar => {
+        const div = document.createElement('div');
+        div.className = 'env-var';
+        
+        const isConfigured = !!envVar.value;
+        const statusClass = isConfigured ? 'status-ok' : 'status-error';
+        const statusText = isConfigured ? '已配置' : '未配置';
+        
+        div.innerHTML = `
+          <span><strong>${envVar.name}</strong></span>
+          <span class="status-badge ${statusClass}">${statusText}</span>
+        `;
+        
+        container.appendChild(div);
+      });
+
+      // 总体状态
+      const allConfigured = envVars.every(envVar => !!envVar.value);
+      const statusCard = document.querySelector('.status-card');
+      
+      if (allConfigured) {
+        statusCard.className = 'status-card';
+        statusCard.querySelector('h3').innerHTML = '✅ 环境变量配置正常';
+      } else {
+        statusCard.className = 'status-card error';
+        statusCard.querySelector('h3').innerHTML = '❌ 环境变量配置不完整';
+      }
+    }
+
+    // 简单的环境变量测试（不依赖外部库）
+    window.testBasicConnection = function() {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.style.display = 'block';
+      
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      let html = '<div class="status-card">';
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        html += '<h3>❌ 环境变量检查</h3>';
+        html += '<p>VITE_SUPABASE_URL: ' + (supabaseUrl ? '已配置' : '未配置') + '</p>';
+        html += '<p>VITE_SUPABASE_ANON_KEY: ' + (supabaseAnonKey ? '已配置' : '未配置') + '</p>';
+        html += '<p style="color: #ff9800;">请先配置环境变量</p>';
+      } else {
+        html += '<h3>✅ 环境变量检查</h3>';
+        html += '<p>VITE_SUPABASE_URL: 已配置</p>';
+        html += '<p>VITE_SUPABASE_ANON_KEY: 已配置</p>';
+        html += '<p>环境变量配置正确，可以进行数据库连接测试</p>';
+      }
+      
+      html += '</div>';
+      resultsDiv.innerHTML = html;
+    }
+
+    // 测试数据库连接
+    window.testDatabaseConnection = async function() {
+      const resultsDiv = document.getElementById('test-results');
+      const testBtn = document.getElementById('test-db-btn');
+      
+      resultsDiv.style.display = 'block';
+      resultsDiv.innerHTML = '<div class="status-card">🔄 正在测试数据库连接...</div>';
+      testBtn.disabled = true;
+      testBtn.textContent = '测试中...';
+
+      try {
+        // 检查环境变量
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseAnonKey) {
+          throw new Error('环境变量未配置：VITE_SUPABASE_URL 或 VITE_SUPABASE_ANON_KEY 缺失');
+        }
+
+        // 直接测试数据库连接
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js');
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        // 测试基本连接
+        const { data, error } = await supabase
+          .from('users')
+          .select('id')
+          .limit(1);
+
+        let html = '<div class="status-card">';
+        
+        if (error) {
+          html += '<h3>❌ 数据库连接失败</h3>';
+          html += '<p>连接状态：失败</p>';
+          html += `<p style="color: #f44336;">错误信息：${error.message}</p>`;
+        } else {
+          html += '<h3>✅ 数据库连接成功</h3>';
+          html += '<p>连接状态：正常</p>';
+          html += '<p>环境变量配置正确</p>';
+          
+          // 尝试检查更多表
+          const tables = ['users', 'test_records', 'test_results'];
+          html += '<h4>数据表检查：</h4>';
+          
+          for (const table of tables) {
+            try {
+              const { data: tableData, error: tableError } = await supabase
+                .from(table)
+                .select('*')
+                .limit(1);
+              
+              if (tableError) {
+                html += `<p>❌ ${table}: ${tableError.message}</p>`;
+              } else {
+                html += `<p>✅ ${table}: 正常 (${tableData ? tableData.length : 0} 条记录)</p>`;
+              }
+            } catch (e) {
+              html += `<p>❌ ${table}: 检查失败</p>`;
+            }
+          }
+        }
+        
+        html += '</div>';
+        resultsDiv.innerHTML = html;
+        
+      } catch (error) {
+        resultsDiv.innerHTML = `
+          <div class="status-card error">
+            <h3>❌ 测试失败</h3>
+            <p>错误信息：${error.message}</p>
+            <p>请确保：</p>
+            <ul>
+              <li>环境变量已正确配置</li>
+              <li>网络连接正常</li>
+              <li>Supabase 服务可访问</li>
+            </ul>
+            <p><button class="btn btn-secondary" onclick="testBasicConnection()">尝试简单测试</button></p>
+          </div>
+        `;
+        console.error('数据库测试失败:', error);
+      } finally {
+        testBtn.disabled = false;
+        testBtn.textContent = '测试数据库连接';
+      }
+    }
+
+    // 显示设置指南
+    window.showSetupInstructions = function() {
+      const instructions = document.getElementById('instructions');
+      instructions.style.display = instructions.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // 页面加载时自动检查
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('环境变量检查工具已加载');
+      console.log('当前环境变量状态:', {
+        VITE_SUPABASE_URL: !!import.meta.env.VITE_SUPABASE_URL,
+        VITE_SUPABASE_ANON_KEY: !!import.meta.env.VITE_SUPABASE_ANON_KEY
+      });
+      
+      // 检查是否在开发环境中
+      if (typeof import.meta.env !== 'undefined') {
+        console.log('Vite 环境变量可用');
+      } else {
+        console.warn('Vite 环境变量不可用，可能未在 Vite 环境中运行');
+      }
+      
+      // 绑定按钮事件
+      document.getElementById('check-env-btn').addEventListener('click', checkEnvironment);
+      document.getElementById('test-db-btn').addEventListener('click', testDatabaseConnection);
+      document.getElementById('show-instructions-btn').addEventListener('click', showSetupInstructions);
+      
+      checkEnvironment();
+    });
+
+    // 添加错误处理
+    window.addEventListener('error', (event) => {
+      console.error('全局错误:', event.error);
+      const resultsDiv = document.getElementById('test-results');
+      if (resultsDiv) {
+        resultsDiv.innerHTML = `
+          <div class="status-card error">
+            <h3>❌ 运行时错误</h3>
+            <p>错误信息：${event.error.message}</p>
+            <p>请检查浏览器控制台获取详细信息。</p>
+          </div>
+        `;
+        resultsDiv.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -745,6 +745,9 @@ function MessageApp() {
   });
   const [newReactionCount, setNewReactionCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [adminLoginDialogOpen, setAdminLoginDialogOpen] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [adminLoginLoading, setAdminLoginLoading] = useState(false);
 
   // 在组件挂载时设置状态
   useEffect(() => {
@@ -757,35 +760,46 @@ function MessageApp() {
   }, []);
 
   // 获取消息的回复
-  const fetchMessageReplies = useCallback(async (messageId) => {
-    if (!userId || !isMounted) {
-      console.log('跳过获取回复：', { messageId, userId: !!userId, isMounted });
+  const fetchMessageReplies = useCallback(async (targetMessageIds) => {
+    if (!isMounted) {
+      console.log('组件未挂载，跳过批量获取回复');
+      return;
+    }
+
+    const ids = (Array.isArray(targetMessageIds) ? targetMessageIds : [targetMessageIds])
+      .filter(Boolean);
+
+    if (ids.length === 0) {
       return;
     }
 
     try {
-      console.log('开始获取消息回复:', messageId);
-      const replies = await messagesApi.getMessageReplies(messageId);
+      console.log('开始批量获取消息回复:', ids);
+      const repliesMap = await messagesApi.getRepliesForMessages(ids);
       if (!isMounted) {
         console.log('组件已卸载，取消更新回复状态');
         return;
       }
-      
-      console.log('成功获取回复:', messageId, replies?.length || 0, '条');
-      setMessageReplies(prev => ({
-        ...prev,
-        [messageId]: replies || []
-      }));
+
+      setMessageReplies(prev => {
+        const nextReplies = { ...prev };
+        ids.forEach(id => {
+          nextReplies[id] = repliesMap[id] || [];
+        });
+        return nextReplies;
+      });
     } catch (error) {
       if (!isMounted) return;
-      console.error('获取回复失败:', messageId, error);
-      // 设置空数组而不是抛出错误，这样即使回复加载失败也不会影响整个消息的显示
-      setMessageReplies(prev => ({
-        ...prev,
-        [messageId]: []
-      }));
+      console.error('批量获取回复失败:', error);
+      setMessageReplies(prev => {
+        const nextReplies = { ...prev };
+        ids.forEach(id => {
+          nextReplies[id] = prev[id] || [];
+        });
+        return nextReplies;
+      });
     }
-  }, [userId, isMounted]);
+  }, [isMounted]);
 
   // 从Supabase获取消息
   const fetchMessages = useCallback(async () => {
@@ -832,11 +846,11 @@ function MessageApp() {
         });
         
         setMessages(sortedMessages);
-        // 获取每条消息的回复
-        sortedMessages.forEach(message => {
-          console.log('准备获取消息回复:', message.id);
-          fetchMessageReplies(message.id);
-        });
+        // 批量获取留言回复，减少数据库往返
+        const messageIds = sortedMessages.map(message => message.id);
+        if (messageIds.length > 0) {
+          await fetchMessageReplies(messageIds);
+        }
       } else {
         console.warn('获取到的消息数据格式不正确:', data);
         setMessages([]);
@@ -922,8 +936,17 @@ function MessageApp() {
         finalUserId = uuidv4();
       }
 
-      // 保存到cookie，使用更长的过期时间
-      document.cookie = `userId=${finalUserId};path=/;max-age=31536000;SameSite=Lax`;
+      // 保存到cookie，附加Secure标记（HTTPS下）并适度缩短有效期
+      const cookieParts = [
+        `userId=${finalUserId}`,
+        'path=/',
+        'max-age=15552000', // 180 天
+        'SameSite=Lax'
+      ];
+      if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+        cookieParts.push('Secure');
+      }
+      document.cookie = cookieParts.join(';');
       console.log("设置用户ID:", finalUserId);
       setUserId(finalUserId);
       setIsInitialized(true);
@@ -1005,14 +1028,36 @@ function MessageApp() {
 
   // 添加双击标题处理函数
   const handleTitleDoubleClick = () => {
-    const password = prompt('请输入管理员密码：');
-    if (password === 'Sangok#3') {
-      setIsAdmin(true);
-      setSnackbarMessage('管理员登录成功！');
+    setAdminPassword('');
+    setAdminLoginDialogOpen(true);
+  };
+
+  const handleAdminLogin = async () => {
+    if (!adminPassword) {
+      setSnackbarMessage('请输入管理员密码');
       setSnackbarOpen(true);
-    } else if (password !== null) {
-      setSnackbarMessage('密码错误！');
+      return;
+    }
+
+    setAdminLoginLoading(true);
+    try {
+      const { success, error: loginError } = await messagesApi.verifyAdminPassword(adminPassword);
+      if (success) {
+        setIsAdmin(true);
+        setSnackbarMessage('管理员登录成功！');
+        setSnackbarOpen(true);
+        setAdminLoginDialogOpen(false);
+        setAdminPassword('');
+      } else {
+        setSnackbarMessage(loginError || '密码验证失败');
+        setSnackbarOpen(true);
+      }
+    } catch (error) {
+      console.error('管理员登录失败:', error);
+      setSnackbarMessage(error.message || '管理员登录失败');
       setSnackbarOpen(true);
+    } finally {
+      setAdminLoginLoading(false);
     }
   };
 
@@ -1099,7 +1144,7 @@ function MessageApp() {
     try {
       await messagesApi.deleteReply(replyId, userId, isAdmin);
       // 重新获取所有消息的回复
-      messages.forEach(message => fetchMessageReplies(message.id));
+      await fetchMessageReplies(messages.map(message => message.id));
       setSnackbarMessage('回复删除成功！');
       setSnackbarOpen(true);
     } catch (error) {
@@ -1132,6 +1177,8 @@ function MessageApp() {
 
   const handleLogout = () => {
     setIsAdmin(false);
+    setAdminPassword('');
+    setAdminLoginDialogOpen(false);
     setSnackbarMessage('已退出管理员模式！');
     setSnackbarOpen(true);
   };
@@ -1687,6 +1734,84 @@ function MessageApp() {
               <TelegramIcon />
             </Fab>
           </Tooltip>
+
+          {/* 管理员登录对话框 */}
+          <Dialog
+            open={adminLoginDialogOpen}
+            onClose={() => {
+              if (!adminLoginLoading) {
+                setAdminLoginDialogOpen(false);
+                setAdminPassword('');
+              }
+            }}
+          >
+            <DialogTitle sx={{ color: '#ff69b4' }}>
+              管理员登录
+            </DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" sx={{ mb: 2, color: '#666' }}>
+                请输入管理员密码继续。
+              </Typography>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="管理员密码"
+                type="password"
+                fullWidth
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    handleAdminLogin();
+                  }
+                }}
+                disabled={adminLoginLoading}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: '#ff69b4',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#ff69b4',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#ff69b4',
+                    },
+                  },
+                }}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button
+                onClick={() => {
+                  setAdminLoginDialogOpen(false);
+                  setAdminPassword('');
+                }}
+                disabled={adminLoginLoading}
+                sx={{ color: '#ff69b4' }}
+              >
+                取消
+              </Button>
+              <Button
+                onClick={handleAdminLogin}
+                disabled={adminLoginLoading}
+                sx={{
+                  backgroundColor: '#ff69b4',
+                  color: 'white',
+                  '&:hover': {
+                    backgroundColor: '#ff8dc3',
+                  },
+                }}
+              >
+                {adminLoginLoading ? (
+                  <CircularProgress size={20} sx={{ color: '#ffffff' }} />
+                ) : (
+                  '登录'
+                )}
+              </Button>
+            </DialogActions>
+          </Dialog>
 
           {/* 添加编辑反应计数对话框 */}
           <Dialog 
