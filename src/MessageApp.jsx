@@ -196,11 +196,13 @@ const MessageBubble = ({
   onDeleteReply,
   currentUserId,
   onEditReactions,
-  messageUserId
+  messageUserId,
+  messageId
 }) => {
   const [showReplies, setShowReplies] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [isReplying, setIsReplying] = useState(false);
+  const resolvedMessageId = messageId || message?.id;
 
   const handleReplySubmit = (e) => {
     e.preventDefault();
@@ -339,7 +341,7 @@ const MessageBubble = ({
             {isAdmin && (
               <IconButton
                 size="small"
-                onClick={() => onEditReactions(messageId, 'likes', reactions?.likes || 0)}
+                onClick={() => onEditReactions(resolvedMessageId, 'likes', reactions?.likes || 0)}
                 sx={{
                   color: isAdminMessage ? '#ffffff' : '#ff69b4',
                   padding: { xs: 0.2, sm: 0.5 },
@@ -394,7 +396,7 @@ const MessageBubble = ({
             {isAdmin && (
               <IconButton
                 size="small"
-                onClick={() => onEditReactions(messageId, 'dislikes', reactions?.dislikes || 0)}
+                onClick={() => onEditReactions(resolvedMessageId, 'dislikes', reactions?.dislikes || 0)}
                 sx={{
                   color: isAdminMessage ? '#ffffff' : '#ff69b4',
                   padding: { xs: 0.2, sm: 0.5 },
