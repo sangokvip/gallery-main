@@ -736,6 +736,24 @@ export const messagesApi = {
       console.error('更新消息反应数量失败:', error);
       throw new Error('更新反应失败: ' + (error.message || '未知错误'));
     }
+  },
+
+  // 更新单个反应类型数量的便捷方法（与旧接口兼容）
+  async updateReactionCount(messageId, type, count) {
+    if (typeof count !== 'number' || count < 0) {
+      throw new Error('反应数量必须是非负数字');
+    }
+
+    try {
+      const current = await this.getMessageReactions(messageId);
+      const likes = type === 'likes' ? count : (current.likes || 0);
+      const dislikes = type === 'dislikes' ? count : (current.dislikes || 0);
+      await this.updateMessageReactions(messageId, likes, dislikes);
+      return true;
+    } catch (error) {
+      console.error('更新单项反应数量失败:', error);
+      throw new Error(error.message || '更新反应失败');
+    }
   }
 }
 
