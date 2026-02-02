@@ -333,3 +333,5 @@ debug-*.png
 *.tmp
 *.temp
 *.md
+/.agent
+/.agents
