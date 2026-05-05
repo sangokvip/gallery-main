@@ -1,0 +1,30 @@
+{
+  "date": "2026-05-05",
+  "topic": "homepage-minimalist-redesign",
+  "summary": "Redesigned the index.html homepage with a Neo-brutalist functional aesthetic based on webp.baby, removing the hero section for direct tool access.",
+  "changes": [
+    {
+      "category": "UI/UX",
+      "details": "Replaced the previous neumorphic design in index.html with a clean minimalist design. Updated layout to use a modern grid for test cards, elegant Inter typography, and light gray subtle borders.",
+      "reason": "User requested a sleeker, minimalist design ('极简风格') as the old design felt clunky."
+    },
+    {
+      "category": "UI/UX",
+      "details": "Completely removed the Hero section. Refactored the UI to a Neo-brutalist style inspired by webp.baby (heavy black borders, stark solid shadows: 4px 4px 0 #000, bold typography). Users can now see and click tests immediately upon page load without scrolling.",
+      "reason": "User requested the tests be visible immediately on the first screen without a hero area, matching the functional brutalist style of webp.baby."
+    },
+    {
+      "category": "Content",
+      "details": "Translated the content of the minimalist mockup into Chinese (except for the 'M-profile Lab' title). Maintained SEO tags.",
+      "reason": "User specifically requested Chinese language implementation."
+    }
+  ],
+  "validation": {
+    "steps": [
+      "Wrote raw HTML/CSS directly to index.html without introducing external UI libraries to respect the project's dependency rules.",
+      "Ensured mobile responsiveness with media queries adjusting padding and hiding non-essential nav links."
+    ],
+    "rollback": "git checkout index.html"
+  },
+  "knownLimitations": []
+}
