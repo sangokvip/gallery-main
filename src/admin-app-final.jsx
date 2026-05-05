@@ -182,7 +182,7 @@ const simpleAdminApi = {
       console.log('管理员登录:', username);
       // 管理员验证 - 更新为新的凭据
       const validAdmins = [
-        { id: 1, username: 'adam', password: 'Sangok#3', role: 'super_admin', email: 'adam@mprofile.com' }
+        { id: 1, username: 'adam', password: '[REMOVED]', role: 'super_admin', email: 'adam@mprofile.com' }
       ];
       
       const admin = validAdmins.find(a => a.username === username && a.password === password);
@@ -464,7 +464,7 @@ function AdminApp() {
             </form>
 
             <Typography variant="body2" align="center" color="text.secondary">
-              管理员账户：adam / Sangok#3
+              管理员账户：adam / [REMOVED]
             </Typography>
           </Paper>
         </Container>

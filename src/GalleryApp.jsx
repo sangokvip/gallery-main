@@ -2402,7 +2402,7 @@ function GalleryApp() {
   // 处理双击标题进入管理员模式
   const handleTitleDoubleClick = () => {
     const password = prompt('请输入管理员密码：');
-    if (password === 'Sangok#3') {
+    if (password === '[REMOVED]') {
       setIsAdmin(true);
       localStorage.setItem('isAdmin', 'true'); // 保存管理员状态
       setSnackbarMessage('管理员登录成功！');

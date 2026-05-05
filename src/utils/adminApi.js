@@ -237,10 +237,9 @@ export const simpleAdminApi = {
     try {
       console.log('🔐 管理员登录:', username);
       
-      // 管理员验证 - 更新为新的凭据
-      const validAdmins = [
-        { id: 1, username: 'adam', password: 'Sangok#3', role: 'super_admin', email: 'adam@mprofile.com' }
-      ];
+      // 管理员验证 - 已迁移至 Supabase RPC (verify_admin_password)
+      // 此文件已废弃，请使用 adminBrutalApi.js
+      const validAdmins = [];
       
       const admin = validAdmins.find(a => a.username === username && a.password === password);
       
@@ -294,10 +293,9 @@ export const simpleAdminApi = {
         return null;
       }
       
-      // 验证管理员凭据是否仍然有效
-      const validAdmins = [
-        { id: 1, username: 'adam', password: 'Sangok#3', role: 'super_admin', email: 'adam@mprofile.com' }
-      ];
+      // 验证管理员凭据 - 已迁移至 Supabase (admins 表)
+      // 此文件已废弃，请使用 adminBrutalApi.js
+      const validAdmins = [];
       
       const isValidAdmin = validAdmins.some(validAdmin => 
         validAdmin.id === admin.id && 

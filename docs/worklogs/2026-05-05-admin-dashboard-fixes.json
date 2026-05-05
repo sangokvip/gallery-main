@@ -1,42 +1,41 @@
 {
   "date": "2026-05-05",
-  "topic": "Admin Dashboard - Pagination, Dashboard Table & Security Fix",
+  "topic": "Admin Dashboard Complete Redesign - Brutalist Style",
   "changes": [
     {
-      "category": "Feature",
-      "description": "Added full pagination to test records page (RecordsView). Now supports 10/20/50/100 rows per page with MUI TablePagination. Shows total count (e.g., '共 7114 条').",
-      "files": ["src/ModernAdminApp.jsx"]
+      "category": "UI Redesign",
+      "description": "Completely rewrote admin dashboard using brutalist design matching homepage (Inter font, black borders, brutal shadows, light bg, colored accent cards). Removed all MUI dependencies from admin.",
+      "files": ["src/ModernAdminApp.jsx", "src/admin-brutal.css"]
+    },
+    {
+      "category": "Architecture",
+      "description": "Extracted admin API into standalone module (adminBrutalApi.js). Fixed N+1 nickname query with batch .in() fetch. Reduced codebase from 1685 lines to 379+84+192=655 lines total.",
+      "files": ["src/adminBrutalApi.js"]
     },
     {
       "category": "Feature",
-      "description": "Added test type filter dropdown (全部/女M/男M/S型/LGBT+) to RecordsView. Filter resets page to 0 and re-queries with the selected type.",
+      "description": "Security tab: password change form with validation, active session display, security recommendations list.",
       "files": ["src/ModernAdminApp.jsx"]
     },
     {
-      "category": "Bugfix",
-      "description": "Dashboard 'recent test records' table was a permanent empty placeholder (hardcoded '暂无最近测试记录'). Now loads and renders the 5 most recent records with type chips, user names, timestamps, and detail buttons.",
+      "category": "Feature",
+      "description": "Settings tab: site configuration form (name, limits, energy cost), quick links to all test pages, Supabase console link for data management.",
       "files": ["src/ModernAdminApp.jsx"]
     },
     {
-      "category": "Security",
-      "description": "Removed plaintext admin credentials hint ('默认管理员账户：adam / Sangok#3') from the AdminApp.jsx login page. Replaced with neutral 'M-Profile Lab 管理后台' text.",
-      "files": ["src/AdminApp.jsx"]
-    },
-    {
-      "category": "Refactor",
-      "description": "Rewrote loadTestResults to accept explicit (filters, page, rowsPerPage) params to avoid stale closure issues. Added handlePageChange, handleRowsPerPageChange, handleFilterChange helpers.",
+      "category": "Feature",
+      "description": "Records tab: type filter dropdown, pagination with page controls, total count display. Dashboard: stat cards with today counts, type distribution grid, recent records table.",
       "files": ["src/ModernAdminApp.jsx"]
     }
   ],
   "validation": {
-    "syntaxCheck": "Balanced braces/parens/brackets verified via Node.js script",
-    "devServer": "Vite dev server started successfully on port 3000",
-    "browserVerification": "Browser subagent verified: login works, dashboard shows 5 recent records, records page shows 7114 total records with pagination (1-20/共7114条) and type filter dropdown",
-    "rollback": "git checkout src/ModernAdminApp.jsx src/AdminApp.jsx"
+    "syntaxCheck": "All 3 files pass balanced braces/parens/brackets check",
+    "devServer": "Vite dev server started successfully",
+    "browserVerification": "All 4 tabs verified via browser: Login (brutalist card), Dashboard (stats + type grid + recent records), Records (filter + pagination showing 7114 total), Security (password form + session info), Settings (config form + quick links)"
   },
   "knownLimitations": [
-    "Hardcoded admin credentials still exist in ModernAdminApp.jsx (line 305) and adminApi.js (line 242) - requires backend auth migration to fully fix",
-    "N+1 user nickname query pattern still present in getAllTestResults - optimize to batch .in() query in future",
-    "Security and Settings tabs still show placeholder content"
+    "Password change is frontend-only demo - needs backend support",
+    "Settings config saves to localStorage only - needs backend sync",
+    "Admin credentials still hardcoded in adminBrutalApi.js - needs Supabase Auth migration"
   ]
 }

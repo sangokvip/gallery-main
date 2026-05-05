@@ -38,7 +38,7 @@ function MinimalAdmin() {
       
       // 验证管理员凭据是否仍然有效
       const validAdmins = [
-        { id: 1, username: 'adam', password: 'Sangok#3', role: 'super_admin', email: 'adam@mprofile.com' }
+        { id: 1, username: 'adam', password: '[REMOVED]', role: 'super_admin', email: 'adam@mprofile.com' }
       ];
       
       const isValidAdmin = validAdmins.some(validAdmin => 
@@ -78,7 +78,7 @@ function MinimalAdmin() {
     try {
       // 使用与主应用相同的管理员验证逻辑
       const validAdmins = [
-        { id: 1, username: 'adam', password: 'Sangok#3', role: 'super_admin', email: 'adam@mprofile.com' }
+        { id: 1, username: 'adam', password: '[REMOVED]', role: 'super_admin', email: 'adam@mprofile.com' }
       ];
       
       const admin = validAdmins.find(a => a.username === username && a.password === password);
@@ -307,7 +307,7 @@ function MinimalAdmin() {
         </form>
 
         <p style={{ marginTop: '20px', fontSize: '14px', opacity: 0.8 }}>
-          默认管理员账户：adam / Sangok#3
+          默认管理员账户：adam / [REMOVED]
         </p>
       </div>
     </div>

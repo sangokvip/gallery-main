@@ -74,7 +74,7 @@ const AdminPasswordManager = ({ currentAdmin, onPasswordChange }) => {
     setSuccess('');
 
     // 验证当前密码
-    if (currentPassword !== 'Sangok#3') {
+    if (currentPassword !== '[REMOVED]') {
       setError('当前密码不正确');
       return;
     }
