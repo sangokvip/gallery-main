@@ -324,7 +324,7 @@ function DetailModal({ record, details, loading, onClose }) {
                   <div style={{fontWeight:800, fontSize:'0.9rem', marginBottom:'0.5rem', color: RATING_COLORS[rating]}}>{rating} ({grouped[rating].length})</div>
                   <div style={{display:'flex', flexWrap:'wrap', gap:'0.4rem'}}>
                     {grouped[rating].map((d,i) => (
-                      <span key={i} style={{padding:'0.2rem 0.6rem', borderRadius:4, fontSize:'0.8rem', fontWeight:600, background:'#f8fafc', border:'1px solid #e2e8f0'}}>{d.category}</span>
+                      <span key={i} style={{padding:'0.2rem 0.6rem', borderRadius:4, fontSize:'0.8rem', fontWeight:600, background:'#f8fafc', border:'1px solid #e2e8f0'}}>{d.item || d.category}</span>
                     ))}
                   </div>
                 </div>
