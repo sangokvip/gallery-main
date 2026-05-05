@@ -41,7 +41,11 @@ import {
   Fab,
   Zoom,
   Fade,
-  Slide
+  Slide,
+  TablePagination,
+  Select,
+  FormControl,
+  InputLabel
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
@@ -230,6 +234,10 @@ function ModernAdminApp() {
   const [testResults, setTestResults] = useState([]);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [filters, setFilters] = useState({ testType: '', dateFrom: '', dateTo: '', searchTerm: '' });
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(20);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [dashboardRecords, setDashboardRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [openDetailsDialog, setOpenDetailsDialog] = useState(false);
   const [recordDetailsLoading, setRecordDetailsLoading] = useState(false);
@@ -509,6 +517,9 @@ function ModernAdminApp() {
     try {
       const stats = await modernAdminApi.getSystemStats();
       setSystemStats(stats);
+      // 加载最近5条记录用于仪表板展示
+      const { results } = await modernAdminApi.getAllTestResults({}, 5, 0);
+      setDashboardRecords(results);
     } catch (error) {
       console.error('加载仪表板数据失败:', error);
     } finally {
@@ -516,19 +527,39 @@ function ModernAdminApp() {
     }
   };
 
-  const loadTestResults = async () => {
+  const loadTestResults = async (queryFilters = filters, queryPage = page, queryRpp = rowsPerPage) => {
     setResultsLoading(true);
-    
     try {
-      const { results, total } = await modernAdminApi.getAllTestResults(filters, 20, 0);
+      const offset = queryPage * queryRpp;
+      const { results, total } = await modernAdminApi.getAllTestResults(queryFilters, queryRpp, offset);
       setTestResults(results);
-      console.log(`✅ 加载了 ${results.length} 条测评记录`);
+      setTotalRecords(total);
+      console.log(`✅ 加载了 ${results.length} 条测评记录，总计: ${total}`);
     } catch (error) {
       console.error('加载测评记录失败:', error);
       setTestResults([]);
+      setTotalRecords(0);
     } finally {
       setResultsLoading(false);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    loadTestResults(filters, newPage, rowsPerPage);
+  };
+
+  const handleRowsPerPageChange = (newRpp) => {
+    setRowsPerPage(newRpp);
+    setPage(0);
+    loadTestResults(filters, 0, newRpp);
+  };
+
+  const handleFilterChange = (key, value) => {
+    const newFilters = { ...filters, [key]: value };
+    setFilters(newFilters);
+    setPage(0);
+    loadTestResults(newFilters, 0, rowsPerPage);
   };
 
   const viewRecordDetails = async (record) => {
@@ -887,15 +918,22 @@ function ModernAdminApp() {
               }}
             >
               <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3, md: 4 }, py: 4 }}>
-                {selectedTab === 'dashboard' && <DashboardView stats={systemStats} loading={statsLoading} onRefresh={loadDashboardData} />}
+                {selectedTab === 'dashboard' && <DashboardView stats={systemStats} loading={statsLoading} onRefresh={loadDashboardData} recentRecords={dashboardRecords} onViewDetails={viewRecordDetails} />}
                 {selectedTab === 'records' && 
-        <RecordsView 
-          testResults={testResults}
-          resultsLoading={resultsLoading}
-          onViewDetails={viewRecordDetails}
-          onRefresh={loadTestResults}
-        />
-      }
+                  <RecordsView 
+                    testResults={testResults}
+                    resultsLoading={resultsLoading}
+                    onViewDetails={viewRecordDetails}
+                    onRefresh={() => loadTestResults(filters, page, rowsPerPage)}
+                    page={page}
+                    rowsPerPage={rowsPerPage}
+                    totalRecords={totalRecords}
+                    onPageChange={handlePageChange}
+                    onRowsPerPageChange={handleRowsPerPageChange}
+                    filters={filters}
+                    onFilterChange={handleFilterChange}
+                  />
+                }
                 {selectedTab === 'security' && <SecurityView />}
                 {selectedTab === 'settings' && <SettingsView />}
 
@@ -958,7 +996,7 @@ function QuickAccessButton({ label, icon, color, url }) {
 }
 
 // 🎯 仪表板视图组件
-function DashboardView({ stats, loading, onRefresh }) {
+function DashboardView({ stats, loading, onRefresh, recentRecords = [], onViewDetails }) {
   return (
     <Box>
       {/* 🎯 页面标题和操作区 */}
@@ -1182,12 +1220,51 @@ function DashboardView({ stats, loading, onRefresh }) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {/* 这里可以添加最近的测试记录 */}
-              <TableRow>
-                <TableCell colSpan={5} sx={{ textAlign: 'center', py: 4, color: modernColors.text.muted }}>
-                  {loading ? '加载中...' : '暂无最近测试记录'}
-                </TableCell>
-              </TableRow>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} sx={{ textAlign: 'center', py: 4, color: modernColors.text.muted }}>
+                    加载中...
+                  </TableCell>
+                </TableRow>
+              ) : recentRecords.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} sx={{ textAlign: 'center', py: 4, color: modernColors.text.muted }}>
+                    暂无最近测试记录
+                  </TableCell>
+                </TableRow>
+              ) : (
+                recentRecords.map((result) => (
+                  <TableRow key={result.id} sx={{ '&:hover': { backgroundColor: modernColors.background.hover } }}>
+                    <TableCell>
+                      <Chip 
+                        label={
+                          result.test_type === 'female' ? '女M测试' :
+                          result.test_type === 'male' ? '男M测试' :
+                          result.test_type === 's' ? 'S型测试' : 'LGBT+测试'
+                        }
+                        sx={{
+                          background: result.test_type === 'female' ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' :
+                                    result.test_type === 'male' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' :
+                                    result.test_type === 's' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' :
+                                    'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                          color: 'white', fontWeight: 'bold', border: 'none'
+                        }}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ color: modernColors.text.primary }}>{result.nickname || '匿名用户'}</TableCell>
+                    <TableCell sx={{ color: modernColors.text.secondary }}>{result.test_results?.length || 0} 项</TableCell>
+                    <TableCell sx={{ color: modernColors.text.muted, fontSize: '0.875rem' }}>
+                      {new Date(result.created_at).toLocaleString('zh-CN')}
+                    </TableCell>
+                    <TableCell>
+                      <ModernButton variant="outlined" size="small" startIcon={<VisibilityIcon />} onClick={() => onViewDetails(result)} sx={{ minWidth: 'auto' }}>
+                        详情
+                      </ModernButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </TableContainer>
@@ -1197,21 +1274,42 @@ function DashboardView({ stats, loading, onRefresh }) {
 }
 
 // 📊 测评记录视图
-function RecordsView({ testResults, resultsLoading, onViewDetails, onRefresh }) {
+function RecordsView({ testResults, resultsLoading, onViewDetails, onRefresh, page, rowsPerPage, totalRecords, onPageChange, onRowsPerPageChange, filters, onFilterChange }) {
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4" sx={{ color: modernColors.text.primary, fontWeight: 'bold' }}>
-          测评记录管理
-        </Typography>
-        <ModernButton
-          variant="outlined"
-          startIcon={<RefreshIcon />}
-          onClick={onRefresh}
-          disabled={resultsLoading}
-        >
-          刷新
-        </ModernButton>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+        <Box>
+          <Typography variant="h4" sx={{ color: modernColors.text.primary, fontWeight: 'bold' }}>
+            测评记录管理
+          </Typography>
+          <Typography variant="body2" sx={{ color: modernColors.text.muted, mt: 0.5 }}>
+            共 {totalRecords} 条记录
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <FormControl size="small" sx={{ minWidth: 140, '& .MuiOutlinedInput-root': { borderRadius: '12px', color: modernColors.text.primary }, '& .MuiInputLabel-root': { color: modernColors.text.muted }, '& .MuiOutlinedInput-notchedOutline': { borderColor: modernColors.border } }}>
+            <InputLabel>测试类型</InputLabel>
+            <Select
+              value={filters.testType}
+              onChange={(e) => onFilterChange('testType', e.target.value)}
+              label="测试类型"
+            >
+              <MenuItem value="">全部</MenuItem>
+              <MenuItem value="female">女M测试</MenuItem>
+              <MenuItem value="male">男M测试</MenuItem>
+              <MenuItem value="s">S型测试</MenuItem>
+              <MenuItem value="lgbt">LGBT+测试</MenuItem>
+            </Select>
+          </FormControl>
+          <ModernButton
+            variant="outlined"
+            startIcon={<RefreshIcon />}
+            onClick={onRefresh}
+            disabled={resultsLoading}
+          >
+            刷新
+          </ModernButton>
+        </Box>
       </Box>
       
       <GlassCard>
@@ -1226,88 +1324,108 @@ function RecordsView({ testResults, resultsLoading, onViewDetails, onRefresh }) 
               暂无测评记录
             </Typography>
             <Typography variant="body2" sx={{ color: modernColors.text.muted }}>
-              系统中还没有任何测评记录
+              {filters.testType ? '当前筛选条件下没有记录，请尝试其他筛选' : '系统中还没有任何测评记录'}
             </Typography>
           </CardContent>
         ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow sx={{ 
-                  background: `linear-gradient(135deg, ${modernColors.primary} 0%, ${modernColors.secondary} 100%)`,
-                  '& th': { 
-                    color: 'white', 
-                    fontWeight: 'bold',
-                    border: 'none',
-                    py: 2
-                  }
-                }}>
-                  <TableCell>记录ID</TableCell>
-                  <TableCell>用户ID</TableCell>
-                  <TableCell>测试类型</TableCell>
-                  <TableCell>用户昵称</TableCell>
-                  <TableCell>结果数量</TableCell>
-                  <TableCell>测试时间</TableCell>
-                  <TableCell>操作</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {testResults.map((result) => (
-                  <TableRow 
-                    key={result.id}
-                    sx={{
-                      borderColor: modernColors.border,
-                      '&:hover': { backgroundColor: modernColors.background.hover }
-                    }}
-                  >
-                    <TableCell sx={{ color: modernColors.text.primary }}>{result.id}</TableCell>
-                    <TableCell sx={{ color: modernColors.text.secondary, fontFamily: 'monospace' }}>
-                      {result.user_id_text}
-                    </TableCell>
-                    <TableCell>
-                      <Chip 
-                        label={
-                          result.test_type === 'female' ? '女M测试' :
-                          result.test_type === 'male' ? '男M测试' :
-                          result.test_type === 's' ? 'S型测试' : 'LGBT+测试'
-                        }
-                        sx={{
-                          background: result.test_type === 'female' ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' :
-                                    result.test_type === 'male' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' :
-                                    result.test_type === 's' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' :
-                                    'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                          color: 'white',
-                          fontWeight: 'bold',
-                          border: 'none'
-                        }}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell sx={{ color: modernColors.text.primary }}>
-                      {result.nickname || '匿名用户'}
-                    </TableCell>
-                    <TableCell sx={{ color: modernColors.text.secondary }}>
-                      {result.test_results?.length || 0} 项
-                    </TableCell>
-                    <TableCell sx={{ color: modernColors.text.muted, fontSize: '0.875rem' }}>
-                      {new Date(result.created_at).toLocaleString('zh-CN')}
-                    </TableCell>
-                    <TableCell>
-                      <ModernButton
-                        variant="outlined"
-                        size="small"
-                        startIcon={<VisibilityIcon />}
-                        onClick={() => onViewDetails(result)}
-                        sx={{ minWidth: 'auto' }}
-                      >
-                        查看详情
-                      </ModernButton>
-                    </TableCell>
+          <>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ 
+                    background: `linear-gradient(135deg, ${modernColors.primary} 0%, ${modernColors.secondary} 100%)`,
+                    '& th': { 
+                      color: 'white', 
+                      fontWeight: 'bold',
+                      border: 'none',
+                      py: 2
+                    }
+                  }}>
+                    <TableCell>记录ID</TableCell>
+                    <TableCell>用户ID</TableCell>
+                    <TableCell>测试类型</TableCell>
+                    <TableCell>用户昵称</TableCell>
+                    <TableCell>结果数量</TableCell>
+                    <TableCell>测试时间</TableCell>
+                    <TableCell>操作</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {testResults.map((result) => (
+                    <TableRow 
+                      key={result.id}
+                      sx={{
+                        borderColor: modernColors.border,
+                        '&:hover': { backgroundColor: modernColors.background.hover }
+                      }}
+                    >
+                      <TableCell sx={{ color: modernColors.text.primary }}>{result.id}</TableCell>
+                      <TableCell sx={{ color: modernColors.text.secondary, fontFamily: 'monospace' }}>
+                        {result.user_id_text}
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={
+                            result.test_type === 'female' ? '女M测试' :
+                            result.test_type === 'male' ? '男M测试' :
+                            result.test_type === 's' ? 'S型测试' : 'LGBT+测试'
+                          }
+                          sx={{
+                            background: result.test_type === 'female' ? 'linear-gradient(135deg, #ec4899 0%, #db2777 100%)' :
+                                      result.test_type === 'male' ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' :
+                                      result.test_type === 's' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' :
+                                      'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            border: 'none'
+                          }}
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell sx={{ color: modernColors.text.primary }}>
+                        {result.nickname || '匿名用户'}
+                      </TableCell>
+                      <TableCell sx={{ color: modernColors.text.secondary }}>
+                        {result.test_results?.length || 0} 项
+                      </TableCell>
+                      <TableCell sx={{ color: modernColors.text.muted, fontSize: '0.875rem' }}>
+                        {new Date(result.created_at).toLocaleString('zh-CN')}
+                      </TableCell>
+                      <TableCell>
+                        <ModernButton
+                          variant="outlined"
+                          size="small"
+                          startIcon={<VisibilityIcon />}
+                          onClick={() => onViewDetails(result)}
+                          sx={{ minWidth: 'auto' }}
+                        >
+                          查看详情
+                        </ModernButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              component="div"
+              count={totalRecords}
+              page={page}
+              onPageChange={(e, newPage) => onPageChange(newPage)}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={(e) => onRowsPerPageChange(parseInt(e.target.value, 10))}
+              rowsPerPageOptions={[10, 20, 50, 100]}
+              labelRowsPerPage="每页显示"
+              labelDisplayedRows={({ from, to, count }) => `${from}-${to} / 共 ${count} 条`}
+              sx={{
+                color: modernColors.text.secondary,
+                borderTop: `1px solid ${modernColors.border}`,
+                '& .MuiTablePagination-selectIcon': { color: modernColors.text.muted },
+                '& .MuiIconButton-root': { color: modernColors.text.secondary },
+                '& .MuiIconButton-root.Mui-disabled': { color: modernColors.text.muted }
+              }}
+            />
+          </>
         )}
       </GlassCard>
     </Box>

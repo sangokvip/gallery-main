@@ -1138,7 +1138,7 @@ function AdminAppNew() {
             </form>
 
             <Typography variant="body2" align="center" color="text.secondary">
-              默认管理员账户：adam / Sangok#3
+              M-Profile Lab 管理后台
             </Typography>
           </Paper>
         </Container>
