@@ -111,16 +111,16 @@ const AdsterraAd = ({ adId, format, isMobile = false, isDesktop = false }) => {
 
   return (
     <Box 
-      ref={adRef}
+      ref={adContainerRef}
       sx={{ 
         width: '100%', 
         my: 2, 
         display: 'flex', 
         justifyContent: 'center',
-        minHeight: format === 'social-bar' ? 0 : '50px',
+        minHeight: format === 'socialBar' ? 0 : '50px',
         overflow: 'hidden'
       }}
-      id={`adsterra-${adId}`}
+      id={`adsterra-${adId || format}`}
     />
   );
 };
