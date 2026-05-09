@@ -43,6 +43,8 @@ import './styles/pixel-theme.css';
 import { v4 as uuidv4 } from 'uuid';
 import { galleryApi } from './utils/supabase';
 import CollectionsIcon from '@mui/icons-material/Collections';
+import AdsterraAd from './components/AdsterraAd';
+
 
 // 创建现代风格主题
 const theme = createTheme({
@@ -3073,6 +3075,13 @@ function GalleryApp() {
                 浏览、分享和点评各种测评报告，记录你的测评经历
               </Typography>
               
+              {/* 顶部广告位 */}
+              <Box sx={{ mb: 4, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <AdsterraAd adId="YOUR_AD_ID" format="728x90" isDesktop={true} />
+                <AdsterraAd adId="YOUR_AD_ID" format="300x250" isMobile={true} />
+              </Box>
+
+              
               <Box sx={{ 
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -3282,21 +3291,17 @@ function GalleryApp() {
               onSave={handleSaveImageInfo}
             />
 
-            <Snackbar
-              open={snackbarOpen}
-              autoHideDuration={5000}
-              onClose={() => setSnackbarOpen(false)}
-            >
-              <Alert 
-                onClose={() => setSnackbarOpen(false)} 
-                severity={snackbarSeverity}
-                variant="filled"
-              >
-                {snackbarMessage}
-              </Alert>
             </Snackbar>
-          </Container>
-        </Box>
+
+            {/* 底部广告位 */}
+            <Box sx={{ mt: 4, mb: 2, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <AdsterraAd adId="YOUR_AD_ID" format="728x90" isDesktop={true} />
+              <AdsterraAd adId="YOUR_AD_ID" format="320x50" isMobile={true} />
+            </Box>
+            {/* 全局 Social Bar 广告 */}
+            <AdsterraAd format="socialBar" />
+          </Box>
+
       </ThemeProvider>
     </ErrorBoundary>
   );

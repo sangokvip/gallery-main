@@ -23,6 +23,8 @@ import TelegramIcon from '@mui/icons-material/Telegram'
 import './styles/pixel-theme.css'
 import { messagesApi } from './utils/supabase'
 import { v4 as uuidv4 } from 'uuid'; // 导入 uuid
+import AdsterraAd from './components/AdsterraAd';
+
 
 const theme = createTheme({
   palette: {
@@ -1520,6 +1522,13 @@ function MessageApp() {
             >
               I Love Dirty Talk
             </Typography>
+            
+            {/* 顶部广告位 */}
+            <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <AdsterraAd adId="YOUR_AD_ID" format="728x90" isDesktop={true} />
+              <AdsterraAd adId="YOUR_AD_ID" format="300x250" isMobile={true} />
+            </Box>
+
 
             {/* Gallery 页面入口 */}
             <Paper
@@ -1876,7 +1885,15 @@ function MessageApp() {
             onClose={() => setSnackbarOpen(false)}
             message={snackbarMessage}
           />
+
+          {/* 底部广告位 */}
+          <Box sx={{ mt: 4, mb: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <AdsterraAd adId="YOUR_AD_ID" format="728x90" isDesktop={true} />
+            <AdsterraAd adId="YOUR_AD_ID" format="320x50" isMobile={true} />
+          {/* 全局 Social Bar 广告 */}
+          <AdsterraAd format="socialBar" />
         </Box>
+
       </ThemeProvider>
     </ErrorBoundary>
   );

@@ -23,6 +23,8 @@ import Footer from './components/Footer'
 import { testRecordsApi, testNumberingApi } from './utils/supabase'
 import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
+import AdsterraAd from './components/AdsterraAd'
+
 
 // MENU_ITEMS定义移到函数组件内部
 
@@ -974,6 +976,13 @@ function SApp() {
           >
             How 'S' I Could Be?
           </Typography>
+          
+          {/* 顶部广告位 */}
+          <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <AdsterraAd adId="YOUR_AD_ID" format="728x90" isDesktop={true} />
+            <AdsterraAd adId="YOUR_AD_ID" format="300x250" isMobile={true} />
+          </Box>
+
 
         </Box>
 
@@ -1395,8 +1404,18 @@ function SApp() {
           </DialogContent>
         </Dialog>
 
-      <Footer pixelStyle={true} redStyle={true} />
+      {/* 底部广告位 */}
+      <Box sx={{ mt: 4, mb: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <AdsterraAd adId="YOUR_AD_ID" format="728x90" isDesktop={true} />
+        <AdsterraAd adId="YOUR_AD_ID" format="320x50" isMobile={true} />
       </Box>
+
+      <Footer pixelStyle={true} redStyle={true} />
+
+      {/* 全局 Social Bar 广告 */}
+      <AdsterraAd format="socialBar" />
+      </Box>
+
 
       {/* 报告对话框 */}
       <Dialog
