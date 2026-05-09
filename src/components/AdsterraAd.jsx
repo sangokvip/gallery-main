@@ -85,30 +85,6 @@ const AdsterraAd = ({ adId, format, isMobile = false, isDesktop = false }) => {
     };
   }, [format, adId, isMobile, isDesktop]);
 
-  // Handle placeholders for development
-  if (adId === 'YOUR_AD_ID' && format !== 'socialBar') {
-    return (
-      <Box 
-        sx={{ 
-          width: '100%', 
-          my: 2, 
-          display: 'flex', 
-          justifyContent: 'center',
-          border: '1px dashed #ccc',
-          bgcolor: 'rgba(0,0,0,0.02)',
-          p: 2,
-          textAlign: 'center'
-        }}
-      >
-        <Box>
-          <div style={{ fontSize: '12px', color: '#999' }}>ADSTERRA AD PLACEHOLDER</div>
-          <div style={{ fontSize: '14px', fontWeight: 'bold' }}>Format: {format}</div>
-          <div style={{ fontSize: '10px' }}>ID: {adId}</div>
-        </Box>
-      </Box>
-    );
-  }
-
   return (
     <Box 
       ref={adContainerRef}
