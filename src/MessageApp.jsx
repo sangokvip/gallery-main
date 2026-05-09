@@ -1890,6 +1890,8 @@ function MessageApp() {
           <Box sx={{ mt: 4, mb: 2, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <AdsterraAd adId="YOUR_AD_ID" format="728x90" isDesktop={true} />
             <AdsterraAd adId="YOUR_AD_ID" format="320x50" isMobile={true} />
+          </Box>
+          
           {/* 全局 Social Bar 广告 */}
           <AdsterraAd format="socialBar" />
         </Box>

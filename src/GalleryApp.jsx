@@ -3291,6 +3291,18 @@ function GalleryApp() {
               onSave={handleSaveImageInfo}
             />
 
+            <Snackbar
+              open={snackbarOpen}
+              autoHideDuration={5000}
+              onClose={() => setSnackbarOpen(false)}
+            >
+              <Alert 
+                onClose={() => setSnackbarOpen(false)} 
+                severity={snackbarSeverity}
+                variant="filled"
+              >
+                {snackbarMessage}
+              </Alert>
             </Snackbar>
 
             {/* 底部广告位 */}
@@ -3300,7 +3312,9 @@ function GalleryApp() {
             </Box>
             {/* 全局 Social Bar 广告 */}
             <AdsterraAd format="socialBar" />
-          </Box>
+          </Container>
+
+        </Box>
 
       </ThemeProvider>
     </ErrorBoundary>
