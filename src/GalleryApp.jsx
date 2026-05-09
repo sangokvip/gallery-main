@@ -3075,13 +3075,6 @@ function GalleryApp() {
                 浏览、分享和点评各种测评报告，记录你的测评经历
               </Typography>
               
-              {/* 顶部广告位 */}
-              <Box sx={{ mb: 4, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                <AdsterraAd adId="YOUR_AD_ID" format="728x90" isDesktop={true} />
-                <AdsterraAd adId="YOUR_AD_ID" format="300x250" isMobile={true} />
-              </Box>
-
-              
               <Box sx={{ 
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -3310,8 +3303,6 @@ function GalleryApp() {
               <AdsterraAd adId="YOUR_AD_ID" format="728x90" isDesktop={true} />
               <AdsterraAd adId="YOUR_AD_ID" format="320x50" isMobile={true} />
             </Box>
-            {/* 全局 Social Bar 广告 */}
-            <AdsterraAd format="socialBar" />
           </Container>
 
         </Box>

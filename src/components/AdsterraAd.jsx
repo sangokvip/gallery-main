@@ -28,9 +28,6 @@ const AdsterraAd = ({ adId, format, isMobile = false, isDesktop = false }) => {
       key: '61f179118b998d9972810584f42f3688',
       width: 320,
       height: 50
-    },
-    'socialBar': {
-      scriptUrl: 'https://pl29385047.profitablecpmratenetwork.com/ff/01/6b/ff016b62b58ab0ca89795f94c29c86e8.js'
     }
   };
 
@@ -45,13 +42,6 @@ const AdsterraAd = ({ adId, format, isMobile = false, isDesktop = false }) => {
     // 清理之前的广告内容
     adContainerRef.current.innerHTML = '';
 
-    if (format === 'socialBar') {
-      const script = document.createElement('script');
-      script.src = adConfig.socialBar.scriptUrl;
-      script.async = true;
-      adContainerRef.current.appendChild(script);
-      return;
-    }
 
     const config = adConfig[format];
     if (!config) return;

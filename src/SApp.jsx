@@ -976,12 +976,6 @@ function SApp() {
           >
             How 'S' I Could Be?
           </Typography>
-          
-          {/* 顶部广告位 */}
-          <Box sx={{ mb: 4, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <AdsterraAd adId="YOUR_AD_ID" format="728x90" isDesktop={true} />
-            <AdsterraAd adId="YOUR_AD_ID" format="300x250" isMobile={true} />
-          </Box>
 
 
         </Box>
@@ -1412,8 +1406,6 @@ function SApp() {
 
       <Footer pixelStyle={true} redStyle={true} />
 
-      {/* 全局 Social Bar 广告 */}
-      <AdsterraAd format="socialBar" />
       </Box>
 
 
