@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-05-09-report-export-speed-mobile-save",
+  "date": "2026-05-09",
+  "summary": "优化测评报告生成等待时间和移动端保存图片体验，减少导出图片时的固定等待，并为不支持下载的移动浏览器增加系统分享和图片预览兜底。",
+  "trigger": "用户反馈生成报告速度太慢，且部分手机浏览器点击保存为图片没有反应，希望保存图片时能进入手机相册。",
+  "changes": [
+    {
+      "category": "报告生成速度",
+      "files": [
+        "src/App.jsx",
+        "src/SApp.jsx",
+        "src/MaleApp.jsx",
+        "src/LgbtApp.jsx"
+      ],
+      "details": "移除原先随机进度模拟的长等待，生成报告时先显示进度状态，再完成自动保存和编号获取，完成后快速打开报告弹窗。",
+      "reason": "旧实现包含人为进度动画，实际没有必要等待，导致用户感觉生成报告很慢。"
+    },
+    {
+      "category": "图片导出性能",
+      "files": [
+        "src/utils/reportExport.js",
+        "src/App.jsx",
+        "src/SApp.jsx",
+        "src/MaleApp.jsx",
+        "src/LgbtApp.jsx"
+      ],
+      "details": "新增公共报告图片导出工具，统一 DOM 克隆、样式固定、字体等待、Canvas 生成和 Blob 转换；移动端降低导出 scale 上限，移除导出前 1000ms 和截图前 500ms 的固定等待。",
+      "reason": "减少重复代码和不必要等待，降低移动端大图 Canvas 的内存压力。"
+    },
+    {
+      "category": "移动端保存图片",
+      "files": [
+        "src/utils/reportExport.js",
+        "src/App.jsx",
+        "src/SApp.jsx",
+        "src/MaleApp.jsx",
+        "src/LgbtApp.jsx"
+      ],
+      "details": "保存图片时移动端优先使用 Web Share API 分享 PNG 文件；不支持或失败时显示图片预览，提供长按保存提示和显式下载按钮；桌面端继续使用下载文件。",
+      "reason": "iOS Safari、微信内置浏览器和部分 Android 浏览器会忽略 blob download 或 programmatic click，导致点击没有反应，需要提供可见兜底路径。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 构建成功；仍存在原有警告：重复 object key、重复 JSX onClick 属性、部分 chunk 过大。"
+    },
+    {
+      "command": "node --input-type=module Playwright viewport smoke test",
+      "result": "通过基本加载检查。已覆盖 /female.html、/s.html、/male.html、/lgbt.html 在 320、375、390、430、768、1024、1440 宽度下加载；未发现横向滚动。/male.html 存在原有 React 重复 key 警告。"
+    },
+    {
+      "command": "npm run dev -- --host 127.0.0.1",
+      "result": "本地 Vite dev server 已启动，地址 http://127.0.0.1:3000/。"
+    }
+  ],
+  "knownLimitations": [
+    "普通移动 Web 页面不能绕过浏览器和系统权限直接写入用户相册；当前实现已使用 Web Share API 调起系统分享面板，用户仍需在系统界面选择保存到照片或相册。",
+    "微信、QQ、部分国产浏览器可能限制文件分享或下载，此时会展示图片预览，用户需要长按保存或点击下载按钮。",
+    "未在真实 iOS Safari、微信内置浏览器和 Android 真机上验证相册入口文案和系统分享面板表现。"
+  ],
+  "deploymentNotes": [
+    "无需新增环境变量。",
+    "部署后建议在真实 iPhone Safari、微信内置浏览器、Android Chrome 各测一次保存图片。",
+    "本次未处理 /male.html 的重复 key 警告和既有构建警告，可另起任务修复。"
+  ]
+}

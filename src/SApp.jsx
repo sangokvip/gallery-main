@@ -4,6 +4,7 @@ import './styles/pixel-theme.css'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
 import html2canvas from 'html2canvas'
 import html2pdf from 'html2pdf.js'
+import { createReportImageBlob, saveReportImageBlob } from './utils/reportExport'
 import ScienceIcon from '@mui/icons-material/Science'
 import HomeIcon from '@mui/icons-material/Home'
 import InfoIcon from '@mui/icons-material/Info'
@@ -368,6 +369,9 @@ function SApp() {
   };
 
   const handleGenerateReport = async () => {
+    setGeneratingReport(true);
+    setReportProgress(20);
+
     // 在生成报告前自动保存测试
     if (Object.keys(ratings).length > 0 && hasUnsavedChanges) {
       try {
@@ -390,13 +394,8 @@ function SApp() {
       // 使用当前编号+1作为备选
       setUserCount(prev => prev + 1);
     }
-    
-    // 显示进度条和等待信息
-    setGeneratingReport(true);
-    setReportProgress(0);
-    
-    // 模拟报告生成过程
-    await simulateReportProgress();
+    setReportProgress(100);
+    await new Promise(resolve => setTimeout(resolve, 120));
     
     setGeneratingReport(false);
     setOpenReport(true);
@@ -480,201 +479,40 @@ function SApp() {
   }
 
   const handleExportImage = async () => {
-    // 在导出图片前自动保存测试
     if (Object.keys(ratings).length > 0 && hasUnsavedChanges) {
       try {
         await saveTestRecord();
-        setSnackbarMessage('测试已自动保存并开始导出图片...');
+        setSnackbarMessage("测试已自动保存并开始导出图片...");
         setSnackbarOpen(true);
-        // 短暂延迟让用户看到保存消息
-        await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.error('自动保存失败:', error);
-        setSnackbarMessage('自动保存失败，但继续导出图片...');
+        console.error("自动保存失败:", error);
+        setSnackbarMessage("自动保存失败，但继续导出图片...");
         setSnackbarOpen(true);
       }
     }
 
-    if (reportRef.current) {
-      try {
-        // 创建一个新的容器元素，用于生成图片
-        const container = document.createElement('div');
-        container.style.position = 'absolute';
-        container.style.left = '-9999px';
-        container.style.width = '1200px'; // 固定宽度
-        container.style.backgroundColor = '#ffffff';
-        container.style.padding = '40px';
-        document.body.appendChild(container);
+    if (!reportRef.current) {
+      setSnackbarMessage("无法生成报告，请重试");
+      setSnackbarOpen(true);
+      return;
+    }
 
-        // 克隆报告元素
-        const clonedReport = reportRef.current.cloneNode(true);
-        container.appendChild(clonedReport);
-
-        // 设置固定布局样式
-        const styleSheet = document.createElement('style');
-        styleSheet.textContent = `
-          .MuiGrid-container {
-            display: grid !important;
-            grid-template-columns: repeat(3, 1fr) !important;
-            gap: 16px !important;
-            width: 100% !important;
-          }
-          .MuiGrid-item {
-            width: 100% !important;
-            max-width: 100% !important;
-            flex: none !important;
-            padding: 0 !important;
-          }
-          .MuiPaper-root {
-            height: 100% !important;
-          }
-          .MuiTypography-root {
-            font-size: 16px !important;
-          }
-          .MuiTypography-h4 {
-            font-size: 32px !important;
-            margin-bottom: 32px !important;
-          }
-          .MuiTypography-h5 {
-            font-size: 24px !important;
-            margin-bottom: 16px !important;
-          }
-          .recharts-wrapper {
-            width: 600px !important;
-            height: 400px !important;
-            margin: 0 auto 32px !important;
-          }
-        `;
-        container.appendChild(styleSheet);
-
-        // 确保所有图表都已渲染
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // 生成图片
-        const canvas = await html2canvas(container, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          width: 1200,
-          height: container.offsetHeight,
-          onclone: (clonedDoc) => {
-            const charts = clonedDoc.querySelectorAll('.recharts-wrapper');
-            charts.forEach(chart => {
-              chart.style.margin = '0 auto';
-            });
-          }
-        });
-
-        // 清理临时元素
-        document.body.removeChild(container);
-
-        // 将Canvas转换为Blob
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0));
-
-        // 保存图片
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-
-        if (isMobile) {
-          try {
-            // 尝试使用Web Share API (支持直接分享到相册应用)
-            if (navigator.share && navigator.canShare) {
-              const file = new File([blob], 'S自评报告.png', { type: 'image/png' });
-              const shareData = {
-                title: 'S自评报告',
-                text: '我的个性化测评报告',
-                files: [file]
-              };
-
-              if (navigator.canShare(shareData)) {
-                await navigator.share(shareData);
-                setSnackbarMessage(isIOS ?
-                  '图片已准备好！可选择"存储到文件"或"保存到照片"' :
-                  '图片已准备好！可选择保存到相册或其他应用'
-                );
-                setSnackbarOpen(true);
-                return;
-              }
-            }
-
-            // 如果Web Share API不可用，尝试创建可长按保存的图片
-            const img = new Image();
-            img.src = URL.createObjectURL(blob);
-            img.style.cssText = `
-              position: fixed;
-              top: 50%;
-              left: 50%;
-              transform: translate(-50%, -50%);
-              max-width: 90vw;
-              max-height: 90vh;
-              z-index: 10000;
-              border: 3px solid #fff;
-              border-radius: 8px;
-              box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            `;
-
-            // 创建遮罩层
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-              position: fixed;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 100%;
-              background: rgba(0,0,0,0.8);
-              z-index: 9999;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              flex-direction: column;
-            `;
-
-            // 添加说明文字
-            const instruction = document.createElement('div');
-            instruction.innerHTML = isIOS ?
-              '<p style="color: white; text-align: center; margin: 20px; font-size: 16px;">长按图片选择"存储图像"保存到相册<br/>点击空白处关闭</p>' :
-              '<p style="color: white; text-align: center; margin: 20px; font-size: 16px;">长按图片选择"保存图片"到相册<br/>点击空白处关闭</p>';
-
-            overlay.appendChild(instruction);
-            overlay.appendChild(img);
-            document.body.appendChild(overlay);
-
-            // 点击遮罩关闭
-            overlay.addEventListener('click', (e) => {
-              if (e.target === overlay || e.target === instruction) {
-                document.body.removeChild(overlay);
-                URL.revokeObjectURL(img.src);
-              }
-            });
-
-            setSnackbarMessage(isIOS ?
-              '图片已显示，长按选择"存储图像"保存到相册' :
-              '图片已显示，长按选择"保存图片"到相册'
-            );
-            setSnackbarOpen(true);
-            return;
-
-          } catch (error) {
-            console.error('移动端保存失败:', error);
-          }
-        }
-
-        // 默认下载方法
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'S自评报告.png';
-        link.click();
-        URL.revokeObjectURL(url);
-        setSnackbarMessage('报告已保存为高清图片！');
-        setSnackbarOpen(true);
-
-      } catch (error) {
-        console.error('导出图片错误:', error);
-        setSnackbarMessage('导出图片失败，请重试');
-        setSnackbarOpen(true);
-      }
+    try {
+      setSnackbarMessage("正在生成图片，请稍候...");
+      setSnackbarOpen(true);
+      const blob = await createReportImageBlob(reportRef.current);
+      const result = await saveReportImageBlob({
+        blob,
+        filename: "S自评报告.png",
+        title: "S自评报告",
+        text: "我的个性化测评报告"
+      });
+      setSnackbarMessage(result.message);
+      setSnackbarOpen(true);
+    } catch (error) {
+      console.error("导出图片错误:", error);
+      setSnackbarMessage("导出图片失败，请重试");
+      setSnackbarOpen(true);
     }
   }
 
@@ -685,8 +523,6 @@ function SApp() {
         await saveTestRecord();
         setSnackbarMessage('测试已自动保存并开始导出PDF...');
         setSnackbarOpen(true);
-        // 短暂延迟让用户看到保存消息
-        await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error('自动保存失败:', error);
         setSnackbarMessage('自动保存失败，但继续导出PDF...');
