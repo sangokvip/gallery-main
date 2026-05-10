@@ -76,13 +76,28 @@ export const adminApi = {
     if (filters.testType) q = q.eq('test_type', filters.testType);
     const { data, error, count } = await q.range(offset, offset + limit - 1);
     if (error) return { results: [], total: 0 };
-    const userIds = [...new Set((data || []).map(r => r.user_id_text).filter(Boolean))];
+    const records = data || [];
+
+    // 批量查询测试结果
+    const recordIds = records.map(r => r.id);
+    let resultsMap = {};
+    if (recordIds.length > 0) {
+      const { data: details } = await supabase.from('test_results').select('*').in('record_id', recordIds);
+      if (details) {
+        details.forEach(d => {
+          if (!resultsMap[d.record_id]) resultsMap[d.record_id] = [];
+          resultsMap[d.record_id].push(d);
+        });
+      }
+    }
+
+    const userIds = [...new Set(records.map(r => r.user_id_text).filter(Boolean))];
     let nickMap = {};
     if (userIds.length > 0) {
       const { data: users } = await supabase.from('users').select('id, nickname').in('id', userIds);
       if (users) users.forEach(u => { nickMap[u.id] = u.nickname; });
     }
-    return { results: (data || []).map(r => ({ ...r, nickname: nickMap[r.user_id_text] || '匿名用户' })), total: count || 0 };
+    return { results: records.map(r => ({ ...r, nickname: nickMap[r.user_id_text] || '匿名用户', test_results: resultsMap[r.id] || [] })), total: count || 0 };
   },
 
   async getRecordDetails(recordId) {
