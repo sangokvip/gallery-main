@@ -73,6 +73,20 @@
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .section-header h2 { font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; }
 .section-header .sub { font-size: 0.95rem; color: var(--text-light); font-weight: 600; }
+.section-header.compact { margin-bottom: 0.75rem; }
+.section-header.compact h3 { font-size: 1.15rem; font-weight: 800; }
+
+/* Shortcuts */
+.shortcut-section { margin-bottom: 2rem; }
+.shortcut-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+.site-shortcuts { grid-template-columns: repeat(6, 1fr); }
+.shortcut-card {
+  width: 100%; min-height: 96px; text-align: left; text-decoration: none; color: var(--text);
+  display: flex; flex-direction: column; justify-content: space-between; cursor: pointer;
+  font: inherit;
+}
+.shortcut-title { font-size: 1.1rem; font-weight: 800; }
+.shortcut-desc { font-size: 0.82rem; font-weight: 650; color: var(--text-light); line-height: 1.35; }
 
 /* Table */
 .brutal-table { width: 100%; border-collapse: collapse; }
@@ -82,6 +96,7 @@
 }
 .brutal-table td { padding: 0.8rem 1rem; border-bottom: 1px solid #e5e7eb; font-weight: 500; font-size: 0.9rem; }
 .brutal-table tr:hover td { background: #f8fafc; }
+.records-table td:first-child { max-width: 360px; overflow-wrap: anywhere; }
 
 /* Badges */
 .badge {
@@ -116,6 +131,11 @@
 .pagination select {
   padding: 0.4rem 0.6rem; border: 2px solid #000; border-radius: 4px;
   font-weight: 700; font-size: 0.85rem; background: #fff; cursor: pointer;
+}
+.page-jump { display: inline-flex; align-items: center; gap: 0.5rem; }
+.page-jump input {
+  width: 72px; padding: 0.48rem 0.6rem; border: 2px solid #000; border-radius: 4px;
+  font-weight: 700; font-size: 0.85rem; background: #fff; font-family: inherit;
 }
 
 /* Filter bar */
@@ -172,20 +192,31 @@
 .loading { display: flex; align-items: center; justify-content: center; padding: 3rem; font-weight: 700; color: var(--text-light); }
 
 /* Responsive */
-@media (max-width: 1024px) { .stats-grid, .type-grid { grid-template-columns: repeat(2, 1fr); } .settings-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1024px) {
+  .stats-grid, .type-grid { grid-template-columns: repeat(2, 1fr); }
+  .settings-grid { grid-template-columns: 1fr; }
+  .site-shortcuts { grid-template-columns: repeat(3, 1fr); }
+}
 @media (max-width: 768px) {
   .admin-nav { flex-wrap: wrap; gap: 1rem; padding: 1rem; }
   .admin-nav-tabs { overflow-x: auto; }
   .admin-content { padding: 1rem; }
   .stats-grid { grid-template-columns: 1fr 1fr; }
   .type-grid { grid-template-columns: 1fr 1fr; }
+  .shortcut-grid { grid-template-columns: 1fr 1fr; }
+  .site-shortcuts { grid-template-columns: 1fr 1fr; }
   .brutal-table { font-size: 0.8rem; }
   .brutal-table th, .brutal-table td { padding: 0.5rem; }
   .section-header h2 { font-size: 1.5rem; }
   .form-row { grid-template-columns: 1fr; }
+  .pagination { align-items: flex-start; flex-direction: column; gap: 0.8rem; }
+  .pagination-controls { flex-wrap: wrap; }
 }
 @media (max-width: 480px) {
   .stats-grid { grid-template-columns: 1fr; }
+  .shortcut-grid, .site-shortcuts { grid-template-columns: 1fr; }
   .admin-nav-tabs { gap: 0.3rem; }
   .admin-nav-tab { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+  .page-jump { width: 100%; }
+  .page-jump input { flex: 1; min-width: 0; }
 }

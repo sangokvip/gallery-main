@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-05-23-sangok-admin-shortcuts-pagination-count",
+  "date": "2026-05-23",
+  "summary": "修复 sangok 管理后台的仪表板快捷跳转、测评记录分页跳页和列表结果项数显示不一致问题。",
+  "trigger": "用户反馈 sangok.html 后台仪表板缺少各板块快捷跳转，测评记录翻页不能直接跳到指定页，部分记录列表显示 0 项但详情显示 108 项。",
+  "changes": [
+    {
+      "category": "后台仪表板",
+      "files": [
+        "src/ModernAdminApp.jsx",
+        "src/admin-brutal.css"
+      ],
+      "details": "新增后台快捷跳转和站点页面入口，快捷入口不依赖统计接口加载，进入仪表板后即可显示。"
+    },
+    {
+      "category": "测评记录分页",
+      "files": [
+        "src/ModernAdminApp.jsx",
+        "src/admin-brutal.css"
+      ],
+      "details": "分页栏新增页码输入框和跳转按钮，支持回车跳转，并对页码做上下限约束。"
+    },
+    {
+      "category": "测评结果计数",
+      "files": [
+        "src/adminBrutalApi.js",
+        "src/ModernAdminApp.jsx"
+      ],
+      "details": "列表页改为按每条记录查询 test_results 精确 count，查询失败时回退到 report_data 中的已完成项数，避免批量明细缺失导致显示 0 项。"
+    },
+    {
+      "category": "响应式样式",
+      "files": [
+        "src/admin-brutal.css"
+      ],
+      "details": "补充快捷入口和分页栏在小屏下的网格、换行和输入框样式，记录 ID 支持长文本断行。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 构建成功；仍有既有警告：重复 onClick、重复 color、重复 “🔒 贞操锁” key，以及大 chunk 提示。"
+    },
+    {
+      "command": "Playwright Chrome channel smoke test: 320, 375, 390, 430, 768, 1024, 1440",
+      "result": "通过。sangok.html 在本地登录态 smoke 下均能看到 9 个快捷入口，无页面级横向溢出，无 pageerror。"
+    }
+  ],
+  "knownLimitations": [
+    "本地 Playwright 自带 Chromium 未安装，浏览器验证改用本机 Chrome channel。",
+    "真实 Supabase 数据的 0 项记录未在本地直接复现；本次修复从列表计数查询逻辑上消除批量明细缺失导致的错误显示。"
+  ],
+  "deploymentNotes": [
+    "部署后刷新 https://www.bdsm.casa/sangok.html，进入仪表板应立即看到快捷跳转。",
+    "测评记录列表的结果项数依赖 test_results 的 count 查询；如 Supabase RLS 对 count 有额外限制，需要同步允许管理员读取 count。"
+  ]
+}

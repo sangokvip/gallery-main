@@ -1,5 +1,14 @@
 import { supabase } from './utils/supabase.js';
 
+function getReportDataCount(reportData) {
+  if (!reportData || typeof reportData !== 'object') return 0;
+  if (Number.isFinite(reportData.completedItems)) return reportData.completedItems;
+  if (reportData.ratings && typeof reportData.ratings === 'object') {
+    return Object.values(reportData.ratings).filter(Boolean).length;
+  }
+  return 0;
+}
+
 // Admin API - all Supabase queries, NO hardcoded credentials
 export const adminApi = {
   // 登录 - 通过 Supabase RPC 验证密码
@@ -78,18 +87,15 @@ export const adminApi = {
     if (error) return { results: [], total: 0 };
     const records = data || [];
 
-    // 批量查询测试结果
-    const recordIds = records.map(r => r.id);
-    let resultsMap = {};
-    if (recordIds.length > 0) {
-      const { data: details } = await supabase.from('test_results').select('*').in('record_id', recordIds);
-      if (details) {
-        details.forEach(d => {
-          if (!resultsMap[d.record_id]) resultsMap[d.record_id] = [];
-          resultsMap[d.record_id].push(d);
-        });
-      }
-    }
+    const resultCounts = await Promise.all(records.map(async (record) => {
+      const { count: resultCount, error: countError } = await supabase
+        .from('test_results')
+        .select('id', { count: 'exact', head: true })
+        .eq('record_id', record.id);
+
+      if (!countError && Number.isFinite(resultCount)) return resultCount;
+      return getReportDataCount(record.report_data);
+    }));
 
     const userIds = [...new Set(records.map(r => r.user_id_text).filter(Boolean))];
     let nickMap = {};
@@ -97,7 +103,14 @@ export const adminApi = {
       const { data: users } = await supabase.from('users').select('id, nickname').in('id', userIds);
       if (users) users.forEach(u => { nickMap[u.id] = u.nickname; });
     }
-    return { results: records.map(r => ({ ...r, nickname: nickMap[r.user_id_text] || '匿名用户', test_results: resultsMap[r.id] || [] })), total: count || 0 };
+    return {
+      results: records.map((r, index) => ({
+        ...r,
+        nickname: nickMap[r.user_id_text] || '匿名用户',
+        result_count: resultCounts[index] || 0
+      })),
+      total: count || 0
+    };
   },
 
   async getRecordDetails(recordId) {

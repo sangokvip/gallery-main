@@ -38,14 +38,51 @@ function LoginPage({ onLogin }) {
   );
 }
 
+const ADMIN_SHORTCUTS = [
+  { label: '测评记录', description: '查看、筛选和翻页测评数据', target: 'records', accent: 'accent-blue' },
+  { label: '安全管理', description: '修改密码和查看当前会话', target: 'security', accent: 'accent-green' },
+  { label: '系统设置', description: '站点配置和外部工具入口', target: 'settings', accent: 'accent-amber' },
+];
+
+const SITE_SHORTCUTS = [
+  { label: '女M测试', href: '/female.html', accent: 'accent-pink' },
+  { label: '男M测试', href: '/male.html', accent: 'accent-blue' },
+  { label: 'S型测试', href: '/s.html', accent: 'accent-amber' },
+  { label: 'LGBT+测试', href: '/lgbt.html', accent: 'accent-green' },
+  { label: '留言板', href: '/message.html', accent: 'accent-green' },
+  { label: '图库', href: '/gallery.html', accent: 'accent-blue' },
+];
+
 // ===== Dashboard =====
-function DashboardView({ stats, loading, recentRecords, onViewDetail }) {
-  if (loading) return <div className="loading">加载中...</div>;
-  if (!stats) return <div className="loading">无数据</div>;
-  const { totalUsers, totalTests, todayUsers, todayTests, types } = stats;
+function DashboardView({ stats, loading, recentRecords, onViewDetail, onNavigate }) {
+  const { totalUsers = 0, totalTests = 0, todayUsers = 0, todayTests = 0, types = [] } = stats || {};
   return (
     <div>
       <div className="section-header"><div><h2>仪表板</h2><span className="sub">系统运行概览</span></div></div>
+      <div className="shortcut-section">
+        <div className="section-header compact"><h3>后台快捷跳转</h3></div>
+        <div className="shortcut-grid">
+          {ADMIN_SHORTCUTS.map(item => (
+            <button key={item.target} type="button" className={`brutal-card shortcut-card ${item.accent}`} onClick={() => onNavigate(item.target)}>
+              <span className="shortcut-title">{item.label}</span>
+              <span className="shortcut-desc">{item.description}</span>
+            </button>
+          ))}
+        </div>
+        <div className="section-header compact"><h3>站点页面</h3></div>
+        <div className="shortcut-grid site-shortcuts">
+          {SITE_SHORTCUTS.map(item => (
+            <a key={item.href} href={item.href} target="_blank" rel="noreferrer" className={`brutal-card shortcut-card ${item.accent}`}>
+              <span className="shortcut-title">{item.label}</span>
+              <span className="shortcut-desc">新窗口打开</span>
+            </a>
+          ))}
+        </div>
+      </div>
+      {loading && <div className="loading">加载统计数据中...</div>}
+      {!loading && !stats && <div className="loading">统计数据暂不可用</div>}
+      {!loading && stats && (
+        <>
       <div className="stats-grid">
         <div className="brutal-card stat-card accent-green"><div className="stat-value">{totalUsers}</div><div className="stat-label">注册用户</div><div className="stat-today">今日 +{todayUsers}</div></div>
         <div className="brutal-card stat-card accent-blue"><div className="stat-value">{totalTests}</div><div className="stat-label">测评总数</div><div className="stat-today">今日 +{todayTests}</div></div>
@@ -80,6 +117,8 @@ function DashboardView({ stats, loading, recentRecords, onViewDetail }) {
           </tbody>
         </table>
       </div>
+        </>
+      )}
     </div>
   );
 }
@@ -87,6 +126,15 @@ function DashboardView({ stats, loading, recentRecords, onViewDetail }) {
 // ===== Records =====
 function RecordsView({ records, loading, total, page, rowsPerPage, filters, onPageChange, onRppChange, onFilterChange, onRefresh, onViewDetail }) {
   const totalPages = Math.ceil(total / rowsPerPage);
+  const [jumpPage, setJumpPage] = useState('');
+  const goToPage = () => {
+    const requestedPage = Number.parseInt(jumpPage, 10);
+    if (!Number.isFinite(requestedPage)) return;
+    const nextPage = Math.min(Math.max(requestedPage, 1), totalPages || 1) - 1;
+    setJumpPage('');
+    onPageChange(nextPage);
+  };
+
   return (
     <div>
       <div className="section-header"><div><h2>测评记录</h2><span className="sub">共 {total} 条记录</span></div>
@@ -104,14 +152,14 @@ function RecordsView({ records, loading, total, page, rowsPerPage, filters, onPa
           <div className="loading">{filters.testType ? '当前筛选无结果' : '暂无测评记录'}</div>
         ) : (
           <>
-            <table className="brutal-table">
+            <table className="brutal-table records-table">
               <thead><tr><th>ID</th><th>类型</th><th>用户</th><th>结果</th><th>时间</th><th>操作</th></tr></thead>
               <tbody>{records.map(r => (
                 <tr key={r.id}>
                   <td style={{fontFamily:'monospace', fontSize:'0.8rem'}}>{r.id}</td>
                   <td><span className={`badge ${TEST_BADGE[r.test_type]||''}`}>{TEST_LABEL[r.test_type]||r.test_type}</span></td>
                   <td>{r.nickname}</td>
-                  <td>{r.test_results?.length || 0} 项</td>
+                  <td>{r.result_count ?? r.test_results?.length ?? 0} 项</td>
                   <td style={{fontSize:'0.85rem'}}>{new Date(r.created_at).toLocaleString('zh-CN')}</td>
                   <td><button className="btn-brutal" onClick={() => onViewDetail(r)}>详情</button></td>
                 </tr>
@@ -127,6 +175,19 @@ function RecordsView({ records, loading, total, page, rowsPerPage, filters, onPa
                 <button className="btn-brutal" disabled={page===0} onClick={() => onPageChange(page-1)}>← 上一页</button>
                 <span style={{fontWeight:700, fontSize:'0.9rem'}}>{page+1} / {totalPages || 1}</span>
                 <button className="btn-brutal" disabled={page >= totalPages-1} onClick={() => onPageChange(page+1)}>下一页 →</button>
+                <div className="page-jump">
+                  <input
+                    type="number"
+                    min="1"
+                    max={totalPages || 1}
+                    value={jumpPage}
+                    onChange={e => setJumpPage(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') goToPage(); }}
+                    placeholder="页码"
+                    aria-label="跳转页码"
+                  />
+                  <button className="btn-brutal" disabled={!jumpPage || totalPages <= 1} onClick={goToPage}>跳转</button>
+                </div>
               </div>
             </div>
           </>
@@ -415,7 +476,7 @@ function ModernAdminApp() {
         </div>
       </nav>
       <div className="admin-content">
-        {tab === 'dashboard' && <DashboardView stats={stats} loading={statsLoading} recentRecords={recentRecords} onViewDetail={viewDetail} />}
+        {tab === 'dashboard' && <DashboardView stats={stats} loading={statsLoading} recentRecords={recentRecords} onViewDetail={viewDetail} onNavigate={setTab} />}
         {tab === 'records' && <RecordsView records={records} loading={recordsLoading} total={total} page={page} rowsPerPage={rpp} filters={filters} onPageChange={onPageChange} onRppChange={onRppChange} onFilterChange={onFilterChange} onRefresh={() => loadRecords(filters, page, rpp)} onViewDetail={viewDetail} />}
         {tab === 'security' && <SecurityView />}
         {tab === 'settings' && <SettingsView />}
