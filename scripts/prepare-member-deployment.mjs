@@ -6,8 +6,7 @@ const sqlFiles = [
   'database/member_center_predeploy_check.sql',
   'database/create_member_center_tables.sql',
   'database/create_admin_member_session.sql',
-  'database/member_center_deployment_check.sql',
-  'database/member_center_e2e_check.sql'
+  'database/member_center_deployment_check.sql'
 ];
 
 const outputPath = process.argv.includes('--stdout')
@@ -46,7 +45,9 @@ const bundle = [
   '--',
   '-- Review the first result set from member_center_predeploy_check.sql.',
   '-- If any row has ok=false, stop and fix it before relying on the later results.',
-  '-- The member_center_deployment_check.sql and member_center_e2e_check.sql result sets must have ok=true for every row.',
+  '-- The member_center_deployment_check.sql result set must have ok=true for every row.',
+  '-- database/member_center_e2e_check.sql is intentionally not bundled here because it writes temporary test data.',
+  '-- Run database/member_center_e2e_check.sql separately after deployment if you want a database-side smoke test.',
   '',
   ...sections
 ].join('\n');

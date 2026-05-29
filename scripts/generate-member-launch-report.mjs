@@ -117,7 +117,8 @@ async function main() {
     commands: commandResults,
     gitStatusShort: getGitStatus(),
     requiredProductionFollowUps: [
-      '在 Supabase SQL Editor 执行 database/member_center_full_deploy.sql，并确认 deployment/e2e 结果全部 ok=true。',
+      '在 Supabase SQL Editor 执行 database/member_center_full_deploy.sql，并确认 deployment check 结果全部 ok=true。',
+      '部署成功后，如需数据库端到端演练，再单独执行 database/member_center_e2e_check.sql；它会写入并清理临时测试数据。',
       '部署 supabase/functions/member-payment-webhook 并配置 MEMBER_WEBHOOK_SECRET 和 SUPABASE_SERVICE_ROLE_KEY。',
       '用显式 SUPABASE_URL/SUPABASE_ANON_KEY/MEMBER_WEBHOOK_SECRET 执行 npm run verify:member-production -- --require-env --require-webhook-secret。',
       '用显式 SITE_URL 执行 npm run verify:site-production -- --require-env。',

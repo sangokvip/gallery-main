@@ -225,6 +225,9 @@ const checks = [
       'set_config',
       'INSERT INTO auth.users',
       'seed_auth_user',
+      'INSERT INTO users (id, nickname)',
+      'to_regclass(\'public.user_settings\')',
+      'seed_legacy_users',
       'get_or_create_member_profile',
       'link_member_identity',
       'register_legacy_identity_claim',
@@ -241,6 +244,7 @@ const checks = [
       'unlink_member_device',
       'access_code_hash',
       'DELETE FROM auth.users WHERE id = test_account_id',
+      'DELETE FROM users WHERE id IN (test_legacy_id, test_second_legacy_id)',
       'cleanup'
     ]
   },
@@ -258,12 +262,15 @@ const checks = [
   },
   {
     file: 'scripts/prepare-member-deployment.mjs',
+    absent: [
+      "'database/member_center_e2e_check.sql'"
+    ],
     present: [
       'database/member_center_predeploy_check.sql',
       'database/create_member_center_tables.sql',
       'database/create_admin_member_session.sql',
       'database/member_center_deployment_check.sql',
-      'database/member_center_e2e_check.sql',
+      'Run database/member_center_e2e_check.sql separately after deployment',
       'member_center_full_deploy.sql',
       'sha256'
     ]
@@ -349,6 +356,7 @@ const checks = [
       'diff',
       '--check',
       'database/member_center_full_deploy.sql',
+      'must not bundle member_center_e2e_check.sql',
       'sha256',
       'verifyNoResidualServers',
       'worklogs json parse passed'

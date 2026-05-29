@@ -6,8 +6,7 @@ const sqlFiles = [
   'database/member_center_predeploy_check.sql',
   'database/create_member_center_tables.sql',
   'database/create_admin_member_session.sql',
-  'database/member_center_deployment_check.sql',
-  'database/member_center_e2e_check.sql'
+  'database/member_center_deployment_check.sql'
 ];
 
 const commands = [
@@ -62,6 +61,11 @@ function verifyDeploymentBundle() {
     if (!bundle.includes(`-- sha256: ${hash}`)) {
       throw new Error(`${bundlePath} has stale sha256 for ${file}`);
     }
+  }
+
+  if (bundle.includes('-- 5. database/member_center_e2e_check.sql')
+    || bundle.includes('-- 4. database/member_center_e2e_check.sql')) {
+    throw new Error(`${bundlePath} must not bundle member_center_e2e_check.sql; run it separately after deployment`);
   }
 
   console.log('deployment SQL bundle hash check passed');

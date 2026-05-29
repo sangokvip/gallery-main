@@ -35,6 +35,11 @@ DECLARE
   member_records JSONB;
   wrong_claim_failed BOOLEAN := false;
   inactive_failed BOOLEAN := false;
+  legacy_id TEXT;
+  user_settings_key_column TEXT;
+  user_settings_key_type TEXT;
+  user_settings_insert_columns TEXT;
+  user_settings_insert_values TEXT;
 BEGIN
   INSERT INTO auth.users (
     id,
@@ -82,6 +87,81 @@ BEGIN
 
   PERFORM set_config('request.jwt.claim.sub', test_account_id::text, true);
   PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
+
+  INSERT INTO users (id, nickname)
+  VALUES
+    (test_legacy_id, 'Codex E2E User'),
+    (test_second_legacy_id, 'Codex E2E Second User')
+  ON CONFLICT (id) DO UPDATE
+  SET nickname = excluded.nickname;
+
+  IF to_regclass('public.user_settings') IS NOT NULL THEN
+    SELECT column_name, udt_name
+    INTO user_settings_key_column, user_settings_key_type
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'user_settings'
+      AND column_name IN ('user_id', 'user_id_text', 'legacy_user_id_text', 'account_id', 'id')
+    ORDER BY CASE column_name
+      WHEN 'user_id' THEN 1
+      WHEN 'user_id_text' THEN 2
+      WHEN 'legacy_user_id_text' THEN 3
+      WHEN 'account_id' THEN 4
+      WHEN 'id' THEN 5
+      ELSE 99
+    END
+    LIMIT 1;
+
+    IF user_settings_key_column IS NOT NULL THEN
+      FOREACH legacy_id IN ARRAY ARRAY[test_legacy_id, test_second_legacy_id]
+      LOOP
+        SELECT
+          string_agg(format('%I', column_name), ', ' ORDER BY ordinal_position),
+          string_agg(
+            CASE
+              WHEN column_name = user_settings_key_column AND udt_name = 'uuid' THEN '$2'
+              WHEN column_name = user_settings_key_column THEN '$1'
+              WHEN column_name IN ('account_id', 'member_id', 'auth_user_id') AND udt_name = 'uuid' THEN '$2'
+              WHEN column_name IN ('user_id', 'user_id_text', 'legacy_user_id_text') THEN '$1'
+              WHEN column_name IN ('display_name', 'nickname', 'name') THEN quote_literal('Codex E2E User')
+              WHEN data_type IN ('timestamp with time zone', 'timestamp without time zone') THEN 'timezone(''utc''::text, now())'
+              WHEN data_type = 'boolean' THEN 'false'
+              WHEN udt_name = 'jsonb' THEN '''{}''::jsonb'
+              WHEN udt_name = 'json' THEN '''{}''::json'
+              WHEN udt_name = 'uuid' THEN 'gen_random_uuid()'
+              WHEN data_type IN ('integer', 'bigint', 'smallint', 'numeric', 'real', 'double precision') THEN '0'
+              ELSE quote_literal('')
+            END,
+            ', ' ORDER BY ordinal_position
+          )
+        INTO user_settings_insert_columns, user_settings_insert_values
+        FROM information_schema.columns
+        WHERE table_schema = 'public'
+          AND table_name = 'user_settings'
+          AND (
+            column_name = user_settings_key_column
+            OR column_name IN ('display_name', 'nickname', 'name')
+            OR (is_nullable = 'NO' AND column_default IS NULL)
+          );
+
+        EXECUTE format(
+          'INSERT INTO user_settings (%s) VALUES (%s) ON CONFLICT DO NOTHING',
+          user_settings_insert_columns,
+          user_settings_insert_values
+        )
+        USING legacy_id, test_account_id;
+      END LOOP;
+    END IF;
+  END IF;
+
+  INSERT INTO member_center_e2e_results
+  VALUES (
+    8,
+    'seed_legacy_users',
+    EXISTS (SELECT 1 FROM users WHERE id = test_legacy_id)
+      AND EXISTS (SELECT 1 FROM users WHERE id = test_second_legacy_id),
+    'created temporary legacy users and optional user_settings rows for existing production triggers'
+  );
 
   INSERT INTO test_records (user_id_text, test_type, report_data, created_at)
   VALUES (
@@ -350,6 +430,16 @@ BEGIN
   DELETE FROM test_records WHERE id = test_record_id;
   DELETE FROM test_results WHERE record_id = test_second_record_id;
   DELETE FROM test_records WHERE id = test_second_record_id;
+  IF to_regclass('public.user_settings') IS NOT NULL AND user_settings_key_column IS NOT NULL THEN
+    IF user_settings_key_type = 'uuid' THEN
+      EXECUTE format('DELETE FROM user_settings WHERE %I = $1', user_settings_key_column)
+      USING test_account_id;
+    ELSE
+      EXECUTE format('DELETE FROM user_settings WHERE %I = ANY($1::text[])', user_settings_key_column)
+      USING ARRAY[test_legacy_id, test_second_legacy_id];
+    END IF;
+  END IF;
+  DELETE FROM users WHERE id IN (test_legacy_id, test_second_legacy_id);
   DELETE FROM auth.users WHERE id = test_account_id;
 
   INSERT INTO member_center_e2e_results
@@ -359,6 +449,7 @@ BEGIN
     NOT EXISTS (SELECT 1 FROM member_profiles WHERE account_id = test_account_id)
       AND NOT EXISTS (SELECT 1 FROM test_records WHERE id = test_record_id)
       AND NOT EXISTS (SELECT 1 FROM test_records WHERE id = test_second_record_id)
+      AND NOT EXISTS (SELECT 1 FROM users WHERE id IN (test_legacy_id, test_second_legacy_id))
       AND NOT EXISTS (SELECT 1 FROM auth.users WHERE id = test_account_id),
     'temporary member and test record data removed'
   );
@@ -380,6 +471,16 @@ EXCEPTION WHEN OTHERS THEN
     DELETE FROM test_results WHERE record_id = test_second_record_id;
     DELETE FROM test_records WHERE id = test_second_record_id;
   END IF;
+  IF to_regclass('public.user_settings') IS NOT NULL AND user_settings_key_column IS NOT NULL THEN
+    IF user_settings_key_type = 'uuid' THEN
+      EXECUTE format('DELETE FROM user_settings WHERE %I = $1', user_settings_key_column)
+      USING test_account_id;
+    ELSE
+      EXECUTE format('DELETE FROM user_settings WHERE %I = ANY($1::text[])', user_settings_key_column)
+      USING ARRAY[test_legacy_id, test_second_legacy_id];
+    END IF;
+  END IF;
+  DELETE FROM users WHERE id IN (test_legacy_id, test_second_legacy_id);
   DELETE FROM auth.users WHERE id = test_account_id;
 
   INSERT INTO member_center_e2e_results

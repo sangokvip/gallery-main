@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-05-29-member-deploy-sql-separate-e2e",
+  "date": "2026-05-29",
+  "summary": "重新审查会员中心 Supabase 部署 SQL，把会写入临时业务数据的数据库 E2E 演练从完整部署 SQL 中拆出，避免生产库旧触发器和旧表结构影响部署。",
+  "trigger": "用户反馈 Supabase SQL Editor 连续出现不同错误，要求彻底检查部署 SQL。",
+  "changes": [
+    {
+      "category": "部署 SQL 架构调整",
+      "files": [
+        "scripts/prepare-member-deployment.mjs",
+        "scripts/verify-member-predeploy.mjs",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "member_center_full_deploy.sql 不再打包 database/member_center_e2e_check.sql。",
+        "完整部署 SQL 现在只包含预检、会员表/RPC、后台会话/RPC 和结构/权限检查四段。",
+        "verify-member-predeploy 增加断言，禁止把 member_center_e2e_check.sql 作为执行段打包进完整部署 SQL。",
+        "部署 SQL 中不再包含 INSERT INTO test_records、INSERT INTO auth.users 或 INSERT INTO users 这类临时测试数据写入。"
+      ]
+    },
+    {
+      "category": "数据库 E2E 单独保留",
+      "files": [
+        "database/member_center_e2e_check.sql",
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "E2E 演练仍保留为独立 SQL，部署成功后可以单独执行。",
+        "E2E 演练补充临时 legacy users 和可选 user_settings 兼容数据，以适配生产库中可能存在的旧触发器。",
+        "E2E 正常路径和异常路径都会清理临时 auth.users、users、user_settings、test_records 和会员相关测试数据。",
+        "静态安全检查加入 E2E 临时用户、user_settings 兼容和清理断言。"
+      ]
+    },
+    {
+      "category": "部署说明",
+      "files": [
+        "docs/member-center-launch-checklist.md",
+        "scripts/generate-member-launch-report.mjs"
+      ],
+      "details": [
+        "上线清单明确 database/member_center_full_deploy.sql 只用于部署，不再写临时业务数据。",
+        "上线报告的生产后续事项改为先执行完整部署 SQL，确认 deployment check 全部 ok=true；如需数据库端到端演练，再单独执行 member_center_e2e_check.sql。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment",
+      "result": "通过，重新生成只包含 4 个部署段的 database/member_center_full_deploy.sql。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，确认部署 SQL 和 E2E 单独执行规则通过静态检查。"
+    },
+    {
+      "command": "npm run verify:member-predeploy",
+      "result": "通过，覆盖 SQL 打包、SQL hash 校验、安全静态检查、构建、多视口页面验证、会员登录态验证、后台验证、分享页验证、支付回调合约验证、生产验证跳过路径、git diff --check、工作记录 JSON 解析和端口清理。"
+    },
+    {
+      "command": "rg -n \"^-- [0-9]+\\\\. database/|member_center_e2e_check|INSERT INTO test_records|INSERT INTO auth.users|INSERT INTO users \\\\(id, nickname\\\\)\" database/member_center_full_deploy.sql database/member_center_e2e_check.sql",
+      "result": "通过，member_center_full_deploy.sql 只有 4 个部署段；测试数据 INSERT 只存在于独立的 member_center_e2e_check.sql。"
+    },
+    {
+      "command": "node --check scripts/prepare-member-deployment.mjs && node --check scripts/verify-member-predeploy.mjs && node --check scripts/generate-member-launch-report.mjs && node --check scripts/verify-member-security.mjs",
+      "result": "通过，相关 Node 脚本语法正常。"
+    }
+  ],
+  "knownLimitations": [
+    "尚未在 Supabase SQL Editor 重新执行拆分后的 database/member_center_full_deploy.sql。",
+    "尚未在 Vercel Preview 或 Production 上执行真实登录、真实数据库读写、真实支付回调和正式域名页面验证。",
+    "database/member_center_e2e_check.sql 会写入临时测试数据，已从完整部署 SQL 中拆出，建议只在部署完成后单独运行。"
+  ],
+  "deploymentNotes": [
+    "现在用户只需要在 Supabase SQL Editor 执行 database/member_center_full_deploy.sql；这份 SQL 不会插入临时测评记录。",
+    "执行后只需要看 member_center_predeploy_check 和 member_center_deployment_check 结果，所有 ok 应为 true。",
+    "database/member_center_e2e_check.sql 是可选的数据库端到端演练，不再作为部署前置条件。"
+  ]
+}
