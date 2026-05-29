@@ -221,7 +221,16 @@ function MemberCenterApp() {
   const [error, setError] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [identityInput, setIdentityInput] = useState('');
-  const [authEmail, setAuthEmail] = useState('');
+  const [authMode, setAuthMode] = useState('register');
+  const [authForm, setAuthForm] = useState({
+    username: '',
+    password: '',
+    displayName: '',
+    qq: '',
+    wechat: '',
+    email: '',
+    phone: ''
+  });
   const [session, setSession] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [memberData, setMemberData] = useState(null);
@@ -360,12 +369,43 @@ function MemberCenterApp() {
     }
   };
 
-  const sendMagicLink = async () => {
+  const submitAuth = async () => {
     try {
-      await memberCenterApi.sendMagicLink(authEmail);
-      setSnackbar('登录链接已发送，请检查邮箱。');
+      const payload = {
+        username: authForm.username,
+        password: authForm.password,
+        profile: {
+          displayName: authForm.displayName,
+          qq: authForm.qq,
+          wechat: authForm.wechat,
+          email: authForm.email,
+          phone: authForm.phone
+        }
+      };
+      const data = authMode === 'register'
+        ? await memberCenterApi.registerWithPassword(payload)
+        : await memberCenterApi.loginWithPassword(payload);
+      const nextSession = data?.session || await memberCenterApi.getAuthSession();
+      setSession(nextSession);
+      if (nextSession?.user?.id) {
+        await loadMemberProfile(nextSession);
+        if (authMode === 'register') {
+          const savedProfile = await memberCenterApi.updateMemberProfile(nextSession, {
+            display_name: authForm.displayName || authForm.username,
+            qq: authForm.qq,
+            wechat: authForm.wechat,
+            contact_email: authForm.email,
+            phone: authForm.phone,
+            privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
+            notification_settings: { monthlySummary: true, trendReminder: false }
+          });
+          setMemberData(prev => ({ ...prev, profile: savedProfile }));
+          setProfileDraft(savedProfile);
+        }
+        setSnackbar(authMode === 'register' ? '注册成功，已进入会员中心。' : '登录成功。');
+      }
     } catch (err) {
-      setSnackbar(err.message || '登录链接发送失败');
+      setSnackbar(err.message || '注册/登录失败');
     }
   };
 
@@ -497,15 +537,55 @@ function MemberCenterApp() {
         ) : !session?.user?.id ? (
           <Box className="auth-gate">
             <Paper className="member-card auth-card">
-              <Typography component="h1" className="member-title">会员中心</Typography>
-              <Typography className="member-subtitle">会员中心需要注册/登录后使用。未注册用户仍可使用原有测试、保存、导出、留言板和图库等基本功能。</Typography>
-              <Alert severity="info" className="member-alert">当前使用邮箱魔法链接注册/登录。输入邮箱后，打开邮件里的链接即可进入会员中心。</Alert>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                <TextField size="small" type="email" label="邮箱" value={authEmail} onChange={event => setAuthEmail(event.target.value)} fullWidth />
-                <Button onClick={sendMagicLink} disabled={!authEmail.trim()} className="member-outline-button">注册 / 登录</Button>
+              <Typography component="h1" className="member-title compact">注册会员</Typography>
+              <Box className="benefit-grid">
+                <div><strong>云同步</strong><span>换设备也能看记录</span></div>
+                <div><strong>看变化</strong><span>每次测评自动对比</span></div>
+                <div><strong>高级报告</strong><span>长期趋势更直观</span></div>
+              </Box>
+              <Stack direction="row" spacing={1} className="auth-tabs">
+                <Button className={authMode === 'register' ? 'active' : ''} onClick={() => setAuthMode('register')}>注册</Button>
+                <Button className={authMode === 'login' ? 'active' : ''} onClick={() => setAuthMode('login')}>登录</Button>
+              </Stack>
+              <Stack spacing={1.25}>
+                <TextField
+                  size="small"
+                  label="用户名"
+                  value={authForm.username}
+                  onChange={event => setAuthForm(prev => ({ ...prev, username: event.target.value }))}
+                  helperText="3-24 位小写字母、数字或下划线"
+                  fullWidth
+                />
+                <TextField
+                  size="small"
+                  type="password"
+                  label="密码"
+                  value={authForm.password}
+                  onChange={event => setAuthForm(prev => ({ ...prev, password: event.target.value }))}
+                  helperText="至少 6 位"
+                  fullWidth
+                />
+                {authMode === 'register' && (
+                  <>
+                    <TextField size="small" label="昵称（选填）" value={authForm.displayName} onChange={event => setAuthForm(prev => ({ ...prev, displayName: event.target.value }))} fullWidth />
+                    <Box className="optional-contact-grid">
+                      <TextField size="small" label="QQ（选填）" value={authForm.qq} onChange={event => setAuthForm(prev => ({ ...prev, qq: event.target.value }))} />
+                      <TextField size="small" label="微信（选填）" value={authForm.wechat} onChange={event => setAuthForm(prev => ({ ...prev, wechat: event.target.value }))} />
+                      <TextField size="small" type="email" label="邮箱（选填）" value={authForm.email} onChange={event => setAuthForm(prev => ({ ...prev, email: event.target.value }))} />
+                      <TextField size="small" label="电话（选填）" value={authForm.phone} onChange={event => setAuthForm(prev => ({ ...prev, phone: event.target.value }))} />
+                    </Box>
+                  </>
+                )}
+                <Button
+                  onClick={submitAuth}
+                  disabled={!authForm.username.trim() || !authForm.password}
+                  className="member-outline-button auth-submit"
+                >
+                  {authMode === 'register' ? '立即注册' : '登录会员中心'}
+                </Button>
               </Stack>
               <Divider sx={{ my: 2 }} />
-              <Typography className="muted-text">未注册用户只能使用现有基本功能；登录后才可进入会员中心，查看长期云同步、趋势分析、高级报告和私密分享。</Typography>
+              <Typography className="muted-text">不注册也能继续使用原有测评、保存、导出、留言板和图库。</Typography>
             </Paper>
           </Box>
         ) : (
@@ -555,7 +635,7 @@ function MemberCenterApp() {
             <Typography className="card-title">会员账号</Typography>
             {session ? (
               <Stack spacing={1.5}>
-                <Typography className="muted-text">已登录：{session.user.email}</Typography>
+                <Typography className="muted-text">已登录：{session.user.user_metadata?.username || '会员账号'}</Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
                   <Chip label={`会员等级：${membershipTier}`} color={membershipTier === 'free' ? 'default' : 'primary'} />
                   <Chip label={`订阅状态：${subscriptionStatus}`} variant="outlined" />
@@ -657,6 +737,37 @@ function MemberCenterApp() {
                   onChange={event => setProfileDraft(prev => ({ ...prev, display_name: event.target.value }))}
                   disabled={!session}
                 />
+                <Box className="optional-contact-grid">
+                  <TextField
+                    size="small"
+                    label="QQ"
+                    value={profileDraft.qq || ''}
+                    onChange={event => setProfileDraft(prev => ({ ...prev, qq: event.target.value }))}
+                    disabled={!session}
+                  />
+                  <TextField
+                    size="small"
+                    label="微信"
+                    value={profileDraft.wechat || ''}
+                    onChange={event => setProfileDraft(prev => ({ ...prev, wechat: event.target.value }))}
+                    disabled={!session}
+                  />
+                  <TextField
+                    size="small"
+                    type="email"
+                    label="邮箱"
+                    value={profileDraft.contact_email || ''}
+                    onChange={event => setProfileDraft(prev => ({ ...prev, contact_email: event.target.value }))}
+                    disabled={!session}
+                  />
+                  <TextField
+                    size="small"
+                    label="电话"
+                    value={profileDraft.phone || ''}
+                    onChange={event => setProfileDraft(prev => ({ ...prev, phone: event.target.value }))}
+                    disabled={!session}
+                  />
+                </Box>
                 <FormControlLabel
                   control={<Switch checked={!!profileDraft.privacy_settings?.hideUserId} onChange={event => setProfileDraft(prev => ({ ...prev, privacy_settings: { ...prev.privacy_settings, hideUserId: event.target.checked } }))} />}
                   label="分享时隐藏用户ID"
@@ -824,7 +935,7 @@ function MemberCenterApp() {
                 </Stack>
                 <Divider sx={{ my: 2 }} />
                 <Typography className="card-title small">跨设备云同步</Typography>
-                <Typography className="muted-text">登录会员账号后，当前设备的匿名测评身份会用本地密钥绑定到账号；换设备登录同一邮箱后，会读取账号已绑定的所有云端记录。手动迁移需要复制包含身份密钥的备份 JSON。</Typography>
+                <Typography className="muted-text">登录会员账号后，当前设备的匿名测评身份会用本地密钥绑定到账号；换设备登录同一账号后，会读取账号已绑定的所有云端记录。手动迁移需要复制包含身份密钥的备份 JSON。</Typography>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}>
                   <Button startIcon={<ContentCopyIcon />} onClick={copyIdentity}>复制身份备份</Button>
                   <TextField size="small" value={identityInput} onChange={event => setIdentityInput(event.target.value)} placeholder="粘贴身份备份 JSON" fullWidth />

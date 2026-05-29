@@ -279,7 +279,7 @@ const checks = [
     file: 'scripts/verify-member-center-authenticated.mjs',
     present: [
       'VITE_MEMBER_CENTER_MOCK',
-      'member-preview@example.test',
+      'member_preview',
       '会员等级：premium',
       '会员表已连接',
       '评分数量趋势',

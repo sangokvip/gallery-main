@@ -50,6 +50,8 @@ if (supabaseUrl && supabaseAnonKey) {
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
       signInWithOtp: () => Promise.resolve({ data: null, error: new Error('数据库未配置') }),
+      signUp: () => Promise.resolve({ data: null, error: new Error('数据库未配置') }),
+      signInWithPassword: () => Promise.resolve({ data: null, error: new Error('数据库未配置') }),
       signOut: () => Promise.resolve({ error: null })
     },
     storage: null
@@ -61,6 +63,22 @@ export { supabase }
 async function sha256Text(value) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
   return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function normalizeMemberUsername(username) {
+  return String(username || '').trim().toLowerCase();
+}
+
+function validateMemberUsername(username) {
+  const normalized = normalizeMemberUsername(username);
+  if (!/^[a-z0-9_]{3,24}$/.test(normalized)) {
+    throw new Error('用户名只能使用 3-24 位小写字母、数字或下划线');
+  }
+  return normalized;
+}
+
+function memberUsernameEmail(username) {
+  return `${validateMemberUsername(username)}@members.mprofilelab.com`;
 }
 
 function randomAdminSessionToken() {
@@ -1375,7 +1393,11 @@ const mockMemberSession = {
   access_token: 'local-member-center-mock',
   user: {
     id: '00000000-0000-4000-8000-000000000001',
-    email: 'member-preview@example.test'
+    email: 'member-preview@example.test',
+    user_metadata: {
+      username: 'member_preview',
+      display_name: '本地预览会员'
+    }
   }
 };
 
@@ -1438,8 +1460,33 @@ const localMemberCenterMockApi = {
     return mockMemberSession;
   },
 
+  async registerWithPassword({ username, password, profile }) {
+    return {
+      user: {
+        id: mockMemberSession.user.id,
+        email: memberUsernameEmail(username),
+        user_metadata: {
+          username: validateMemberUsername(username),
+          display_name: profile?.displayName || username
+        }
+      },
+      session: mockMemberSession
+    };
+  },
+
+  async loginWithPassword({ username }) {
+    return {
+      user: {
+        id: mockMemberSession.user.id,
+        email: memberUsernameEmail(username),
+        user_metadata: { username: validateMemberUsername(username) }
+      },
+      session: mockMemberSession
+    };
+  },
+
   async sendMagicLink() {
-    return true;
+    throw new Error('当前版本已改为用户名密码登录');
   },
 
   async signOut() {
@@ -1456,6 +1503,10 @@ const localMemberCenterMockApi = {
         account_id: session?.user?.id || mockMemberSession.user.id,
         legacy_user_id_text: legacyUserId,
         display_name: nickname || '本地预览会员',
+        qq: '',
+        wechat: '',
+        contact_email: '',
+        phone: '',
         membership_tier: 'premium',
         privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
         notification_settings: { monthlySummary: true, trendReminder: true }
@@ -1622,24 +1673,58 @@ const realMemberCenterApi = {
     return data?.session || null;
   },
 
-  async sendMagicLink(email) {
-    if (!email || typeof email !== 'string') {
-      throw new Error('请输入邮箱');
+  async registerWithPassword({ username, password, profile = {} }) {
+    const cleanUsername = validateMemberUsername(username);
+    if (!password || password.length < 6) {
+      throw new Error('密码至少 6 位');
     }
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email.trim(),
+    const email = memberUsernameEmail(cleanUsername);
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
       options: {
-        emailRedirectTo: `${window.location.origin}/member.html`
+        data: {
+          username: cleanUsername,
+          display_name: profile.displayName || cleanUsername,
+          qq: profile.qq || '',
+          wechat: profile.wechat || '',
+          contact_email: profile.email || '',
+          phone: profile.phone || ''
+        }
       }
     });
 
     if (error) {
-      console.error('发送会员登录链接失败:', error);
-      throw new Error('发送登录链接失败: ' + (error.message || '未知错误'));
+      console.error('会员注册失败:', error);
+      throw new Error('注册失败: ' + (error.message || '未知错误'));
     }
 
-    return true;
+    if (data?.session) {
+      return data;
+    }
+
+    const loginResult = await supabase.auth.signInWithPassword({ email, password });
+    if (loginResult.error) {
+      throw new Error('注册已提交，但当前 Supabase 仍要求邮箱验证。请关闭 Auth 的 Email confirmations 后再试。');
+    }
+    return loginResult.data;
+  },
+
+  async loginWithPassword({ username, password }) {
+    const email = memberUsernameEmail(username);
+    if (!password) throw new Error('请输入密码');
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      console.error('会员登录失败:', error);
+      throw new Error('登录失败：用户名或密码不正确');
+    }
+    return data;
+  },
+
+  async sendMagicLink() {
+    throw new Error('当前版本已改为用户名密码登录');
   },
 
   async signOut() {
@@ -1696,7 +1781,11 @@ const realMemberCenterApi = {
     const baseProfile = {
       account_id: session.user.id,
       legacy_user_id_text: legacyUserId,
-      display_name: nickname || session.user.email || '会员用户',
+      display_name: nickname || session.user.user_metadata?.display_name || session.user.user_metadata?.username || '会员用户',
+      qq: session.user.user_metadata?.qq || '',
+      wechat: session.user.user_metadata?.wechat || '',
+      contact_email: session.user.user_metadata?.contact_email || '',
+      phone: session.user.user_metadata?.phone || '',
       membership_tier: 'free',
       privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
       notification_settings: { monthlySummary: true, trendReminder: false }
@@ -1796,6 +1885,10 @@ const realMemberCenterApi = {
 
     const { data, error } = await supabase.rpc('update_member_profile', {
       input_display_name: updates.display_name,
+      input_qq: updates.qq || null,
+      input_wechat: updates.wechat || null,
+      input_contact_email: updates.contact_email || null,
+      input_phone: updates.phone || null,
       input_privacy_settings: updates.privacy_settings || null,
       input_notification_settings: updates.notification_settings || null
     });

@@ -215,7 +215,7 @@ ORDER BY check_type, name;
 
 -- ============================================================================
 -- 2. database/create_member_center_tables.sql
--- sha256: b8d61e869c84950b699cf64acbc03468a45061568174d9182298cb48c0ec5fa8
+-- sha256: 186d8f7c6f8ad2b0df1e4ab843fe4fd2cae3ab60058709593204d8a4f1fe28c5
 -- ============================================================================
 
 -- M-profile Lab member center tables
@@ -227,12 +227,21 @@ CREATE TABLE IF NOT EXISTS member_profiles (
   account_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   legacy_user_id_text TEXT REFERENCES users(id) ON DELETE SET NULL,
   display_name TEXT NOT NULL DEFAULT '匿名用户',
+  qq TEXT,
+  wechat TEXT,
+  contact_email TEXT,
+  phone TEXT,
   membership_tier TEXT NOT NULL DEFAULT 'free' CHECK (membership_tier IN ('free', 'basic', 'premium', 'lifetime')),
   privacy_settings JSONB NOT NULL DEFAULT '{"hideUserId": true, "hideSensitiveItems": true, "allowPrivateShare": true}'::jsonb,
   notification_settings JSONB NOT NULL DEFAULT '{"monthlySummary": true, "trendReminder": false}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS qq TEXT;
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS wechat TEXT;
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS contact_email TEXT;
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS phone TEXT;
 
 CREATE TABLE IF NOT EXISTS member_subscriptions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -657,6 +666,10 @@ $$;
 
 CREATE OR REPLACE FUNCTION update_member_profile(
   input_display_name TEXT DEFAULT NULL,
+  input_qq TEXT DEFAULT NULL,
+  input_wechat TEXT DEFAULT NULL,
+  input_contact_email TEXT DEFAULT NULL,
+  input_phone TEXT DEFAULT NULL,
   input_privacy_settings JSONB DEFAULT NULL,
   input_notification_settings JSONB DEFAULT NULL
 )
@@ -675,6 +688,10 @@ BEGIN
 
   UPDATE member_profiles
   SET display_name = COALESCE(NULLIF(left(trim(input_display_name), 80), ''), display_name),
+      qq = NULLIF(left(trim(COALESCE(input_qq, '')), 40), ''),
+      wechat = NULLIF(left(trim(COALESCE(input_wechat, '')), 80), ''),
+      contact_email = NULLIF(left(trim(COALESCE(input_contact_email, '')), 160), ''),
+      phone = NULLIF(left(trim(COALESCE(input_phone, '')), 40), ''),
       privacy_settings = CASE
         WHEN input_privacy_settings IS NULL THEN privacy_settings
         ELSE normalize_member_privacy_settings(input_privacy_settings)
@@ -1181,6 +1198,7 @@ REVOKE EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) FROM PUBLI
 REVOKE EXECUTE ON FUNCTION get_member_records() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION register_member_device(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION unlink_member_device(UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION create_member_order(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
@@ -1194,7 +1212,7 @@ GRANT EXECUTE ON FUNCTION link_member_identity(TEXT, TEXT, TEXT) TO authenticate
 GRANT EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_member_records() TO authenticated;
 GRANT EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) TO authenticated;
-GRANT EXECUTE ON FUNCTION update_member_profile(TEXT, JSONB, JSONB) TO authenticated;
+GRANT EXECUTE ON FUNCTION update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB) TO authenticated;
 GRANT EXECUTE ON FUNCTION register_member_device(TEXT, TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION unlink_member_device(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION create_member_order(TEXT, TEXT, TEXT, TEXT) TO authenticated;

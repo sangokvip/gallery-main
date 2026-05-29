@@ -70,7 +70,7 @@ body {
 
 .auth-card {
   width: 100%;
-  max-width: 760px;
+  max-width: 640px;
 }
 
 .member-hero {
@@ -86,6 +86,69 @@ body {
   font-weight: 950 !important;
   letter-spacing: 0 !important;
   line-height: 1 !important;
+}
+
+.member-title.compact {
+  font-size: clamp(2.4rem, 8vw, 4rem) !important;
+  margin-bottom: 18px !important;
+}
+
+.benefit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.benefit-grid div {
+  border: 2px solid #0f172a;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.benefit-grid strong,
+.benefit-grid span {
+  display: block;
+}
+
+.benefit-grid strong {
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.benefit-grid span {
+  margin-top: 4px;
+  color: var(--member-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.auth-tabs {
+  margin-bottom: 14px;
+}
+
+.auth-tabs button {
+  border: 2px solid #0f172a !important;
+  color: #0f172a !important;
+  font-weight: 900 !important;
+  background: #fff !important;
+}
+
+.auth-tabs button.active {
+  background: #0f172a !important;
+  color: #fff !important;
+}
+
+.optional-contact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.auth-submit {
+  min-height: 48px;
 }
 
 .member-subtitle {
@@ -412,6 +475,11 @@ body {
   }
 
   .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .benefit-grid,
+  .optional-contact-grid {
     grid-template-columns: 1fr;
   }
 

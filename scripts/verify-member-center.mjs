@@ -7,7 +7,7 @@ const port = Number(process.env.MEMBER_VERIFY_PORT || 4181);
 const baseUrl = `http://${host}:${port}`;
 const coreWidths = [320, 375, 390, 430, 768, 1024, 1440];
 const pages = [
-  { path: '/member.html', text: '会员中心', widths: coreWidths },
+  { path: '/member.html', text: '注册会员', widths: coreWidths },
   { path: '/share.html?token=missing', text: '分享不可用', widths: [320, 390, 430, 768, 1440] },
   { path: '/sangok.html', text: '管理后台', widths: coreWidths },
   { path: '/message.html', text: 'I Love Dirty Talk', widths: coreWidths },

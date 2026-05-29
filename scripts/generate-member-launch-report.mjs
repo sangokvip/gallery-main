@@ -122,7 +122,7 @@ async function main() {
       '部署 supabase/functions/member-payment-webhook 并配置 MEMBER_WEBHOOK_SECRET 和 SUPABASE_SERVICE_ROLE_KEY。',
       '用显式 SUPABASE_URL/SUPABASE_ANON_KEY/MEMBER_WEBHOOK_SECRET 执行 npm run verify:member-production -- --require-env --require-webhook-secret。',
       '用显式 SITE_URL 执行 npm run verify:site-production -- --require-env。',
-      '用真实邮箱完成会员注册/登录、订单提交、后台审核、高级报告、私密分享和支付回调验证。'
+      '用真实用户名密码完成会员注册/登录、订单提交、后台审核、高级报告、私密分享和支付回调验证。'
     ]
   };
 

@@ -8,7 +8,7 @@ const baseUrl = `http://${host}:${port}`;
 const widths = [320, 375, 390, 430, 768, 1024, 1440];
 const requiredTexts = [
   '会员账号',
-  '已登录：member-preview@example.test',
+  '已登录：member_preview',
   '会员等级：premium',
   '会员表已连接',
   '会员权益',
@@ -22,7 +22,7 @@ const requiredTexts = [
   '本地预览设备',
   '已绑定 2 个测评身份',
   '旧设备身份',
-  '换设备登录同一邮箱后'
+  '换设备登录同一账号后'
 ];
 
 function waitForServer(child) {
