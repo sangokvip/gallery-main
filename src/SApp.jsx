@@ -19,6 +19,7 @@ import MessageIcon from '@mui/icons-material/Message'
 import SaveIcon from '@mui/icons-material/Save'
 import HistoryIcon from '@mui/icons-material/History'
 import PersonIcon from '@mui/icons-material/Person'
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import Footer from './components/Footer'
 import { testRecordsApi, testNumberingApi } from './utils/supabase'
@@ -721,6 +722,7 @@ function SApp() {
               <Button color="inherit" startIcon={<FemaleIcon />} href="/female.html">女版</Button>
               <Button color="inherit" startIcon={<FavoriteIcon />} href="/lgbt.html">🏳️‍🌈 LGBT+</Button>
               <Button color="inherit" startIcon={<MessageIcon />} href="/message.html">留言</Button>
+              <Button color="inherit" startIcon={<WorkspacePremiumIcon />} href="/member.html">会员中心</Button>
               <Button
                 color="inherit"
                 startIcon={<PersonIcon />}
@@ -773,6 +775,10 @@ function SApp() {
             <ListItem button component="a" href="/message.html" onClick={() => setMobileMenuOpen(false)}>
               <ListItemIcon><MessageIcon sx={{ color: '#ff0000' }} /></ListItemIcon>
               <ListItemText primary="留言板" sx={{ color: '#ff0000' }} />
+            </ListItem>
+            <ListItem button component="a" href="/member.html" onClick={() => setMobileMenuOpen(false)}>
+              <ListItemIcon><WorkspacePremiumIcon sx={{ color: '#ff0000' }} /></ListItemIcon>
+              <ListItemText primary="会员中心" sx={{ color: '#ff0000' }} />
             </ListItem>
             <ListItem button onClick={() => { setOpenUserSettings(true); setMobileMenuOpen(false); }}>
               <ListItemIcon><PersonIcon sx={{ color: '#ff0000' }} /></ListItemIcon>

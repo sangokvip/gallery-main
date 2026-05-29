@@ -18,6 +18,7 @@ import MessageIcon from '@mui/icons-material/Message'
 import SaveIcon from '@mui/icons-material/Save'
 import HistoryIcon from '@mui/icons-material/History'
 import PersonIcon from '@mui/icons-material/Person'
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import './styles/pixel-theme.css'
@@ -885,6 +886,7 @@ function App() {
                 <Button color="inherit" startIcon={<MaleIcon />} href="/male.html">男生版</Button>
                 <Button color="inherit" startIcon={<FavoriteIcon />} href="/lgbt.html">🏳️‍🌈 LGBT+</Button>
                 <Button color="inherit" startIcon={<MessageIcon />} href="/message.html">留言板</Button>
+                <Button color="inherit" startIcon={<WorkspacePremiumIcon />} href="/member.html">会员中心</Button>
                 <Button
                   color="inherit"
                   startIcon={<PersonIcon />}
@@ -946,6 +948,10 @@ function App() {
               <ListItem button component="a" href="/message.html" onClick={() => setMobileMenuOpen(false)}>
                 <ListItemIcon><MessageIcon sx={{ color: '#1E3D59' }} /></ListItemIcon>
                 <ListItemText primary="留言板" sx={{ color: '#1E3D59' }} />
+              </ListItem>
+              <ListItem button component="a" href="/member.html" onClick={() => setMobileMenuOpen(false)}>
+                <ListItemIcon><WorkspacePremiumIcon sx={{ color: '#1E3D59' }} /></ListItemIcon>
+                <ListItemText primary="会员中心" sx={{ color: '#1E3D59' }} />
               </ListItem>
               <ListItem button onClick={() => { setOpenUserSettings(true); setMobileMenuOpen(false); }}>
                 <ListItemIcon><PersonIcon sx={{ color: '#1E3D59' }} /></ListItemIcon>

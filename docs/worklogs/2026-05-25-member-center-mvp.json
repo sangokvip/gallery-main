@@ -1,0 +1,202 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-05-25-member-center-mvp",
+  "date": "2026-05-25",
+  "summary": "新增会员中心 MVP，用于注册登录后云同步读取测评记录，展示长期趋势、评级分布、最近突出维度、变化分析、高级报告、私密分享、会员订单和后台审核。",
+  "trigger": "用户要求按照会员中心建议开始实施，接入 Supabase 会员数据，并明确未注册用户只能使用现有未修改前的基本功能。",
+  "changes": [
+    {
+      "category": "分支隔离",
+      "files": [],
+      "details": "从 main 创建 codex/member-center 分支，所有实现都在分支内完成。"
+    },
+    {
+      "category": "会员中心页面",
+      "files": [
+        "member.html",
+        "src/member.jsx",
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css"
+      ],
+      "details": "新增独立会员中心页面，包含登录门禁、云端记录概览、趋势图、评级分布、最近一次维度雷达图、变化分析、记录库、数据导出、身份备份导入、会员资料、权益展示、有效期展示、高级报告解锁和私密分享创建。免费会员只能使用基础云记录和趋势，高级报告与私密分享需要高级会员或永久会员。"
+    },
+    {
+      "category": "数据读取",
+      "files": [
+        "src/utils/supabase.js",
+        "database/create_member_center_tables.sql"
+      ],
+      "details": "新增 memberCenterApi，接入 Supabase Auth 邮箱魔法链接、会员资料、订阅状态、订单申请、设备登记、报告解锁、私密分享和当前用户测评记录读取；新增正式会员表 SQL 和基于 auth.uid() 的 RLS 策略。"
+    },
+    {
+      "category": "会员订单和后台审核",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/ModernAdminApp.jsx",
+        "src/adminBrutalApi.js",
+        "src/admin-brutal.css",
+        "database/create_member_center_tables.sql",
+        "database/create_admin_member_session.sql"
+      ],
+      "details": "新增 member_orders、member_devices、member_account_events 数据表；会员中心可提交开通/升级申请；sangok 后台新增会员管理标签，可查看会员概览、待处理订单、会员账号，并支持通过或拒绝手动订单。"
+    },
+    {
+      "category": "后台授权",
+      "files": [
+        "database/create_admin_member_session.sql",
+        "src/adminBrutalApi.js",
+        "database/member_center_deployment_check.sql"
+      ],
+      "details": "新增 admin_sessions 和会员后台 RPC，管理员登录创建短期 session token，会员概览、订单列表、会员列表、订单通过/拒绝走带 session token hash 的 SECURITY DEFINER RPC；admin_sessions 启用 RLS；补充 verify_admin_password、change_admin_password 和部署自检 SQL。后续已移除会员后台前端直连 fallback，正式环境必须部署 RPC。"
+    },
+    {
+      "category": "上线文档",
+      "files": [
+        "docs/member-center-launch-checklist.md",
+        "database/member_center_deployment_check.sql"
+      ],
+      "details": "新增会员中心上线检查清单和 SQL 自检脚本，明确 Supabase Auth、SQL 执行顺序、会员功能验收、后台审核和后续支付回调接入方式。"
+    },
+    {
+      "category": "支付回调",
+      "files": [
+        "supabase/functions/member-payment-webhook/index.ts",
+        "supabase/functions/member-payment-webhook/README.md",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": "新增 Supabase Edge Function 支付回调落点，使用 HMAC-SHA256 签名校验，请求通过后用 service role 更新订单、会员等级、订阅和账号事件。"
+    },
+    {
+      "category": "私密分享",
+      "files": [
+        "share.html",
+        "src/share.jsx",
+        "src/ShareReportApp.jsx",
+        "src/utils/supabase.js"
+      ],
+      "details": "新增私密分享报告页，支持 token 读取、过期检查、隐藏敏感明细、访问密码校验和分享报告图表展示；share.html 已加入 Vite 多页面构建；数据库 SQL 新增 get_member_public_share RPC，优先通过 SECURITY DEFINER 函数校验访问密码后返回报告，避免前端直接依赖密码 hash。"
+    },
+    {
+      "category": "访问控制",
+      "files": [
+        "src/MemberCenterApp.jsx"
+      ],
+      "details": "会员中心改为强制注册/登录门禁；未注册用户不能进入会员面板，但不影响原有测试、保存、导出、留言板、图库等基本功能。"
+    },
+    {
+      "category": "入口和构建",
+      "files": [
+        "vite.config.js",
+        "index.html",
+        "src/App.jsx",
+        "src/MaleApp.jsx",
+        "src/SApp.jsx",
+        "src/LgbtApp.jsx"
+      ],
+      "details": "把 member.html 和 share.html 加入 Vite 多页面构建；在首页和四个测评页导航、移动抽屉中增加会员中心入口，但不改变未注册用户的原有测评路径。"
+    },
+    {
+      "category": "部署路由",
+      "files": [
+        "vercel.json",
+        "_redirects",
+        "public/_redirects",
+        "public/_headers",
+        "public/sitemap.xml",
+        "public/robots.txt"
+      ],
+      "details": "补齐 Vercel 和 Cloudflare Pages 静态路由，确保 member.html、share.html、sangok.html、lgbt.html 等页面能直接访问；把 _headers 和 _redirects 放入 public，确保 Vite 构建后进入 dist。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。member.html 和 share.html 正常打包。后续已清理重复 color、重复 onClick、重复 “🔒 贞操锁” key 警告；当前仅保留大 chunk 提示。"
+    },
+    {
+      "command": "Playwright smoke test: /member.html, /share.html?token=missing, /sangok.html at 390x844",
+      "result": "通过。会员中心未登录显示注册门禁；无效分享链接显示不可用；sangok 后台登录页可显示；无横向溢出。后续已移除分享前端直读 fallback，分享读取必须走 RPC。"
+    },
+    {
+      "command": "Playwright smoke test: sangok fake local admin session, click 会员管理 at 390x844",
+      "result": "通过。会员管理、待处理订单、会员账号模块可渲染，无页面级横向溢出。因本地未执行会员 SQL，会员表请求返回 404。"
+    },
+    {
+      "command": "Playwright smoke test: /member.html at 320, 390, 768, 1440 and /sangok.html 会员管理 at 390",
+      "result": "通过。会员中心未登录门禁在 4 个宽度均可见且无横向溢出；sangok 会员管理可渲染待处理订单模块。"
+    },
+    {
+      "command": "npm run preview -- --host 127.0.0.1 --port 4179 + Playwright smoke: /member.html, /share.html?token=missing, /sangok.html, /lgbt.html at 390x844",
+      "result": "通过。构建产物预览下 4 个页面均可直接访问，标题和关键内容存在，无横向溢出，无 pageerror。"
+    },
+    {
+      "command": "Chrome channel Playwright smoke test: /member.html at 320, 375, 390, 430, 768, 1024, 1440",
+      "result": "通过。会员中心标题可见，4 个统计卡片可见，无横向溢出，无 pageerror。"
+    },
+    {
+      "command": "Chrome channel Playwright Supabase network check: /member.html",
+      "result": "通过。页面请求 Supabase /rest/v1/test_records 返回 200，未出现数据库未配置或环境变量缺失提示。"
+    },
+    {
+      "command": "rg -n \"会员中心需要注册|注册 / 登录|auth-gate|memberCenterApi\" src *.html",
+      "result": "通过。会员门禁和会员 API 只出现在 member 页面与 Supabase 工具模块；其他基本功能页面未引入门禁。"
+    },
+    {
+      "command": "rg -n \"WorkspacePremiumIcon|href=\\\"/member.html\\\"|会员中心\" src/App.jsx src/MaleApp.jsx src/SApp.jsx src/LgbtApp.jsx index.html member.html share.html",
+      "result": "通过。首页和四个测评页均存在会员中心入口。"
+    },
+    {
+      "command": "rg -n \"access_code_hash|verifyAccessCode|requiresAccessCode|share.html\\?token|getPublicShare\" src/ShareReportApp.jsx src/MemberCenterApp.jsx src/utils/supabase.js database/create_member_center_tables.sql",
+      "result": "通过。私密分享创建、读取和访问密码校验代码路径存在。"
+    },
+    {
+      "command": "rg -n \"create_admin_session|admin_sessions|member_admin_members|member_admin_overview|getSessionTokenHash|sessionToken|member_admin_approve_order\" database src/adminBrutalApi.js",
+      "result": "通过。管理员短期会话和会员后台 RPC 调用路径存在。"
+    },
+    {
+      "command": "rg -n \"免费会员不能|高级会员|member_center_deployment_check|verify_admin_password|change_admin_password|ALTER TABLE admin_sessions ENABLE ROW LEVEL SECURITY|有效期至\" src database docs",
+      "result": "通过。会员权益限制、后台密码函数、admin_sessions RLS 和部署自检文件均存在。"
+    },
+    {
+      "command": "test -f dist/_redirects; test -f dist/_headers; rg -n \"member.html|share.html|sangok.html\" dist/_redirects dist/_headers",
+      "result": "通过。Cloudflare Pages 路由和安全头文件已进入构建产物。"
+    },
+    {
+      "command": "node -e \"JSON.parse(vercel.json); JSON.parse(_routes.json); check dist html files\"",
+      "result": "通过。Vercel 配置和 _routes.json 可解析，dist 包含 index/female/male/s/lgbt/member/share/sangok/message/gallery HTML。"
+    },
+    {
+      "command": "rg -n \"member-payment-webhook|x-member-signature|SUPABASE_SERVICE_ROLE_KEY|member.html|share.html|sangok.html|_redirects\" supabase docs vercel.json _redirects public",
+      "result": "通过。支付回调、签名头、service role 文档和部署路由配置均存在。"
+    },
+    {
+      "command": "Playwright smoke test: /member.html, /share.html?token=missing, /female.html, /male.html, /s.html, /lgbt.html at 390x844",
+      "result": "通过。会员中心显示注册/登录门禁；无效分享 token 显示分享不可用；四个未注册测评页仍可直接打开，未出现横向溢出。male 页面有既有重复 key React warning，不阻塞页面渲染。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过。无空白错误。"
+    },
+    {
+      "command": "node -e JSON.parse(worklog)",
+      "result": "工作记录 JSON 可解析。"
+    }
+  ],
+  "knownLimitations": [
+    "当前已接 Supabase Auth 邮箱魔法链接，但真实邮件模板、回调 URL 和生产域名需要在 Supabase 控制台配置。",
+    "会员订单、后台手动审核和订阅写入已实现；支付回调 Edge Function 已写入仓库，但尚未部署到 Supabase，无法在本地证明真实支付网关回调可达。",
+    "趋势分析是前端规则生成，不接入 AI 生成付费长报告。",
+    "分享页使用 get_member_public_share RPC 做访问密码校验；线上执行 SQL 前会 fail closed，不能读取分享内容。",
+    "sangok 后台会员管理已补短期管理员 session RPC 和密码校验函数；必须在线上 Supabase SQL Editor 执行并验证，会员后台不再保留前端直连 fallback。",
+    "Chrome 自动化复测后续有一次被系统权限拦截，已用构建和静态范围检查补充验证。"
+  ],
+  "deploymentNotes": [
+    "本地预览地址为 http://127.0.0.1:4174/member.html；分享页为 /share.html?token=分享token。",
+    "线上部署该分支后，用户可通过 /member.html 进入会员中心。",
+    "上线前需要在 Supabase SQL Editor 执行 database/create_member_center_tables.sql。",
+    "上线前需要在 Supabase SQL Editor 执行 database/create_admin_member_session.sql，并用 sangok 后台真实登录验证会员订单审核。",
+    "执行 SQL 后运行 database/member_center_deployment_check.sql，结果中 ok 必须全部为 true。",
+    "支付自动开通需要部署 supabase/functions/member-payment-webhook，并在 Supabase secrets 中配置 MEMBER_WEBHOOK_SECRET 和 SUPABASE_SERVICE_ROLE_KEY。",
+    "Supabase Auth 需要配置站点 URL 和邮件回调 URL，会员中心回调目标为 /member.html。"
+  ]
+}

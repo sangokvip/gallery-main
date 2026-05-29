@@ -17,6 +17,7 @@ import MessageIcon from '@mui/icons-material/Message'
 import SaveIcon from '@mui/icons-material/Save'
 import HistoryIcon from '@mui/icons-material/History'
 import PersonIcon from '@mui/icons-material/Person'
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import './styles/lgbt-theme.css'
@@ -886,7 +887,7 @@ function LgbtApp() {
                   startIcon={<HomeIcon />}
                   href="/index.html"
                   className="pixel-button-pink"
-                  sx={{ 
+                  sx={{
                     color: '#1E3D59',
                     fontSize: { md: '0.8rem', lg: '0.875rem' },
                     padding: { md: '6px 12px', lg: '8px 16px' },
@@ -904,7 +905,7 @@ function LgbtApp() {
                   startIcon={<ScienceIcon />}
                   href="/s.html"
                   className="pixel-button-pink"
-                  sx={{ 
+                  sx={{
                     color: '#1E3D59',
                     fontSize: { md: '0.8rem', lg: '0.875rem' },
                     padding: { md: '6px 12px', lg: '8px 16px' },
@@ -922,7 +923,7 @@ function LgbtApp() {
                   startIcon={<MaleIcon />}
                   href="/male.html"
                   className="pixel-button-pink"
-                  sx={{ 
+                  sx={{
                     color: '#1E3D59',
                     fontSize: { md: '0.8rem', lg: '0.875rem' },
                     padding: { md: '6px 12px', lg: '8px 16px' },
@@ -955,8 +956,29 @@ function LgbtApp() {
                 </Button>
                 <Button
                   color="inherit"
+                  startIcon={<WorkspacePremiumIcon />}
+                  href="/member.html"
+                  className="pixel-button-pink"
+                  sx={{
+                    color: '#1E3D59',
+                    fontSize: { md: '0.8rem', lg: '0.875rem' },
+                    padding: { md: '6px 12px', lg: '8px 16px' },
+                    minWidth: 'auto',
+                    whiteSpace: 'nowrap'
+                  }}
+                  onMouseEnter={(e) => handleButtonHover(e, true)}
+                  onMouseLeave={(e) => handleButtonHover(e, false)}
+                  onClick={handleButtonClick}
+                >
+                  会员中心
+                </Button>
+                <Button
+                  color="inherit"
                   startIcon={<PersonIcon />}
-                  onClick={() => setOpenUserSettings(true)}
+                  onClick={(event) => {
+                    handleButtonClick(event);
+                    setOpenUserSettings(true);
+                  }}
                   className="pixel-button-pink"
                   sx={{
                     color: '#1E3D59',
@@ -970,7 +992,6 @@ function LgbtApp() {
                   }}
                   onMouseEnter={(e) => handleButtonHover(e, true)}
                   onMouseLeave={(e) => handleButtonHover(e, false)}
-                  onClick={handleButtonClick}
                 >
                   {getNickname()}
                 </Button>
@@ -1113,8 +1134,36 @@ function LgbtApp() {
                   }} 
                 />
               </ListItem>
-              <ListItem 
-                button 
+              <ListItem
+                button
+                component="a"
+                href="/member.html"
+                onClick={() => setMobileMenuOpen(false)}
+                sx={{
+                  padding: '12px 20px',
+                  borderBottom: '1px solid rgba(255, 105, 180, 0.1)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(255, 105, 180, 0.1)'
+                  }
+                }}
+              >
+                <ListItemIcon sx={{ minWidth: '40px' }}>
+                  <WorkspacePremiumIcon sx={{ color: '#1E3D59' }} />
+                </ListItemIcon>
+                <ListItemText
+                  primary="会员中心"
+                  sx={{
+                    color: '#1E3D59',
+                    '& .MuiTypography-root': {
+                      fontSize: '1rem',
+                      fontWeight: 500,
+                      whiteSpace: 'nowrap'
+                    }
+                  }}
+                />
+              </ListItem>
+              <ListItem
+                button
                 onClick={() => { setOpenUserSettings(true); setMobileMenuOpen(false); }}
                 sx={{
                   padding: '12px 20px',

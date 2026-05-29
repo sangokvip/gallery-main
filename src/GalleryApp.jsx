@@ -2794,7 +2794,6 @@ function GalleryApp() {
                   <Typography 
                     variant="h6" 
                     sx={{ 
-                      color: 'text.primary', 
                       fontWeight: 700,
                       fontSize: { xs: '1.1rem', sm: '1.3rem' },
                       backgroundImage: 'linear-gradient(45deg, #f97316, #f59e0b)',

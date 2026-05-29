@@ -97,6 +97,7 @@
 .brutal-table td { padding: 0.8rem 1rem; border-bottom: 1px solid #e5e7eb; font-weight: 500; font-size: 0.9rem; }
 .brutal-table tr:hover td { background: #f8fafc; }
 .records-table td:first-child { max-width: 360px; overflow-wrap: anywhere; }
+.row-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
 /* Badges */
 .badge {

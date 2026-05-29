@@ -7,6 +7,17 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "prepare:member-deployment": "node scripts/prepare-member-deployment.mjs",
+    "verify:member-center": "node scripts/verify-member-center.mjs",
+    "verify:member-auth": "node scripts/verify-member-center-authenticated.mjs",
+    "verify:admin-auth": "node scripts/verify-admin-authenticated.mjs",
+    "verify:share-report": "node scripts/verify-share-report.mjs",
+    "verify:payment-webhook": "node scripts/verify-payment-webhook-contract.mjs",
+    "verify:member-security": "node scripts/verify-member-security.mjs",
+    "verify:member-production": "node scripts/verify-member-production.mjs",
+    "verify:site-production": "node scripts/verify-site-production.mjs",
+    "verify:member-predeploy": "node scripts/verify-member-predeploy.mjs",
+    "report:member-launch": "node scripts/generate-member-launch-report.mjs",
     "vercel-build": "vite build"
   },
   "dependencies": {

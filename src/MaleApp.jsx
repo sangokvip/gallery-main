@@ -17,6 +17,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite'
 import SaveIcon from '@mui/icons-material/Save'
 import HistoryIcon from '@mui/icons-material/History'
 import PersonIcon from '@mui/icons-material/Person'
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import Footer from './components/Footer'
@@ -137,7 +138,6 @@ const ITEM_EXPLANATIONS = {
   '🏛️ 公共场合玩弄': '在公共场所进行性行为或调教。',
   '⛓️ 公共场合捆绑': '在公共场所使用绳索等捆绑。',
   '🔧 公共场合器具': '在公共场所使用性工具。',
-  '🔒 贞操锁': '在户外佩戴贞操装置，强调控制。',
   '👥 露阳(熟人)': '在熟人面前暴露阴茎，需谨慎。',
   '👀 露阳(生人)': '在陌生人面前暴露阴茎，需注意法律。',
   '🐕 野外遛狗': '在户外以狗奴形式被牵引。',
@@ -956,6 +956,7 @@ function App() {
               <Button color="inherit" href="/female.html" startIcon={<FemaleIcon />}>女版</Button>
               <Button color="inherit" href="/lgbt.html" startIcon={<FavoriteIcon />}>🏳️‍🌈 LGBT+</Button>
               <Button color="inherit" href="/message.html" startIcon={<MessageIcon />}>留言</Button>
+              <Button color="inherit" href="/member.html" startIcon={<WorkspacePremiumIcon />}>会员中心</Button>
               <Button
                 color="inherit"
                 startIcon={<PersonIcon />}
@@ -1017,6 +1018,10 @@ function App() {
             <ListItem button component="a" href="/message.html" onClick={() => setMobileMenuOpen(false)}>
               <ListItemIcon><MessageIcon sx={{ color: '#6200ea' }} /></ListItemIcon>
               <ListItemText primary="留言板" sx={{ color: '#6200ea' }} />
+            </ListItem>
+            <ListItem button component="a" href="/member.html" onClick={() => setMobileMenuOpen(false)}>
+              <ListItemIcon><WorkspacePremiumIcon sx={{ color: '#6200ea' }} /></ListItemIcon>
+              <ListItemText primary="会员中心" sx={{ color: '#6200ea' }} />
             </ListItem>
             <ListItem button onClick={() => { setOpenUserSettings(true); setMobileMenuOpen(false); }}>
               <ListItemIcon><PersonIcon sx={{ color: '#6200ea' }} /></ListItemIcon>

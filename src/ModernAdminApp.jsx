@@ -40,6 +40,7 @@ function LoginPage({ onLogin }) {
 
 const ADMIN_SHORTCUTS = [
   { label: '测评记录', description: '查看、筛选和翻页测评数据', target: 'records', accent: 'accent-blue' },
+  { label: '会员管理', description: '审核订单、查看会员等级和订阅', target: 'members', accent: 'accent-pink' },
   { label: '安全管理', description: '修改密码和查看当前会话', target: 'security', accent: 'accent-green' },
   { label: '系统设置', description: '站点配置和外部工具入口', target: 'settings', accent: 'accent-amber' },
 ];
@@ -51,6 +52,7 @@ const SITE_SHORTCUTS = [
   { label: 'LGBT+测试', href: '/lgbt.html', accent: 'accent-green' },
   { label: '留言板', href: '/message.html', accent: 'accent-green' },
   { label: '图库', href: '/gallery.html', accent: 'accent-blue' },
+  { label: '会员中心', href: '/member.html', accent: 'accent-pink' },
 ];
 
 // ===== Dashboard =====
@@ -197,6 +199,99 @@ function RecordsView({ records, loading, total, page, rowsPerPage, filters, onPa
   );
 }
 
+// ===== Members =====
+function MembersView({ stats, members, orders, loading, error, actionMessage, onRefresh, onApproveOrder, onRejectOrder }) {
+  const planLabel = {
+    basic_monthly: '基础会员',
+    premium_monthly: '高级会员',
+    lifetime: '永久会员'
+  };
+  const tierLabel = {
+    free: '免费',
+    basic: '基础',
+    premium: '高级',
+    lifetime: '永久'
+  };
+
+  return (
+    <div>
+      <div className="section-header">
+        <div><h2>会员管理</h2><span className="sub">账号、订单、订阅和私密分享</span></div>
+        <button className="btn-brutal" onClick={onRefresh} disabled={loading}>↻ 刷新</button>
+      </div>
+      {loading ? <div className="loading">加载会员数据中...</div> : (
+        <>
+          {error && (
+            <div className="login-error" style={{ marginBottom: '1rem' }}>
+              {error}
+            </div>
+          )}
+          {actionMessage && (
+            <div className="brutal-card no-hover" style={{ marginBottom: '1rem', padding: '0.8rem 1rem', fontWeight: 700 }}>
+              {actionMessage}
+            </div>
+          )}
+          <div className="stats-grid">
+            <div className="brutal-card stat-card accent-pink"><div className="stat-value">{stats?.totalMembers || 0}</div><div className="stat-label">会员账号</div><div className="stat-today">已注册</div></div>
+            <div className="brutal-card stat-card accent-green"><div className="stat-value">{stats?.activeSubscriptions || 0}</div><div className="stat-label">有效订阅</div><div className="stat-today">active / trialing</div></div>
+            <div className="brutal-card stat-card accent-amber"><div className="stat-value">{stats?.pendingOrders || 0}</div><div className="stat-label">待审核订单</div><div className="stat-today">pending</div></div>
+            <div className="brutal-card stat-card accent-blue"><div className="stat-value">{stats?.activeShares || 0}</div><div className="stat-label">有效分享</div><div className="stat-today">active</div></div>
+          </div>
+
+          <div className="section-header compact"><h3>待处理订单</h3></div>
+          <div className="brutal-card no-hover" style={{padding:0, overflow:'hidden', marginBottom:'1.5rem'}}>
+            <table className="brutal-table">
+              <thead><tr><th>方案</th><th>金额</th><th>状态</th><th>账号</th><th>备注</th><th>时间</th><th>操作</th></tr></thead>
+              <tbody>
+                {(orders || []).length === 0 ? (
+                  <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem', color:'#888'}}>暂无订单</td></tr>
+                ) : orders.map(order => (
+                  <tr key={order.id}>
+                    <td><strong>{planLabel[order.plan_code] || order.plan_code}</strong></td>
+                    <td>{order.currency} {(order.amount_cents / 100).toFixed(2)}</td>
+                    <td><span className={`badge ${order.status === 'pending' ? 'badge-s' : order.status === 'approved' ? 'badge-lgbt' : 'badge-male'}`}>{order.status}</span></td>
+                    <td style={{fontFamily:'monospace', fontSize:'0.78rem'}}>{order.account_id?.slice(0, 8)}...</td>
+                    <td>{order.contact_note || '-'}</td>
+                    <td>{new Date(order.created_at).toLocaleString('zh-CN')}</td>
+                    <td>
+                      <div className="row-actions">
+                        <button className="btn-brutal" disabled={order.status !== 'pending'} onClick={() => onApproveOrder(order)}>通过</button>
+                        <button className="btn-brutal" disabled={order.status !== 'pending'} onClick={() => onRejectOrder(order)}>拒绝</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="section-header compact"><h3>会员账号</h3></div>
+          <div className="brutal-card no-hover" style={{padding:0, overflow:'hidden'}}>
+            <table className="brutal-table records-table">
+              <thead><tr><th>账号</th><th>昵称</th><th>等级</th><th>订阅</th><th>匿名身份</th><th>订单数</th><th>创建时间</th></tr></thead>
+              <tbody>
+                {(members || []).length === 0 ? (
+                  <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem', color:'#888'}}>暂无会员账号</td></tr>
+                ) : members.map(member => (
+                  <tr key={member.account_id}>
+                    <td style={{fontFamily:'monospace', fontSize:'0.78rem'}}>{member.account_id.slice(0, 8)}...</td>
+                    <td>{member.display_name || '会员用户'}</td>
+                    <td><span className="badge badge-female">{tierLabel[member.membership_tier] || member.membership_tier}</span></td>
+                    <td>{member.subscription?.status || '无'}</td>
+                    <td style={{fontFamily:'monospace', fontSize:'0.78rem'}}>{member.legacy_user_id_text || '-'}</td>
+                    <td>{member.orders?.length || 0}</td>
+                    <td>{new Date(member.created_at).toLocaleString('zh-CN')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ===== Security =====
 function SecurityView() {
   const [sessions] = useState(() => {
@@ -211,7 +306,7 @@ function SecurityView() {
   const changePw = async (e) => {
     e.preventDefault(); setPwMsg('');
     if (!pwForm.current) { setPwMsg('❌ 请输入当前密码'); return; }
-    if (pwForm.newPw.length < 6) { setPwMsg('❌ 新密码至少6位'); return; }
+    if (pwForm.newPw.length < 8) { setPwMsg('❌ 新密码至少8位'); return; }
     if (pwForm.newPw !== pwForm.confirm) { setPwMsg('❌ 两次密码不一致'); return; }
     setPwLoading(true);
     try {
@@ -408,6 +503,12 @@ function ModernAdminApp() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [records, setRecords] = useState([]);
   const [recentRecords, setRecentRecords] = useState([]);
+  const [memberStats, setMemberStats] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [memberOrders, setMemberOrders] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState('');
+  const [memberActionMessage, setMemberActionMessage] = useState('');
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -427,6 +528,7 @@ function ModernAdminApp() {
     if (!admin) return;
     if (tab === 'dashboard') loadDashboard();
     if (tab === 'records') loadRecords();
+    if (tab === 'members') loadMembers();
   }, [admin, tab]);
 
   const loadDashboard = async () => {
@@ -445,6 +547,50 @@ function ModernAdminApp() {
       setRecords(res.results); setTotal(res.total);
     } catch (e) { console.error(e); setRecords([]); setTotal(0); }
     setRecordsLoading(false);
+  };
+
+  const loadMembers = async () => {
+    setMembersLoading(true);
+    setMembersError('');
+    try {
+      const [statsData, membersData, ordersData] = await Promise.all([
+        adminApi.getMemberStats(),
+        adminApi.getMembers(50, 0),
+        adminApi.getMemberOrders(50)
+      ]);
+      setMemberStats(statsData);
+      setMembers(membersData.members);
+      setMemberOrders(ordersData);
+    } catch (e) {
+      console.error(e);
+      setMembersError(e.message || '会员管理服务不可用');
+      setMemberStats(null);
+      setMembers([]);
+      setMemberOrders([]);
+    }
+    setMembersLoading(false);
+  };
+
+  const approveOrder = async (order) => {
+    setMemberActionMessage('');
+    try {
+      await adminApi.approveMemberOrder(order);
+      setMemberActionMessage('订单已审核通过');
+      await loadMembers();
+    } catch (e) {
+      setMemberActionMessage(e.message || '订单审核失败');
+    }
+  };
+
+  const rejectOrder = async (order) => {
+    setMemberActionMessage('');
+    try {
+      await adminApi.rejectMemberOrder(order.id);
+      setMemberActionMessage('订单已拒绝');
+      await loadMembers();
+    } catch (e) {
+      setMemberActionMessage(e.message || '订单拒绝失败');
+    }
   };
 
   const viewDetail = async (record) => {
@@ -466,7 +612,7 @@ function ModernAdminApp() {
       <nav className="admin-nav">
         <span className="admin-nav-logo">M-Profile Lab</span>
         <div className="admin-nav-tabs">
-          {[{id:'dashboard',label:'仪表板'},{id:'records',label:'测评记录'},{id:'security',label:'安全管理'},{id:'settings',label:'系统设置'}].map(t => (
+          {[{id:'dashboard',label:'仪表板'},{id:'records',label:'测评记录'},{id:'members',label:'会员管理'},{id:'security',label:'安全管理'},{id:'settings',label:'系统设置'}].map(t => (
             <button key={t.id} className={`admin-nav-tab ${tab===t.id?'active':''}`} onClick={() => setTab(t.id)}>{t.label}</button>
           ))}
         </div>
@@ -478,6 +624,7 @@ function ModernAdminApp() {
       <div className="admin-content">
         {tab === 'dashboard' && <DashboardView stats={stats} loading={statsLoading} recentRecords={recentRecords} onViewDetail={viewDetail} onNavigate={setTab} />}
         {tab === 'records' && <RecordsView records={records} loading={recordsLoading} total={total} page={page} rowsPerPage={rpp} filters={filters} onPageChange={onPageChange} onRppChange={onRppChange} onFilterChange={onFilterChange} onRefresh={() => loadRecords(filters, page, rpp)} onViewDetail={viewDetail} />}
+        {tab === 'members' && <MembersView stats={memberStats} members={members} orders={memberOrders} loading={membersLoading} error={membersError} actionMessage={memberActionMessage} onRefresh={loadMembers} onApproveOrder={approveOrder} onRejectOrder={rejectOrder} />}
         {tab === 'security' && <SecurityView />}
         {tab === 'settings' && <SettingsView />}
       </div>

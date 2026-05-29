@@ -1,0 +1,146 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-05-27-member-admin-auth-hardening",
+  "date": "2026-05-27",
+  "summary": "继续完善会员中心上线前安全收尾，重点收紧后台会员管理 RPC、留言页管理员动作、管理员登录会话、分享访问码、支付幂等、安全响应头和生产部署校验。",
+  "trigger": "用户要求继续推进会员中心功能，并要求注册后才能进入会员中心，未注册用户保留原有基础功能。",
+  "changes": [
+    {
+      "category": "后台管理员鉴权",
+      "files": [
+        "database/create_admin_member_session.sql",
+        "src/adminBrutalApi.js",
+        "src/ModernAdminApp.jsx"
+      ],
+      "details": [
+        "后台登录改为通过 create_admin_session 创建短期管理员会话，前端只保存明文 token，数据库只保存 SHA-256 hash。",
+        "修改密码改为使用当前管理员会话 token hash，不再用用户名作为授权依据。",
+        "数据库侧加入 admin_login_attempts 登录失败计数，15 分钟内失败 8 次后临时拒绝登录。",
+        "收回 verify_admin_password、get_admin_session、require_admin 的公开执行权限，后台会员管理只能通过带会话 token 的 RPC 间接访问。",
+        "留言页隐藏管理员入口从单密码验证迁移为用户名和密码登录，管理员会话同样使用 create_admin_session。"
+      ]
+    },
+    {
+      "category": "留言页管理员动作",
+      "files": [
+        "src/MessageApp.jsx",
+        "src/utils/supabase.js",
+        "database/create_admin_member_session.sql"
+      ],
+      "details": [
+        "管理员发留言、回复、删除、置顶、修改反应数量改为携带会话 token hash 调用 admin_* RPC。",
+        "新增 admin_create_message、admin_create_reply、admin_delete_message、admin_delete_reply、admin_toggle_message_pin、admin_update_message_reaction_count。",
+        "部署 SQL 会为 message_replies 补齐 is_admin 字段，避免新环境缺列。"
+      ]
+    },
+    {
+      "category": "会员数据安全",
+      "files": [
+        "database/create_member_center_tables.sql",
+        "src/utils/supabase.js",
+        "src/MemberCenterApp.jsx",
+        "src/ShareReportApp.jsx"
+      ],
+      "details": [
+        "会员资料、设备、订单、报告解锁、分享链接等写操作改为数据库 RPC 执行，避免客户端直接写敏感表。",
+        "分享访问码改为数据库侧 bcrypt/pgcrypto 哈希校验，客户端不再生成或读取 access_code_hash。",
+        "会员分享列表通过 get_member_share_links 返回脱敏数据，公开分享通过 get_member_public_share 读取。"
+      ]
+    },
+    {
+      "category": "支付与审核幂等",
+      "files": [
+        "database/create_member_center_tables.sql",
+        "database/create_admin_member_session.sql",
+        "database/member_center_deployment_check.sql",
+        "supabase/functions/member-payment-webhook/index.ts",
+        "supabase/functions/member-payment-webhook/README.md",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": [
+        "member_subscriptions 和 member_orders 增加 provider + provider_ref 唯一索引，部署检查会验证索引存在。",
+        "后台订单审核通过改为幂等写入订阅，重复点击不会生成重复订阅；取消或退款订单不能再审核通过，已开通订单不能被拒绝。",
+        "支付回调签名比较改为 constantTimeEqual，并对 amount_cents 做类型和金额双重校验。",
+        "新增 apply_member_order_approval，把订单状态、会员等级、订阅和事件写入放进同一个数据库事务。",
+        "支付回调改为调用 apply_member_order_approval，重复执行时会返回 idempotent 标记，首次开通才写 payment_webhook_approved 事件。"
+      ]
+    },
+    {
+      "category": "部署校验",
+      "files": [
+        "database/member_center_deployment_check.sql",
+        "scripts/verify-member-security.mjs",
+        "scripts/verify-member-center.mjs",
+        "scripts/verify-member-production.mjs",
+        "package.json",
+        "public/_headers",
+        "vercel.json",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": [
+        "补充会员中心部署检查 SQL，覆盖核心表、RPC、RLS、分享 hash 权限和后台管理员函数权限。",
+        "补充本地静态安全验证脚本，用于检查前端是否绕过 RPC 直连敏感会员表。",
+        "新增 verify:member-production，用生产 Supabase URL 和 anon key 检查核心表、RPC、Auth health、分享 hash 权限和 Edge Function 部署状态；脚本不会读取 .env，也不会输出密钥。",
+        "浏览器验证扩展到 member、share、sangok、message、index、male、s、lgbt 共 8 组页面，其中 member、sangok、message 覆盖 320/375/390/430/768/1024/1440。",
+        "补充 Vercel 与 Netlify 风格安全响应头，包含 CSP、frame-ancestors、nosniff、referrer-policy 和 permissions-policy。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，覆盖会员敏感表 RPC、管理员函数权限、apply_member_order_approval 权限、支付幂等关键文本和 webhook 签名比较。"
+    },
+    {
+      "command": "node --check scripts/verify-member-security.mjs && node --check scripts/verify-member-center.mjs",
+      "result": "通过，验证脚本语法正常。"
+    },
+    {
+      "command": "node --check scripts/verify-member-production.mjs",
+      "result": "通过，生产探测脚本语法正常。"
+    },
+    {
+      "command": "npm run verify:member-production",
+      "result": "通过，当前本机进程未设置 Supabase 环境变量，脚本按设计跳过且未读取 .env。生产验证时需要带 --require-env。"
+    },
+    {
+      "command": "JSON.parse package.json/vercel.json",
+      "result": "通过，配置 JSON 可解析。"
+    },
+    {
+      "command": "SQL 括号平衡检查",
+      "result": "通过，create_admin_member_session.sql、member_center_deployment_check.sql、create_member_center_tables.sql 括号计数均为 0。"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过，Vite 构建成功；仍有既有大 chunk 体积提示。"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过，覆盖 member、share、sangok、message、index、male、s、lgbt 等 8 组页面，并检查关键视口无横向溢出。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，没有空白错误。"
+    },
+    {
+      "command": "JSON.parse docs/worklogs/*.json",
+      "result": "通过，所有工作记录 JSON 均可解析。"
+    }
+  ],
+  "knownLimitations": [
+    "尚未在 Supabase 生产项目执行 SQL，因此生产表、RPC、RLS 和权限还未真实生效。",
+    "provider + provider_ref 唯一索引如果遇到生产历史重复数据，SQL 执行会失败并暴露需要人工清理的重复记录；当前本地没有连接生产库，无法确认是否存在历史重复。",
+    "本机未读取 .env，verify:member-production 只验证了无环境变量时的跳过路径；生产探测需要部署后由显式环境变量执行。",
+    "Supabase Auth 邮件跳转、Magic Link、真实会员登录、真实订单审核和分享链接访问还未在生产环境验证。",
+    "Edge Function member-payment-webhook 已准备代码，但尚未部署并配置真实支付回调密钥。",
+    "构建存在大 chunk 提示，当前不影响功能，但后续可通过动态导入和 manualChunks 优化。"
+  ],
+  "deploymentNotes": [
+    "上线前需要依次执行 database/create_member_center_tables.sql、database/create_admin_member_session.sql，并运行 database/member_center_deployment_check.sql 检查所有 ok=true。",
+    "SQL 和 Edge Function 部署完成后，需要执行 SUPABASE_URL=... SUPABASE_ANON_KEY=... npm run verify:member-production -- --require-env。",
+    "需要在 Supabase Auth 配置允许的重定向 URL 中加入生产域名的 /member.html。",
+    "需要部署 supabase/functions/member-payment-webhook 并配置 MEMBER_PAYMENT_WEBHOOK_SECRET、SUPABASE_SERVICE_ROLE_KEY 等服务端环境变量。",
+    "生产验证应覆盖未登录访问会员中心、Magic Link 登录、记录云同步、会员升级、后台订单审核、私密分享访问码和分享停用。"
+  ]
+}

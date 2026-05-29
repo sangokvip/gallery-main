@@ -31,6 +31,8 @@ export default defineConfig(({ command, mode }) => {
           s: './s.html',
           message: './message.html',
           gallery: './gallery.html',
+          member: './member.html',
+          share: './share.html',
           sangok: './sangok.html'
         },
         output: {
