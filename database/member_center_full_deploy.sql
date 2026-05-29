@@ -215,7 +215,7 @@ ORDER BY check_type, name;
 
 -- ============================================================================
 -- 2. database/create_member_center_tables.sql
--- sha256: 4f381c39fd748050d26ce37a9e4c58b17d82d36350b63428c3200b4ac35d1607
+-- sha256: b8d61e869c84950b699cf64acbc03468a45061568174d9182298cb48c0ec5fa8
 -- ============================================================================
 
 -- M-profile Lab member center tables
@@ -1174,21 +1174,21 @@ BEGIN
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION require_premium_member(UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION ensure_member_record_owner(UUID, TEXT, UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION link_member_identity(TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION get_member_records() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, JSONB, JSONB) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION register_member_device(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION unlink_member_device(UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION create_member_order(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION create_member_report_unlock(TEXT, UUID, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION create_member_share_link(TEXT, UUID, TEXT, TEXT, JSONB, TIMESTAMP WITH TIME ZONE, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION get_member_share_links() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION deactivate_member_share_link(UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION get_member_public_share(TEXT, TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION require_premium_member(UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION ensure_member_record_owner(UUID, TEXT, UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION link_member_identity(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION get_member_records() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION register_member_device(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION unlink_member_device(UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION create_member_order(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION create_member_report_unlock(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION create_member_share_link(TEXT, UUID, TEXT, TEXT, JSONB, TIMESTAMP WITH TIME ZONE, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION get_member_share_links() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION deactivate_member_share_link(UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION get_member_public_share(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION link_member_identity(TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) TO anon, authenticated;
@@ -1217,7 +1217,7 @@ COMMENT ON TABLE member_share_links IS '私密报告分享链接';
 
 -- ============================================================================
 -- 3. database/create_admin_member_session.sql
--- sha256: a1f2bc9d77970b5a9b16c055e2f440d6f2d0fabd7eca058e60cc07f1df27ba5b
+-- sha256: 6a0534145f354b05098e886ac95e71acfe63e9fcf126c4a855f0ccb3cc024433
 -- ============================================================================
 
 -- Admin session and member management RPCs
@@ -1808,23 +1808,23 @@ BEGIN
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION verify_admin_password(TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION change_admin_password(TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION get_admin_session(TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION require_admin(TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION create_admin_session(TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION member_admin_overview(TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION member_admin_orders(TEXT, INTEGER) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION member_admin_approve_order(TEXT, UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION member_admin_reject_order(TEXT, UUID, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION admin_create_message(TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION admin_create_reply(TEXT, UUID, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION admin_delete_message(TEXT, UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION admin_delete_reply(TEXT, UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION admin_toggle_message_pin(TEXT, UUID, BOOLEAN) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION admin_update_message_reaction_count(TEXT, UUID, TEXT, INTEGER) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION verify_admin_password(TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION change_admin_password(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION get_admin_session(TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION require_admin(TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION create_admin_session(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_overview(TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_orders(TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_approve_order(TEXT, UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_reject_order(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION admin_create_message(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION admin_create_reply(TEXT, UUID, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION admin_delete_message(TEXT, UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION admin_delete_reply(TEXT, UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION admin_toggle_message_pin(TEXT, UUID, BOOLEAN) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION admin_update_message_reaction_count(TEXT, UUID, TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION create_admin_session(TEXT, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION change_admin_password(TEXT, TEXT, TEXT) TO anon, authenticated;

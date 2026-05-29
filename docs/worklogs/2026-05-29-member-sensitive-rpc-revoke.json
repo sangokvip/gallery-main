@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-05-29-member-sensitive-rpc-revoke",
+  "date": "2026-05-29",
+  "summary": "修复会员中心部署检查中敏感 RPC 仍可被 anon 执行的问题。",
+  "trigger": "用户提供 Supabase deployment check 结果，显示 verify_admin_password、get_admin_session、require_admin、apply_member_order_approval 的 anon 执行权限检查为 false。",
+  "changes": [
+    {
+      "category": "RPC 权限收紧",
+      "files": [
+        "database/create_admin_member_session.sql",
+        "database/create_member_center_tables.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "把函数权限撤销语句从只撤销 PUBLIC 改为同时撤销 PUBLIC、anon、authenticated。",
+        "清理生产库中历史部署可能留下的显式 anon/authenticated EXECUTE 授权。",
+        "保留必要的重新授权：公开登录、受 session token 保护的后台 RPC、会员 authenticated RPC 和 service_role 支付审批入口。"
+      ]
+    },
+    {
+      "category": "静态检查",
+      "files": [
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "更新安全静态检查，要求敏感 RPC 使用 FROM PUBLIC, anon, authenticated 的显式撤权语句。"
+      ]
+    },
+    {
+      "category": "上线报告",
+      "files": [
+        "docs/launch-reports/2026-05-29T05-46-51-member-launch-report.json"
+      ],
+      "details": [
+        "重新运行完整会员中心上线前报告，并记录新的验证证据。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment",
+      "result": "通过，重新生成 database/member_center_full_deploy.sql。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，确认敏感 RPC 显式撤销 PUBLIC、anon、authenticated 权限。"
+    },
+    {
+      "command": "rg -n \"REVOKE EXECUTE ON FUNCTION (verify_admin_password|get_admin_session|require_admin|apply_member_order_approval).*FROM\" database/member_center_full_deploy.sql database/create_admin_member_session.sql",
+      "result": "通过，四个敏感 RPC 在源 SQL 和完整部署 SQL 中都使用 FROM PUBLIC, anon, authenticated。"
+    },
+    {
+      "command": "npm run report:member-launch",
+      "result": "通过，生成 docs/launch-reports/2026-05-29T05-46-51-member-launch-report.json。生产 Supabase 远程验证和正式站点验证因当前 shell 未设置生产环境变量而按脚本设计跳过。"
+    }
+  ],
+  "knownLimitations": [
+    "尚未在 Supabase SQL Editor 重新执行修复后的 database/member_center_full_deploy.sql。",
+    "尚未在 Vercel Preview 或 Production 上执行真实登录、真实数据库读写、真实支付回调和正式域名页面验证。"
+  ],
+  "deploymentNotes": [
+    "需要在 Supabase SQL Editor 重新执行 database/member_center_full_deploy.sql。",
+    "执行后 deployment check 中 apply_member_order_approval_not_executable_by_anon、get_admin_session_not_executable_by_anon、require_admin_not_executable_by_anon、verify_admin_password_not_executable_by_anon 应全部为 true。"
+  ]
+}

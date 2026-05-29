@@ -954,21 +954,21 @@ BEGIN
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION require_premium_member(UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION ensure_member_record_owner(UUID, TEXT, UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION link_member_identity(TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION get_member_records() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, JSONB, JSONB) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION register_member_device(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION unlink_member_device(UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION create_member_order(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION create_member_report_unlock(TEXT, UUID, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION create_member_share_link(TEXT, UUID, TEXT, TEXT, JSONB, TIMESTAMP WITH TIME ZONE, TEXT) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION get_member_share_links() FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION deactivate_member_share_link(UUID) FROM PUBLIC;
-REVOKE EXECUTE ON FUNCTION get_member_public_share(TEXT, TEXT) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION require_premium_member(UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION ensure_member_record_owner(UUID, TEXT, UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION link_member_identity(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION get_member_records() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION register_member_device(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION unlink_member_device(UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION create_member_order(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION create_member_report_unlock(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION create_member_share_link(TEXT, UUID, TEXT, TEXT, JSONB, TIMESTAMP WITH TIME ZONE, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION get_member_share_links() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION deactivate_member_share_link(UUID) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION get_member_public_share(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION link_member_identity(TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) TO anon, authenticated;
