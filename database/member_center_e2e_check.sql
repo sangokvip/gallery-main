@@ -36,6 +36,50 @@ DECLARE
   wrong_claim_failed BOOLEAN := false;
   inactive_failed BOOLEAN := false;
 BEGIN
+  INSERT INTO auth.users (
+    id,
+    instance_id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    created_at,
+    updated_at,
+    confirmation_token,
+    email_change,
+    email_change_token_new,
+    recovery_token
+  )
+  VALUES (
+    test_account_id,
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated',
+    'authenticated',
+    'codex-member-e2e-' || test_account_id::text || '@example.test',
+    '',
+    timezone('utc'::text, now()),
+    '{"provider": "email", "providers": ["email"]}'::jsonb,
+    '{}'::jsonb,
+    timezone('utc'::text, now()),
+    timezone('utc'::text, now()),
+    '',
+    '',
+    '',
+    ''
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO member_center_e2e_results
+  VALUES (
+    5,
+    'seed_auth_user',
+    EXISTS (SELECT 1 FROM auth.users WHERE id = test_account_id),
+    'created temporary auth.users row for foreign key checks'
+  );
+
   PERFORM set_config('request.jwt.claim.sub', test_account_id::text, true);
   PERFORM set_config('request.jwt.claim.role', 'authenticated', true);
 
@@ -306,6 +350,7 @@ BEGIN
   DELETE FROM test_records WHERE id = test_record_id;
   DELETE FROM test_results WHERE record_id = test_second_record_id;
   DELETE FROM test_records WHERE id = test_second_record_id;
+  DELETE FROM auth.users WHERE id = test_account_id;
 
   INSERT INTO member_center_e2e_results
   VALUES (
@@ -313,7 +358,8 @@ BEGIN
     'cleanup',
     NOT EXISTS (SELECT 1 FROM member_profiles WHERE account_id = test_account_id)
       AND NOT EXISTS (SELECT 1 FROM test_records WHERE id = test_record_id)
-      AND NOT EXISTS (SELECT 1 FROM test_records WHERE id = test_second_record_id),
+      AND NOT EXISTS (SELECT 1 FROM test_records WHERE id = test_second_record_id)
+      AND NOT EXISTS (SELECT 1 FROM auth.users WHERE id = test_account_id),
     'temporary member and test record data removed'
   );
 EXCEPTION WHEN OTHERS THEN
@@ -334,6 +380,7 @@ EXCEPTION WHEN OTHERS THEN
     DELETE FROM test_results WHERE record_id = test_second_record_id;
     DELETE FROM test_records WHERE id = test_second_record_id;
   END IF;
+  DELETE FROM auth.users WHERE id = test_account_id;
 
   INSERT INTO member_center_e2e_results
   VALUES (999, 'unexpected_error', false, SQLERRM);

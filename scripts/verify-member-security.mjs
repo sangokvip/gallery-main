@@ -223,6 +223,8 @@ const checks = [
     present: [
       'member_center_e2e_results',
       'set_config',
+      'INSERT INTO auth.users',
+      'seed_auth_user',
       'get_or_create_member_profile',
       'link_member_identity',
       'register_legacy_identity_claim',
@@ -238,6 +240,7 @@ const checks = [
       'deactivate_member_share_link',
       'unlink_member_device',
       'access_code_hash',
+      'DELETE FROM auth.users WHERE id = test_account_id',
       'cleanup'
     ]
   },
