@@ -284,7 +284,7 @@ CREATE OR REPLACE FUNCTION link_member_identity(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -344,7 +344,7 @@ CREATE OR REPLACE FUNCTION register_legacy_identity_claim(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   clean_legacy_id TEXT := NULLIF(trim(input_legacy_user_id_text), '');
@@ -395,7 +395,7 @@ CREATE OR REPLACE FUNCTION get_or_create_member_profile(
 RETURNS member_profiles
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -443,7 +443,7 @@ CREATE OR REPLACE FUNCTION update_member_profile(
 RETURNS member_profiles
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -484,7 +484,7 @@ CREATE OR REPLACE FUNCTION register_member_device(
 RETURNS member_devices
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -529,7 +529,7 @@ CREATE OR REPLACE FUNCTION unlink_member_device(input_device_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -557,7 +557,7 @@ CREATE OR REPLACE FUNCTION require_premium_member(input_account_id UUID)
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   profile_tier TEXT;
@@ -577,7 +577,7 @@ CREATE OR REPLACE FUNCTION ensure_member_record_owner(input_account_id UUID, inp
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 BEGIN
   IF input_legacy_user_id_text IS NULL OR input_legacy_user_id_text = '' THEN
@@ -608,7 +608,7 @@ CREATE OR REPLACE FUNCTION get_member_records()
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -662,7 +662,7 @@ CREATE OR REPLACE FUNCTION create_member_order(
 RETURNS member_orders
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -720,7 +720,7 @@ CREATE OR REPLACE FUNCTION create_member_report_unlock(
 RETURNS member_report_unlocks
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -771,7 +771,7 @@ CREATE OR REPLACE FUNCTION create_member_share_link(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -818,7 +818,7 @@ CREATE OR REPLACE FUNCTION get_member_share_links()
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -855,7 +855,7 @@ CREATE OR REPLACE FUNCTION deactivate_member_share_link(input_share_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -885,7 +885,7 @@ CREATE OR REPLACE FUNCTION get_member_public_share(input_token TEXT, input_acces
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   link_row member_share_links%ROWTYPE;

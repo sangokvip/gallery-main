@@ -35,7 +35,7 @@ CREATE OR REPLACE FUNCTION verify_admin_password(input_password TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 BEGIN
   RETURN jsonb_build_object(
@@ -56,7 +56,7 @@ CREATE OR REPLACE FUNCTION change_admin_password(input_session_token_hash TEXT, 
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   admin_row admins%ROWTYPE;
@@ -100,7 +100,7 @@ CREATE OR REPLACE FUNCTION create_admin_session(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   admin_row admins%ROWTYPE;
@@ -168,7 +168,7 @@ CREATE OR REPLACE FUNCTION get_admin_session(input_session_token_hash TEXT)
 RETURNS TABLE(admin_id UUID, username TEXT, role TEXT)
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 BEGIN
   RETURN QUERY
@@ -186,7 +186,7 @@ CREATE OR REPLACE FUNCTION require_admin(input_session_token_hash TEXT)
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_admin UUID;
@@ -203,7 +203,7 @@ CREATE OR REPLACE FUNCTION member_admin_overview(input_session_token_hash TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -222,7 +222,7 @@ CREATE OR REPLACE FUNCTION member_admin_orders(input_session_token_hash TEXT, in
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -239,7 +239,7 @@ CREATE OR REPLACE FUNCTION member_admin_members(input_session_token_hash TEXT, i
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -287,7 +287,7 @@ CREATE OR REPLACE FUNCTION apply_member_order_approval(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   order_row member_orders%ROWTYPE;
@@ -372,7 +372,7 @@ CREATE OR REPLACE FUNCTION member_admin_approve_order(input_session_token_hash T
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -394,7 +394,7 @@ CREATE OR REPLACE FUNCTION member_admin_reject_order(input_session_token_hash TE
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -431,7 +431,7 @@ CREATE OR REPLACE FUNCTION admin_delete_message(input_session_token_hash TEXT, i
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -446,7 +446,7 @@ CREATE OR REPLACE FUNCTION admin_create_message(input_session_token_hash TEXT, i
 RETURNS messages
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -477,7 +477,7 @@ CREATE OR REPLACE FUNCTION admin_create_reply(
 RETURNS message_replies
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -507,7 +507,7 @@ CREATE OR REPLACE FUNCTION admin_delete_reply(input_session_token_hash TEXT, inp
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -522,7 +522,7 @@ CREATE OR REPLACE FUNCTION admin_toggle_message_pin(input_session_token_hash TEX
 RETURNS messages
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -552,7 +552,7 @@ CREATE OR REPLACE FUNCTION admin_update_message_reaction_count(
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;

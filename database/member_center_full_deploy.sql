@@ -213,7 +213,7 @@ ORDER BY check_type, name;
 
 -- ============================================================================
 -- 2. database/create_member_center_tables.sql
--- sha256: bc0dd390196284082431add82bcc97c1c5274ae350b58dba7c0460353653e325
+-- sha256: 4f381c39fd748050d26ce37a9e4c58b17d82d36350b63428c3200b4ac35d1607
 -- ============================================================================
 
 -- M-profile Lab member center tables
@@ -502,7 +502,7 @@ CREATE OR REPLACE FUNCTION link_member_identity(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -562,7 +562,7 @@ CREATE OR REPLACE FUNCTION register_legacy_identity_claim(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   clean_legacy_id TEXT := NULLIF(trim(input_legacy_user_id_text), '');
@@ -613,7 +613,7 @@ CREATE OR REPLACE FUNCTION get_or_create_member_profile(
 RETURNS member_profiles
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -661,7 +661,7 @@ CREATE OR REPLACE FUNCTION update_member_profile(
 RETURNS member_profiles
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -702,7 +702,7 @@ CREATE OR REPLACE FUNCTION register_member_device(
 RETURNS member_devices
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -747,7 +747,7 @@ CREATE OR REPLACE FUNCTION unlink_member_device(input_device_id UUID)
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -775,7 +775,7 @@ CREATE OR REPLACE FUNCTION require_premium_member(input_account_id UUID)
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   profile_tier TEXT;
@@ -795,7 +795,7 @@ CREATE OR REPLACE FUNCTION ensure_member_record_owner(input_account_id UUID, inp
 RETURNS VOID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 BEGIN
   IF input_legacy_user_id_text IS NULL OR input_legacy_user_id_text = '' THEN
@@ -826,7 +826,7 @@ CREATE OR REPLACE FUNCTION get_member_records()
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -880,7 +880,7 @@ CREATE OR REPLACE FUNCTION create_member_order(
 RETURNS member_orders
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -938,7 +938,7 @@ CREATE OR REPLACE FUNCTION create_member_report_unlock(
 RETURNS member_report_unlocks
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -989,7 +989,7 @@ CREATE OR REPLACE FUNCTION create_member_share_link(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -1036,7 +1036,7 @@ CREATE OR REPLACE FUNCTION get_member_share_links()
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -1073,7 +1073,7 @@ CREATE OR REPLACE FUNCTION deactivate_member_share_link(input_share_id UUID)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_account UUID := auth.uid();
@@ -1103,7 +1103,7 @@ CREATE OR REPLACE FUNCTION get_member_public_share(input_token TEXT, input_acces
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   link_row member_share_links%ROWTYPE;
@@ -1215,7 +1215,7 @@ COMMENT ON TABLE member_share_links IS '私密报告分享链接';
 
 -- ============================================================================
 -- 3. database/create_admin_member_session.sql
--- sha256: 50eb1a637e729e3bf7a79e1329fcefee2f85c6ef4cc6580498808e5c14bc7cc5
+-- sha256: a1f2bc9d77970b5a9b16c055e2f440d6f2d0fabd7eca058e60cc07f1df27ba5b
 -- ============================================================================
 
 -- Admin session and member management RPCs
@@ -1255,7 +1255,7 @@ CREATE OR REPLACE FUNCTION verify_admin_password(input_password TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 BEGIN
   RETURN jsonb_build_object(
@@ -1276,7 +1276,7 @@ CREATE OR REPLACE FUNCTION change_admin_password(input_session_token_hash TEXT, 
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   admin_row admins%ROWTYPE;
@@ -1320,7 +1320,7 @@ CREATE OR REPLACE FUNCTION create_admin_session(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   admin_row admins%ROWTYPE;
@@ -1388,7 +1388,7 @@ CREATE OR REPLACE FUNCTION get_admin_session(input_session_token_hash TEXT)
 RETURNS TABLE(admin_id UUID, username TEXT, role TEXT)
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 BEGIN
   RETURN QUERY
@@ -1406,7 +1406,7 @@ CREATE OR REPLACE FUNCTION require_admin(input_session_token_hash TEXT)
 RETURNS UUID
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   current_admin UUID;
@@ -1423,7 +1423,7 @@ CREATE OR REPLACE FUNCTION member_admin_overview(input_session_token_hash TEXT)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -1442,7 +1442,7 @@ CREATE OR REPLACE FUNCTION member_admin_orders(input_session_token_hash TEXT, in
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -1459,7 +1459,7 @@ CREATE OR REPLACE FUNCTION member_admin_members(input_session_token_hash TEXT, i
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -1507,7 +1507,7 @@ CREATE OR REPLACE FUNCTION apply_member_order_approval(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   order_row member_orders%ROWTYPE;
@@ -1592,7 +1592,7 @@ CREATE OR REPLACE FUNCTION member_admin_approve_order(input_session_token_hash T
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -1614,7 +1614,7 @@ CREATE OR REPLACE FUNCTION member_admin_reject_order(input_session_token_hash TE
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -1651,7 +1651,7 @@ CREATE OR REPLACE FUNCTION admin_delete_message(input_session_token_hash TEXT, i
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -1666,7 +1666,7 @@ CREATE OR REPLACE FUNCTION admin_create_message(input_session_token_hash TEXT, i
 RETURNS messages
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -1697,7 +1697,7 @@ CREATE OR REPLACE FUNCTION admin_create_reply(
 RETURNS message_replies
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -1727,7 +1727,7 @@ CREATE OR REPLACE FUNCTION admin_delete_reply(input_session_token_hash TEXT, inp
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -1742,7 +1742,7 @@ CREATE OR REPLACE FUNCTION admin_toggle_message_pin(input_session_token_hash TEX
 RETURNS messages
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;
@@ -1772,7 +1772,7 @@ CREATE OR REPLACE FUNCTION admin_update_message_reaction_count(
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   ignored UUID;

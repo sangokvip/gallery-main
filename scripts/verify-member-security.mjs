@@ -100,6 +100,7 @@ const checks = [
       'GRANT EXECUTE ON FUNCTION get_admin_session'
     ],
     present: [
+      'SET search_path = public, extensions',
       'admin_login_attempts',
       'failed_count >= 8',
       'change_admin_password(input_session_token_hash TEXT, current_password TEXT, new_password TEXT)',
@@ -154,6 +155,7 @@ const checks = [
       'member_identity_claims',
       'register_legacy_identity_claim',
       'claim_secret_hash',
+      'SET search_path = public, extensions',
       "digest(clean_claim_secret, 'sha256')",
       'DROP FUNCTION IF EXISTS link_member_identity(TEXT, TEXT)',
       'DROP FUNCTION IF EXISTS get_or_create_member_profile(TEXT, TEXT)',

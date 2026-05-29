@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-05-29-supabase-pgcrypto-search-path",
+  "date": "2026-05-29",
+  "summary": "修复 Supabase SQL Editor 执行完整会员中心 SQL 时 pgcrypto 函数不可见的问题。",
+  "trigger": "用户截图显示完整部署 SQL 的数据库端到端检查返回 unexpected_error，错误为 function digest(text, unknown) does not exist。",
+  "changes": [
+    {
+      "category": "数据库兼容性",
+      "files": [
+        "database/create_member_center_tables.sql",
+        "database/create_admin_member_session.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "把会员中心和后台 RPC 的 SECURITY DEFINER search_path 从 public 改为 public, extensions。",
+        "兼容 Supabase 把 pgcrypto 安装在 extensions schema 的常见配置，确保 digest、crypt、gen_salt、gen_random_bytes 在 RPC 内可见。",
+        "重新生成 database/member_center_full_deploy.sql，更新 SQL bundle hash。"
+      ]
+    },
+    {
+      "category": "验证规则",
+      "files": [
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "静态安全检查加入 SET search_path = public, extensions 断言，防止后续改回只包含 public。"
+      ]
+    },
+    {
+      "category": "上线报告",
+      "files": [
+        "docs/launch-reports/2026-05-29T04-52-35-member-launch-report.json"
+      ],
+      "details": [
+        "修复后重新运行完整会员中心上线前报告，并记录新的验证证据。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment",
+      "result": "通过，重新生成 database/member_center_full_deploy.sql。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，确认 SQL 安全检查和 Supabase extensions schema 兼容检查通过。"
+    },
+    {
+      "command": "npm run report:member-launch",
+      "result": "通过，生成 docs/launch-reports/2026-05-29T04-52-35-member-launch-report.json。生产 Supabase 远程验证和正式站点验证因当前 shell 未设置生产环境变量而按脚本设计跳过。"
+    }
+  ],
+  "knownLimitations": [
+    "尚未在 Supabase SQL Editor 重新执行修复后的 database/member_center_full_deploy.sql。",
+    "尚未在 Vercel Preview 或 Production 上执行真实登录、真实数据库读写、真实支付回调和正式域名页面验证。"
+  ],
+  "deploymentNotes": [
+    "需要在 Supabase SQL Editor 重新复制并执行修复后的 database/member_center_full_deploy.sql。",
+    "如果 SQL Editor 仍打开旧标签页，需要刷新或重新复制当前分支里的新版 SQL，旧标签页内容不会自动更新。"
+  ]
+}
