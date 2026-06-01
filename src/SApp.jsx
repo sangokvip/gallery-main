@@ -26,6 +26,7 @@ import { testRecordsApi, testNumberingApi } from './utils/supabase'
 import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 import AdsterraAd from './components/AdsterraAd'
+import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
 
 
 // MENU_ITEMS定义移到函数组件内部
@@ -151,6 +152,7 @@ function SApp() {
   const [reportProgress, setReportProgress] = useState(0)
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
+  const { showMemberSignupPrompt, MemberSignupPromptSnackbar } = useMemberSignupPrompt()
 
   // 页面加载时初始化数据
   useEffect(() => {
@@ -397,9 +399,10 @@ function SApp() {
     }
     setReportProgress(100);
     await new Promise(resolve => setTimeout(resolve, 120));
-    
+
     setGeneratingReport(false);
     setOpenReport(true);
+    setTimeout(showMemberSignupPrompt, 450);
   };
 
   // 将MENU_ITEMS移到函数组件内部，这样它可以访问组件的状态设置函数
@@ -1504,6 +1507,8 @@ function SApp() {
           <CloseIcon />
         </IconButton>
       </Dialog>
+
+      {MemberSignupPromptSnackbar}
 
       {/* 提示消息 */}
       <Snackbar

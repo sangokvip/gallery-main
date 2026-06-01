@@ -26,6 +26,7 @@ import { testRecordsApi, testNumberingApi } from './utils/supabase'
 import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 import AdsterraAd from './components/AdsterraAd'
+import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
 
 
 // 使用黑白像素风格的Footer
@@ -313,6 +314,7 @@ function App() {
   const [reportProgress, setReportProgress] = useState(0)
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
+  const { showMemberSignupPrompt, MemberSignupPromptSnackbar } = useMemberSignupPrompt()
 
   // 页面加载时初始化数据
   useEffect(() => {
@@ -599,9 +601,10 @@ function App() {
     }
     setReportProgress(100);
     await new Promise(resolve => setTimeout(resolve, 120));
-    
+
     setGeneratingReport(false);
     setOpenReport(true);
+    setTimeout(showMemberSignupPrompt, 450);
   };
 
   const handleRatingChange = (category, item, value) => {
@@ -1955,6 +1958,8 @@ function App() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {MemberSignupPromptSnackbar}
 
         <Snackbar
           open={snackbarOpen}

@@ -26,6 +26,7 @@ import { testRecordsApi, testNumberingApi } from './utils/supabase'
 import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 import AdsterraAd from './components/AdsterraAd'
+import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
 
 
 // GSAP动画系统导入
@@ -159,6 +160,7 @@ function App() {
   const [reportProgress, setReportProgress] = useState(0)
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
+  const { showMemberSignupPrompt, MemberSignupPromptSnackbar } = useMemberSignupPrompt()
 
   // 初始化GSAP和页面动画
   useEffect(() => {
@@ -744,6 +746,7 @@ function App() {
 
     setGeneratingReport(false);
     setOpenReport(true);
+    setTimeout(showMemberSignupPrompt, 450);
   };
 
   // 添加卡片悬停动画
@@ -1804,6 +1807,8 @@ function App() {
               </Button>
             </DialogActions>
           </Dialog>
+
+          {MemberSignupPromptSnackbar}
 
           <Snackbar
             open={snackbarOpen}
