@@ -22,6 +22,8 @@ required_functions(name) AS (
     ('link_member_identity'),
     ('register_legacy_identity_claim'),
     ('normalize_member_auth_user_metadata'),
+    ('create_user_settings'),
+    ('handle_new_user'),
     ('reserve_member_login_name'),
     ('get_member_login_email'),
     ('get_member_records'),
@@ -138,6 +140,30 @@ security_policy_check AS (
         AND relation_row.relname = 'users'
         AND trigger_row.tgname = 'aaa_member_auth_user_metadata_before_write'
         AND NOT trigger_row.tgisinternal
+    ) AS ok
+  UNION ALL
+  SELECT
+    'legacy_handle_new_user_no_new_username' AS name,
+    NOT EXISTS (
+      SELECT 1
+      FROM pg_proc proc_row
+      JOIN pg_namespace namespace_row ON namespace_row.oid = proc_row.pronamespace
+      WHERE namespace_row.nspname = 'public'
+        AND proc_row.proname = 'handle_new_user'
+        AND pg_get_functiondef(proc_row.oid) ILIKE '%new.username%'
+    ) AS ok
+  UNION ALL
+  SELECT
+    'legacy_create_user_settings_sets_required_defaults' AS name,
+    EXISTS (
+      SELECT 1
+      FROM pg_proc proc_row
+      JOIN pg_namespace namespace_row ON namespace_row.oid = proc_row.pronamespace
+      WHERE namespace_row.nspname = 'public'
+        AND proc_row.proname = 'create_user_settings'
+        AND pg_get_functiondef(proc_row.oid) ILIKE '%privacy_level%'
+        AND pg_get_functiondef(proc_row.oid) ILIKE '%theme%'
+        AND pg_get_functiondef(proc_row.oid) ILIKE '%COALESCE(NULLIF(trim(p_display_name)%'
     ) AS ok
   UNION ALL
   SELECT

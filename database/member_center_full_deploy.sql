@@ -215,7 +215,7 @@ ORDER BY check_type, name;
 
 -- ============================================================================
 -- 2. database/create_member_center_tables.sql
--- sha256: a827abb554e0c3945fa3b2ea332c6812a5f16f98701eeeef8885f4b19c5d7b68
+-- sha256: 2567f273657720fd13c830d065d0f15f8b441e454c627436e0c1f601d9ae9506
 -- ============================================================================
 
 -- M-profile Lab member center tables
@@ -468,6 +468,71 @@ CREATE TRIGGER aaa_member_auth_user_metadata_before_write
   BEFORE INSERT OR UPDATE OF email, raw_user_meta_data ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION normalize_member_auth_user_metadata();
+
+CREATE OR REPLACE FUNCTION create_user_settings(p_user_id UUID, p_display_name TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  clean_display_name TEXT := COALESCE(NULLIF(trim(p_display_name), ''), '会员用户');
+BEGIN
+  IF to_regclass('public.user_settings') IS NULL THEN
+    RETURN;
+  END IF;
+
+  INSERT INTO public.user_settings (
+    user_id,
+    display_name,
+    theme,
+    privacy_level,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    p_user_id,
+    clean_display_name,
+    'light',
+    'private',
+    timezone('utc'::text, now()),
+    timezone('utc'::text, now())
+  )
+  ON CONFLICT DO NOTHING;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  metadata JSONB := COALESCE(NEW.raw_user_meta_data, '{}'::jsonb);
+  clean_email TEXT := lower(trim(COALESCE(NEW.email, metadata->>'email', '')));
+  fallback_name TEXT;
+BEGIN
+  fallback_name := COALESCE(
+    NULLIF(trim(metadata->>'displayName'), ''),
+    NULLIF(trim(metadata->>'display_name'), ''),
+    NULLIF(trim(metadata->>'name'), ''),
+    NULLIF(trim(metadata->>'nickname'), ''),
+    NULLIF(trim(metadata->>'fullName'), ''),
+    NULLIF(trim(metadata->>'full_name'), ''),
+    NULLIF(trim(metadata->>'username'), ''),
+    NULLIF(trim(metadata->>'userName'), ''),
+    NULLIF(trim(metadata->>'user_name'), ''),
+    NULLIF(trim(metadata->>'loginName'), ''),
+    NULLIF(trim(metadata->>'login_name'), ''),
+    NULLIF(split_part(clean_email, '@', 1), ''),
+    '会员用户'
+  );
+
+  PERFORM create_user_settings(NEW.id, fallback_name);
+  RETURN NEW;
+END;
+$$;
 
 ALTER TABLE member_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_subscriptions ENABLE ROW LEVEL SECURITY;
@@ -2028,7 +2093,7 @@ COMMENT ON TABLE admin_login_attempts IS '后台登录失败计数，用于数�
 
 -- ============================================================================
 -- 4. database/member_center_deployment_check.sql
--- sha256: d269215ffd8402b39e04d3c8297470cd9aed9bebec22b5e3367f3a6167213b07
+-- sha256: e17b74bb921af7d86a66d6470a4800ae655c1867899260d216acd702b3cb74c5
 -- ============================================================================
 
 -- Member center deployment check
@@ -2055,6 +2120,8 @@ required_functions(name) AS (
     ('link_member_identity'),
     ('register_legacy_identity_claim'),
     ('normalize_member_auth_user_metadata'),
+    ('create_user_settings'),
+    ('handle_new_user'),
     ('reserve_member_login_name'),
     ('get_member_login_email'),
     ('get_member_records'),
@@ -2171,6 +2238,30 @@ security_policy_check AS (
         AND relation_row.relname = 'users'
         AND trigger_row.tgname = 'aaa_member_auth_user_metadata_before_write'
         AND NOT trigger_row.tgisinternal
+    ) AS ok
+  UNION ALL
+  SELECT
+    'legacy_handle_new_user_no_new_username' AS name,
+    NOT EXISTS (
+      SELECT 1
+      FROM pg_proc proc_row
+      JOIN pg_namespace namespace_row ON namespace_row.oid = proc_row.pronamespace
+      WHERE namespace_row.nspname = 'public'
+        AND proc_row.proname = 'handle_new_user'
+        AND pg_get_functiondef(proc_row.oid) ILIKE '%new.username%'
+    ) AS ok
+  UNION ALL
+  SELECT
+    'legacy_create_user_settings_sets_required_defaults' AS name,
+    EXISTS (
+      SELECT 1
+      FROM pg_proc proc_row
+      JOIN pg_namespace namespace_row ON namespace_row.oid = proc_row.pronamespace
+      WHERE namespace_row.nspname = 'public'
+        AND proc_row.proname = 'create_user_settings'
+        AND pg_get_functiondef(proc_row.oid) ILIKE '%privacy_level%'
+        AND pg_get_functiondef(proc_row.oid) ILIKE '%theme%'
+        AND pg_get_functiondef(proc_row.oid) ILIKE '%COALESCE(NULLIF(trim(p_display_name)%'
     ) AS ok
   UNION ALL
   SELECT

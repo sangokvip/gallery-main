@@ -1,0 +1,49 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-01-legacy-auth-trigger-fix",
+  "date": "2026-06-01",
+  "summary": "根据 Supabase 诊断结果修复生产旧 auth.users 注册触发器函数，避免继续读取 new.username 导致注册 500。",
+  "trigger": "用户执行 auth 注册诊断 SQL 后，结果显示 public.handle_new_user() 仍在 INSERT user_settings 时使用 new.username。",
+  "changes": [
+    {
+      "category": "生产旧触发器兼容",
+      "files": [
+        "database/create_member_center_tables.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "覆盖 public.create_user_settings(p_user_id uuid, p_display_name text)，显示名为空时使用“会员用户”。",
+        "create_user_settings 显式写入 user_settings 的 theme、privacy_level、created_at、updated_at，满足旧表非空字段。",
+        "覆盖 public.handle_new_user()，不再读取 new.username，改为从 raw_user_meta_data、邮箱前缀等来源推导 fallback_name。",
+        "handle_new_user 通过 create_user_settings(NEW.id, fallback_name) 写入旧 user_settings，并保留 RETURN NEW。"
+      ]
+    },
+    {
+      "category": "部署校验",
+      "files": [
+        "database/member_center_deployment_check.sql",
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "required_functions 增加 create_user_settings 和 handle_new_user。",
+        "新增 legacy_handle_new_user_no_new_username 检查，确认 handle_new_user 函数定义不再包含 new.username。",
+        "新增 legacy_create_user_settings_sets_required_defaults 检查，确认旧 user_settings 必填默认字段会被写入。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment && npm run verify:member-security && npm run build && git diff --check",
+      "result": "通过。完整部署 SQL 已重新生成，会员安全验证通过，Vite 生产构建通过，diff 空白检查通过。"
+    }
+  ],
+  "knownLimitations": [
+    "尚未在生产 Supabase 中重新执行最新 member_center_full_deploy.sql。",
+    "尚未在 Vercel Preview 重新注册真实用户验证，因为需要先执行最新 SQL。"
+  ],
+  "deploymentNotes": [
+    "需要重新在 Supabase SQL Editor 执行最新 database/member_center_full_deploy.sql。",
+    "执行结果应包含 legacy_handle_new_user_no_new_username = true 和 legacy_create_user_settings_sets_required_defaults = true。",
+    "执行后再回到 Vercel Preview 注册新用户名和新邮箱测试。"
+  ]
+}

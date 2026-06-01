@@ -249,6 +249,71 @@ CREATE TRIGGER aaa_member_auth_user_metadata_before_write
   FOR EACH ROW
   EXECUTE FUNCTION normalize_member_auth_user_metadata();
 
+CREATE OR REPLACE FUNCTION create_user_settings(p_user_id UUID, p_display_name TEXT)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  clean_display_name TEXT := COALESCE(NULLIF(trim(p_display_name), ''), '会员用户');
+BEGIN
+  IF to_regclass('public.user_settings') IS NULL THEN
+    RETURN;
+  END IF;
+
+  INSERT INTO public.user_settings (
+    user_id,
+    display_name,
+    theme,
+    privacy_level,
+    created_at,
+    updated_at
+  )
+  VALUES (
+    p_user_id,
+    clean_display_name,
+    'light',
+    'private',
+    timezone('utc'::text, now()),
+    timezone('utc'::text, now())
+  )
+  ON CONFLICT DO NOTHING;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  metadata JSONB := COALESCE(NEW.raw_user_meta_data, '{}'::jsonb);
+  clean_email TEXT := lower(trim(COALESCE(NEW.email, metadata->>'email', '')));
+  fallback_name TEXT;
+BEGIN
+  fallback_name := COALESCE(
+    NULLIF(trim(metadata->>'displayName'), ''),
+    NULLIF(trim(metadata->>'display_name'), ''),
+    NULLIF(trim(metadata->>'name'), ''),
+    NULLIF(trim(metadata->>'nickname'), ''),
+    NULLIF(trim(metadata->>'fullName'), ''),
+    NULLIF(trim(metadata->>'full_name'), ''),
+    NULLIF(trim(metadata->>'username'), ''),
+    NULLIF(trim(metadata->>'userName'), ''),
+    NULLIF(trim(metadata->>'user_name'), ''),
+    NULLIF(trim(metadata->>'loginName'), ''),
+    NULLIF(trim(metadata->>'login_name'), ''),
+    NULLIF(split_part(clean_email, '@', 1), ''),
+    '会员用户'
+  );
+
+  PERFORM create_user_settings(NEW.id, fallback_name);
+  RETURN NEW;
+END;
+$$;
+
 ALTER TABLE member_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_orders ENABLE ROW LEVEL SECURITY;
