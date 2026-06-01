@@ -49,6 +49,10 @@
       "result": "通过。登录页标题、管理后台副标题和登录按钮均可见，全部视口无横向滚动。Playwright 自带浏览器缺失，已改用本机 Google Chrome。"
     },
     {
+      "command": "post-deploy production check: https://www.bdsm.casa/sangok.html and assets/sangok-d27c0c1d.js",
+      "result": "通过。生产页面已切到新 sangok-d27c0c1d.js，线上 bundle 不再包含 verify_admin_password 或“验证服务异常”，并包含 create_admin_session 调用。"
+    },
+    {
       "command": "git diff --check",
       "result": "通过。未发现空白错误。"
     }
