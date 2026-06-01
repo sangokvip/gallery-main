@@ -215,7 +215,7 @@ ORDER BY check_type, name;
 
 -- ============================================================================
 -- 2. database/create_member_center_tables.sql
--- sha256: c3cf0df10849a7a6904e8cc820f9369d8b153e5a5eb24ed14ec3fb164fc6adde
+-- sha256: c38060e1c0a5ad15431c9c119cbd1f44d6d5769e6d3bd9b190db2966d06071fd
 -- ============================================================================
 
 -- M-profile Lab member center tables
@@ -404,6 +404,57 @@ CREATE TRIGGER update_member_share_links_updated_at
   BEFORE UPDATE ON member_share_links
   FOR EACH ROW
   EXECUTE FUNCTION update_member_center_timestamp();
+
+CREATE OR REPLACE FUNCTION normalize_member_auth_user_metadata()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  metadata JSONB := COALESCE(NEW.raw_user_meta_data, '{}'::jsonb);
+  clean_email TEXT := lower(trim(COALESCE(NEW.email, metadata->>'email', '')));
+  fallback_name TEXT;
+  fallback_username TEXT;
+BEGIN
+  fallback_name := COALESCE(
+    NULLIF(trim(metadata->>'display_name'), ''),
+    NULLIF(trim(metadata->>'name'), ''),
+    NULLIF(trim(metadata->>'nickname'), ''),
+    NULLIF(trim(metadata->>'full_name'), ''),
+    NULLIF(split_part(clean_email, '@', 1), ''),
+    '会员用户'
+  );
+
+  fallback_username := lower(COALESCE(
+    NULLIF(trim(metadata->>'username'), ''),
+    regexp_replace(split_part(clean_email, '@', 1), '[^A-Za-z0-9_]', '', 'g'),
+    'member'
+  ));
+  fallback_username := left(regexp_replace(fallback_username, '[^a-z0-9_]', '', 'g'), 24);
+  IF length(fallback_username) < 3 THEN
+    fallback_username := 'member';
+  END IF;
+
+  NEW.raw_user_meta_data := metadata || jsonb_build_object(
+    'username', fallback_username,
+    'display_name', fallback_name,
+    'name', fallback_name,
+    'nickname', fallback_name,
+    'full_name', fallback_name,
+    'email', clean_email,
+    'contact_email', clean_email
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS aaa_member_auth_user_metadata_before_write ON auth.users;
+CREATE TRIGGER aaa_member_auth_user_metadata_before_write
+  BEFORE INSERT OR UPDATE OF email, raw_user_meta_data ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION normalize_member_auth_user_metadata();
 
 ALTER TABLE member_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_subscriptions ENABLE ROW LEVEL SECURITY;
@@ -1964,7 +2015,7 @@ COMMENT ON TABLE admin_login_attempts IS '后台登录失败计数，用于数�
 
 -- ============================================================================
 -- 4. database/member_center_deployment_check.sql
--- sha256: 2c6e0b3b3519e09bea67f8d075750783b644c16e86a320963436cae4a5403957
+-- sha256: d269215ffd8402b39e04d3c8297470cd9aed9bebec22b5e3367f3a6167213b07
 -- ============================================================================
 
 -- Member center deployment check
@@ -1990,6 +2041,7 @@ required_functions(name) AS (
     ('get_or_create_member_profile'),
     ('link_member_identity'),
     ('register_legacy_identity_claim'),
+    ('normalize_member_auth_user_metadata'),
     ('reserve_member_login_name'),
     ('get_member_login_email'),
     ('get_member_records'),
@@ -2094,6 +2146,19 @@ security_policy_check AS (
     'member_login_names_not_selectable' AS name,
     NOT has_table_privilege('authenticated', 'member_login_names', 'SELECT')
       AND NOT has_table_privilege('anon', 'member_login_names', 'SELECT') AS ok
+  UNION ALL
+  SELECT
+    'auth_user_metadata_normalizer_trigger_exists' AS name,
+    EXISTS (
+      SELECT 1
+      FROM pg_trigger trigger_row
+      JOIN pg_class relation_row ON relation_row.oid = trigger_row.tgrelid
+      JOIN pg_namespace namespace_row ON namespace_row.oid = relation_row.relnamespace
+      WHERE namespace_row.nspname = 'auth'
+        AND relation_row.relname = 'users'
+        AND trigger_row.tgname = 'aaa_member_auth_user_metadata_before_write'
+        AND NOT trigger_row.tgisinternal
+    ) AS ok
   UNION ALL
   SELECT
     'member_identity_links_no_owner_insert_policy' AS name,

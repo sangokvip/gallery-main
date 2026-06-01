@@ -185,6 +185,57 @@ CREATE TRIGGER update_member_share_links_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_member_center_timestamp();
 
+CREATE OR REPLACE FUNCTION normalize_member_auth_user_metadata()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  metadata JSONB := COALESCE(NEW.raw_user_meta_data, '{}'::jsonb);
+  clean_email TEXT := lower(trim(COALESCE(NEW.email, metadata->>'email', '')));
+  fallback_name TEXT;
+  fallback_username TEXT;
+BEGIN
+  fallback_name := COALESCE(
+    NULLIF(trim(metadata->>'display_name'), ''),
+    NULLIF(trim(metadata->>'name'), ''),
+    NULLIF(trim(metadata->>'nickname'), ''),
+    NULLIF(trim(metadata->>'full_name'), ''),
+    NULLIF(split_part(clean_email, '@', 1), ''),
+    '会员用户'
+  );
+
+  fallback_username := lower(COALESCE(
+    NULLIF(trim(metadata->>'username'), ''),
+    regexp_replace(split_part(clean_email, '@', 1), '[^A-Za-z0-9_]', '', 'g'),
+    'member'
+  ));
+  fallback_username := left(regexp_replace(fallback_username, '[^a-z0-9_]', '', 'g'), 24);
+  IF length(fallback_username) < 3 THEN
+    fallback_username := 'member';
+  END IF;
+
+  NEW.raw_user_meta_data := metadata || jsonb_build_object(
+    'username', fallback_username,
+    'display_name', fallback_name,
+    'name', fallback_name,
+    'nickname', fallback_name,
+    'full_name', fallback_name,
+    'email', clean_email,
+    'contact_email', clean_email
+  );
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS aaa_member_auth_user_metadata_before_write ON auth.users;
+CREATE TRIGGER aaa_member_auth_user_metadata_before_write
+  BEFORE INSERT OR UPDATE OF email, raw_user_meta_data ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION normalize_member_auth_user_metadata();
+
 ALTER TABLE member_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_subscriptions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_orders ENABLE ROW LEVEL SECURITY;

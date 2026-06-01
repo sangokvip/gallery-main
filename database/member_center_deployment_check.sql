@@ -21,6 +21,7 @@ required_functions(name) AS (
     ('get_or_create_member_profile'),
     ('link_member_identity'),
     ('register_legacy_identity_claim'),
+    ('normalize_member_auth_user_metadata'),
     ('reserve_member_login_name'),
     ('get_member_login_email'),
     ('get_member_records'),
@@ -125,6 +126,19 @@ security_policy_check AS (
     'member_login_names_not_selectable' AS name,
     NOT has_table_privilege('authenticated', 'member_login_names', 'SELECT')
       AND NOT has_table_privilege('anon', 'member_login_names', 'SELECT') AS ok
+  UNION ALL
+  SELECT
+    'auth_user_metadata_normalizer_trigger_exists' AS name,
+    EXISTS (
+      SELECT 1
+      FROM pg_trigger trigger_row
+      JOIN pg_class relation_row ON relation_row.oid = trigger_row.tgrelid
+      JOIN pg_namespace namespace_row ON namespace_row.oid = relation_row.relnamespace
+      WHERE namespace_row.nspname = 'auth'
+        AND relation_row.relname = 'users'
+        AND trigger_row.tgname = 'aaa_member_auth_user_metadata_before_write'
+        AND NOT trigger_row.tgisinternal
+    ) AS ok
   UNION ALL
   SELECT
     'member_identity_links_no_owner_insert_policy' AS name,

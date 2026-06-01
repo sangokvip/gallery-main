@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-01-auth-signup-trigger-normalizer",
+  "date": "2026-06-01",
+  "summary": "针对生产注册仍报 Database error saving new user，补充 auth.users 写入前的会员 metadata 规范化触发器。",
+  "trigger": "用户确认已执行 database/member_center_full_deploy.sql 后，Vercel Preview 注册仍显示“注册失败: Database error saving new user”。",
+  "changes": [
+    {
+      "category": "数据库注册兼容修复",
+      "files": [
+        "database/create_member_center_tables.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "新增 normalize_member_auth_user_metadata() 触发器函数。",
+        "新增 auth.users 的 BEFORE INSERT/UPDATE 触发器 aaa_member_auth_user_metadata_before_write。",
+        "Auth 用户写入前会补齐 username、display_name、name、nickname、full_name、email、contact_email。",
+        "该修复用于兼容生产库里可能存在的旧注册触发器，尤其是 user_settings.display_name 这类非空字段。"
+      ]
+    },
+    {
+      "category": "部署检查",
+      "files": [
+        "database/member_center_deployment_check.sql",
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "部署检查增加 normalize_member_auth_user_metadata 函数存在性检查。",
+        "部署检查增加 auth_user_metadata_normalizer_trigger_exists，确认 auth.users 上的 metadata 规范化触发器已安装。",
+        "静态安全验证同步加入新函数和触发器断言。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment && npm run verify:member-security && npm run build && git diff --check",
+      "result": "通过。完整部署 SQL 已重新生成，会员安全验证通过，Vite 生产构建通过，diff 空白检查通过。"
+    },
+    {
+      "command": "npm run report:member-launch",
+      "result": "通过。覆盖部署 SQL 准备、安全检查、生产构建、会员中心多视口、后台多视口、分享报告多视口、支付 webhook 契约；生产 Supabase 和站点检查因本地未设置生产环境变量被跳过。",
+      "artifacts": [
+        "docs/launch-reports/2026-06-01T06-56-45-member-launch-report.json"
+      ]
+    }
+  ],
+  "knownLimitations": [
+    "尚未直接在生产 Supabase 中创建真实 Auth 用户，因为本地不读取生产密钥。",
+    "如果重新执行新版完整 SQL 后仍失败，需要查看 Supabase Auth/Postgres 日志中的具体触发器错误；前端的 Database error saving new user 是 Supabase 的通用包装错误。"
+  ],
+  "deploymentNotes": [
+    "必须重新在 Supabase SQL Editor 执行最新 database/member_center_full_deploy.sql；本次文件已变化，不能继续使用刚才执行过的旧内容。",
+    "执行结果里应出现 auth_user_metadata_normalizer_trigger_exists = true。"
+  ]
+}
