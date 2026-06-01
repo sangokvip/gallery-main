@@ -1783,8 +1783,7 @@ const realMemberCenterApi = {
       });
 
       if (linkError) {
-        console.error('绑定会员测评身份失败:', linkError);
-        throw new Error('绑定会员测评身份失败: ' + (linkError.message || '未知错误'));
+        console.warn('本设备旧记录暂未同步到会员账号:', linkError.message || linkError);
       }
     }
 
