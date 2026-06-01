@@ -49,14 +49,23 @@ WHERE table_schema = 'public'
   AND column_default IS NULL
 ORDER BY ordinal_position;
 
+WITH ordinary_functions AS (
+  SELECT
+    proc_row.oid,
+    proc_namespace.nspname AS function_schema,
+    proc_row.proname AS function_name,
+    pg_get_functiondef(proc_row.oid) AS function_definition
+  FROM pg_proc proc_row
+  JOIN pg_namespace proc_namespace ON proc_namespace.oid = proc_row.pronamespace
+  WHERE proc_row.prokind = 'f'
+)
 SELECT
   'trigger_function_mentions_user_settings' AS check_type,
-  proc_namespace.nspname || '.' || proc_row.proname AS name,
+  function_schema || '.' || function_name AS name,
   'function' AS status,
-  left(pg_get_functiondef(proc_row.oid), 1200) AS detail,
+  left(function_definition, 1200) AS detail,
   '' AS trigger_definition
-FROM pg_proc proc_row
-JOIN pg_namespace proc_namespace ON proc_namespace.oid = proc_row.pronamespace
-WHERE pg_get_functiondef(proc_row.oid) ILIKE '%user_settings%'
-   OR pg_get_functiondef(proc_row.oid) ILIKE '%raw_user_meta_data%'
+FROM ordinary_functions
+WHERE function_definition ILIKE '%user_settings%'
+   OR function_definition ILIKE '%raw_user_meta_data%'
 ORDER BY name;
