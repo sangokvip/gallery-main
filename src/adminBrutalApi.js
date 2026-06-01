@@ -1,5 +1,15 @@
 import { supabase } from './utils/supabase.js';
 
+function randomToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes).map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function sha256(value) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
 function getReportDataCount(reportData) {
   if (!reportData || typeof reportData !== 'object') return 0;
   if (Number.isFinite(reportData.completedItems)) return reportData.completedItems;
@@ -13,22 +23,36 @@ function getReportDataCount(reportData) {
 export const adminApi = {
   // 登录 - 通过 Supabase RPC 验证密码
   async login(username, password) {
-    const { data, error } = await supabase.rpc('verify_admin_password', { input_password: password });
-    if (error) throw new Error('验证服务异常: ' + error.message);
-    if (!data?.is_valid) throw new Error('用户名或密码错误');
-    // 密码验证通过，查询管理员信息
-    const { data: admin, error: adminErr } = await supabase
-      .from('admins').select('id, username, role').eq('username', username).eq('is_active', true).single();
-    if (adminErr || !admin) throw new Error('管理员账户不存在或已禁用');
-    // 更新最后登录时间
-    await supabase.from('admins').update({ last_login: new Date().toISOString() }).eq('id', admin.id);
-    return { id: admin.id, username: admin.username, role: admin.role };
+    const sessionToken = randomToken();
+    const sessionTokenHash = await sha256(sessionToken);
+    const { data: sessionData, error: sessionError } = await supabase.rpc('create_admin_session', {
+      input_username: username,
+      input_password: password,
+      input_session_token_hash: sessionTokenHash
+    });
+
+    if (!sessionError && sessionData?.id) {
+      return {
+        id: sessionData.id,
+        username: sessionData.username,
+        role: sessionData.role,
+        sessionToken,
+        expiresAt: sessionData.expires_at
+      };
+    }
+
+    throw new Error(sessionError?.message || '管理员登录服务未部署');
   },
 
   // 修改密码 - 通过 Supabase RPC
   async changePassword(username, currentPassword, newPassword) {
+    const sessionTokenHash = await this.getSessionTokenHash();
+    if (!sessionTokenHash) throw new Error('管理员会话无效或已过期');
+
     const { data, error } = await supabase.rpc('change_admin_password', {
-      admin_username: username, current_password: currentPassword, new_password_hash: newPassword
+      input_session_token_hash: sessionTokenHash,
+      current_password: currentPassword,
+      new_password: newPassword
     });
     if (error) throw new Error('修改密码失败: ' + error.message);
     if (!data?.success) throw new Error(data?.error || '修改密码失败');
@@ -44,6 +68,12 @@ export const adminApi = {
       if (!admin?.username || !admin?.role || !admin?.id) { localStorage.removeItem('admin_data'); return null; }
       return admin;
     } catch { localStorage.removeItem('admin_data'); return null; }
+  },
+
+  async getSessionTokenHash() {
+    const admin = this.validateSession();
+    if (!admin?.sessionToken) return null;
+    return sha256(admin.sessionToken);
   },
 
   // 获取/保存系统设置 - 通过 Supabase system_settings 表

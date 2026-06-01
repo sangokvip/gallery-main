@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-01-production-admin-login-rpc",
+  "date": "2026-06-01",
+  "summary": "修复生产后台登录仍调用旧 verify_admin_password RPC 导致被安全权限拒绝的问题。",
+  "trigger": "生产环境 /sangok.html 后台登录失败，页面提示 permission denied for function verify_admin_password；用户说明之前做过安全优化。",
+  "changes": [
+    {
+      "category": "后台登录修复",
+      "files": [
+        "src/adminBrutalApi.js"
+      ],
+      "details": "将 sangok 后台登录从旧的 verify_admin_password 加前端直查 admins 表，改为调用 create_admin_session；前端生成随机 session token，只把 SHA-256 token hash 发给 Supabase RPC，登录成功后本地保存短期 token 和过期时间。"
+    },
+    {
+      "category": "密码修改兼容",
+      "files": [
+        "src/adminBrutalApi.js"
+      ],
+      "details": "修改密码改为使用当前管理员 session token hash 调用 change_admin_password，避免继续依赖旧 admin_username/new_password_hash 参数。"
+    },
+    {
+      "category": "生产排查",
+      "files": [
+        "src/adminBrutalApi.js"
+      ],
+      "details": "确认生产站仍加载旧 sangok-f8dbb00b.js，旧 bundle 直接调用 verify_admin_password；生产 Supabase 的 create_admin_session 对空输入返回业务错误，说明新登录 RPC 已存在且可由 anon 调用。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "curl -L https://www.bdsm.casa/sangok.html and inspect production asset",
+      "result": "确认生产 HTML 加载 assets/sangok-f8dbb00b.js，生产 JS 中仍存在 verify_admin_password 调用，是当前登录失败的直接原因。"
+    },
+    {
+      "command": "production create_admin_session existence check with empty input",
+      "result": "通过。未输出 Supabase key；RPC 返回 400 和“用户名或密码错误”，证明函数存在且 anon 可调用。"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 构建成功；保留既有 Duplicate onClick、Duplicate key 和 chunk size 警告。"
+    },
+    {
+      "command": "rg -n \"verify_admin_password|验证服务异常\" dist/assets/sangok-*.js dist/sangok.html",
+      "result": "通过。构建后的 sangok 后台产物不再包含旧 verify_admin_password 登录调用。"
+    },
+    {
+      "command": "Chrome Playwright smoke: /sangok.html at 320, 375, 390, 430, 768, 1024, 1440",
+      "result": "通过。登录页标题、管理后台副标题和登录按钮均可见，全部视口无横向滚动。Playwright 自带浏览器缺失，已改用本机 Google Chrome。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过。未发现空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "未使用真实管理员账号密码做生产登录，避免在本地命令和日志中处理真实凭据。",
+    "当前修复需要部署到生产分支后才会替换线上旧 sangok JS bundle。",
+    "Vite 构建仍有既有 JSX 重复属性、重复对象 key 和大 chunk 警告，本次未改动这些非登录问题。"
+  ],
+  "deploymentNotes": [
+    "生产分支部署后，/sangok.html 应加载新的 sangok bundle，bundle 中应只出现 create_admin_session，不应出现 verify_admin_password。",
+    "不要为了恢复登录而重新 GRANT verify_admin_password 给 anon；那会回退之前的安全优化。",
+    "部署后建议在浏览器硬刷新 /sangok.html，并用真实管理员凭据验证登录。"
+  ]
+}
