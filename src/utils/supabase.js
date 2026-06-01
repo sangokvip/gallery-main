@@ -1704,13 +1704,20 @@ const realMemberCenterApi = {
       options: {
         data: {
           username: cleanUsername,
+          userName: cleanUsername,
+          user_name: cleanUsername,
+          loginName: cleanUsername,
+          login_name: cleanUsername,
+          displayName: profile.displayName || cleanUsername,
           full_name: profile.displayName || cleanUsername,
+          fullName: profile.displayName || cleanUsername,
           name: profile.displayName || cleanUsername,
           nickname: profile.displayName || cleanUsername,
           display_name: profile.displayName || cleanUsername,
           qq: profile.qq || '',
           wechat: profile.wechat || '',
           email: cleanEmail,
+          contactEmail: cleanEmail,
           contact_email: cleanEmail,
           phone: profile.phone || ''
         }

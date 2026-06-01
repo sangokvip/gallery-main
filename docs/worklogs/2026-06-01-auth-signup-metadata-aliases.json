@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-01-auth-signup-metadata-aliases",
+  "date": "2026-06-01",
+  "summary": "继续处理生产注册的 Database error saving new user，补齐旧触发器可能读取的会员 metadata 别名，并增加只读诊断 SQL。",
+  "trigger": "用户重新执行完整 SQL 后，Vercel Preview 注册仍在 Supabase Auth /signup 返回 500 Database error saving new user。",
+  "changes": [
+    {
+      "category": "注册 metadata 兼容",
+      "files": [
+        "src/utils/supabase.js",
+        "database/create_member_center_tables.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "前端 Supabase Auth signUp metadata 增加 displayName、fullName、userName、user_name、loginName、login_name、contactEmail 等别名。",
+        "数据库 auth.users BEFORE 触发器同步补齐 camelCase 和 snake_case 两套字段。",
+        "该改动用于兼容生产库旧注册触发器读取不同 metadata 字段名的情况。"
+      ]
+    },
+    {
+      "category": "诊断工具",
+      "files": [
+        "database/auth_signup_trigger_diagnostic.sql"
+      ],
+      "details": [
+        "新增只读 SQL，列出 auth.users 上的非内部触发器。",
+        "列出 public.user_settings 中无默认值且非空的字段。",
+        "列出提到 user_settings 或 raw_user_meta_data 的触发器函数片段，便于从 Supabase SQL Editor 直接定位根因。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment && npm run verify:member-security && npm run build && git diff --check",
+      "result": "通过。完整部署 SQL 已重新生成，安全验证通过，Vite 生产构建通过，diff 空白检查通过。"
+    }
+  ],
+  "knownLimitations": [
+    "仍未直接在生产 Supabase 中创建真实用户，因为本地不读取生产密钥。",
+    "如果新版 SQL 执行后仍失败，需要执行 database/auth_signup_trigger_diagnostic.sql 并根据输出中的触发器函数修复旧生产触发器。"
+  ],
+  "deploymentNotes": [
+    "需要重新在 Supabase SQL Editor 执行最新 database/member_center_full_deploy.sql；这份文件已再次变化。",
+    "如果仍失败，再执行 database/auth_signup_trigger_diagnostic.sql，把结果中的 auth_user_trigger 和 user_settings_required_column 发回来。"
+  ]
+}

@@ -215,7 +215,7 @@ ORDER BY check_type, name;
 
 -- ============================================================================
 -- 2. database/create_member_center_tables.sql
--- sha256: c38060e1c0a5ad15431c9c119cbd1f44d6d5769e6d3bd9b190db2966d06071fd
+-- sha256: a827abb554e0c3945fa3b2ea332c6812a5f16f98701eeeef8885f4b19c5d7b68
 -- ============================================================================
 
 -- M-profile Lab member center tables
@@ -418,9 +418,11 @@ DECLARE
   fallback_username TEXT;
 BEGIN
   fallback_name := COALESCE(
+    NULLIF(trim(metadata->>'displayName'), ''),
     NULLIF(trim(metadata->>'display_name'), ''),
     NULLIF(trim(metadata->>'name'), ''),
     NULLIF(trim(metadata->>'nickname'), ''),
+    NULLIF(trim(metadata->>'fullName'), ''),
     NULLIF(trim(metadata->>'full_name'), ''),
     NULLIF(split_part(clean_email, '@', 1), ''),
     '会员用户'
@@ -428,6 +430,10 @@ BEGIN
 
   fallback_username := lower(COALESCE(
     NULLIF(trim(metadata->>'username'), ''),
+    NULLIF(trim(metadata->>'userName'), ''),
+    NULLIF(trim(metadata->>'user_name'), ''),
+    NULLIF(trim(metadata->>'loginName'), ''),
+    NULLIF(trim(metadata->>'login_name'), ''),
     regexp_replace(split_part(clean_email, '@', 1), '[^A-Za-z0-9_]', '', 'g'),
     'member'
   ));
@@ -438,11 +444,18 @@ BEGIN
 
   NEW.raw_user_meta_data := metadata || jsonb_build_object(
     'username', fallback_username,
+    'userName', fallback_username,
+    'user_name', fallback_username,
+    'loginName', fallback_username,
+    'login_name', fallback_username,
+    'displayName', fallback_name,
     'display_name', fallback_name,
     'name', fallback_name,
     'nickname', fallback_name,
+    'fullName', fallback_name,
     'full_name', fallback_name,
     'email', clean_email,
+    'contactEmail', clean_email,
     'contact_email', clean_email
   );
 
