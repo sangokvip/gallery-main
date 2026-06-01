@@ -225,6 +225,7 @@ function MemberCenterApp() {
   const [authForm, setAuthForm] = useState({
     username: '',
     password: '',
+    passwordConfirm: '',
     displayName: '',
     qq: '',
     wechat: '',
@@ -371,6 +372,10 @@ function MemberCenterApp() {
 
   const submitAuth = async () => {
     try {
+      if (authMode === 'register') {
+        if (!authForm.email.trim()) throw new Error('请输入邮箱');
+        if (authForm.password !== authForm.passwordConfirm) throw new Error('两次输入的密码不一致');
+      }
       const payload = {
         username: authForm.username,
         password: authForm.password,
@@ -567,18 +572,34 @@ function MemberCenterApp() {
                 />
                 {authMode === 'register' && (
                   <>
+                    <TextField
+                      size="small"
+                      type="password"
+                      label="确认密码"
+                      value={authForm.passwordConfirm}
+                      onChange={event => setAuthForm(prev => ({ ...prev, passwordConfirm: event.target.value }))}
+                      fullWidth
+                    />
+                    <TextField
+                      size="small"
+                      type="email"
+                      label="邮箱"
+                      value={authForm.email}
+                      onChange={event => setAuthForm(prev => ({ ...prev, email: event.target.value }))}
+                      required
+                      fullWidth
+                    />
                     <TextField size="small" label="昵称（选填）" value={authForm.displayName} onChange={event => setAuthForm(prev => ({ ...prev, displayName: event.target.value }))} fullWidth />
                     <Box className="optional-contact-grid">
                       <TextField size="small" label="QQ（选填）" value={authForm.qq} onChange={event => setAuthForm(prev => ({ ...prev, qq: event.target.value }))} />
                       <TextField size="small" label="微信（选填）" value={authForm.wechat} onChange={event => setAuthForm(prev => ({ ...prev, wechat: event.target.value }))} />
-                      <TextField size="small" type="email" label="邮箱（选填）" value={authForm.email} onChange={event => setAuthForm(prev => ({ ...prev, email: event.target.value }))} />
                       <TextField size="small" label="电话（选填）" value={authForm.phone} onChange={event => setAuthForm(prev => ({ ...prev, phone: event.target.value }))} />
                     </Box>
                   </>
                 )}
                 <Button
                   onClick={submitAuth}
-                  disabled={!authForm.username.trim() || !authForm.password}
+                  disabled={!authForm.username.trim() || !authForm.password || (authMode === 'register' && (!authForm.passwordConfirm || !authForm.email.trim()))}
                   className="member-outline-button auth-submit"
                 >
                   {authMode === 'register' ? '立即注册' : '登录会员中心'}

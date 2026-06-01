@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-01-member-registration-email-confirm",
+  "date": "2026-06-01",
+  "summary": "修复会员注册继续报 Database error saving new user 的高风险路径，并把注册表单改为邮箱必填、密码二次确认。",
+  "trigger": "用户反馈注册新会员时报“注册失败: Database error saving new user”，同时要求密码输入两遍、邮箱改为必填。",
+  "changes": [
+    {
+      "category": "前端注册表单",
+      "files": [
+        "src/MemberCenterApp.jsx"
+      ],
+      "details": [
+        "注册模式新增确认密码输入框。",
+        "邮箱从选填联系方式改为注册必填项。",
+        "提交前校验邮箱不能为空、两次密码必须一致。",
+        "注册成功后继续把 QQ、微信、邮箱、电话写入会员资料。"
+      ]
+    },
+    {
+      "category": "会员登录和注册逻辑",
+      "files": [
+        "src/utils/supabase.js"
+      ],
+      "details": [
+        "注册改用用户填写的真实邮箱创建 Supabase Auth 用户，不再用虚拟邮箱。",
+        "注册 metadata 同步写入 username、display_name、full_name、name、nickname、email、contact_email、QQ、微信和电话，降低数据库触发器因字段为空失败的概率。",
+        "登录支持用户名或邮箱；用户名登录会先通过 RPC 查询对应邮箱，再调用 Supabase Auth 密码登录。",
+        "本地 mock 注册同步要求有效邮箱。"
+      ]
+    },
+    {
+      "category": "数据库部署脚本",
+      "files": [
+        "database/create_member_center_tables.sql",
+        "database/member_center_deployment_check.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "新增 member_login_names 表保存用户名到 Auth 邮箱的映射。",
+        "新增 reserve_member_login_name 和 get_member_login_email RPC，用于注册前占用用户名和用户名登录。",
+        "member_login_names 开启 RLS 并撤销 anon/authenticated 的直接读写权限，只允许通过受控 RPC 访问。",
+        "部署检查增加 member_login_names、相关 RPC 和不可直接 SELECT 的安全检查。"
+      ]
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "把新表、新 RPC 和部署检查项纳入会员安全验证。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run report:member-launch",
+      "result": "通过。覆盖部署 SQL 准备、安全检查、生产构建、会员中心多视口、后台多视口、分享报告多视口、支付 webhook 契约；生产 Supabase 和站点检查因本地未设置生产环境变量被跳过。",
+      "artifacts": [
+        "docs/launch-reports/2026-06-01T06-36-51-member-launch-report.json"
+      ]
+    },
+    {
+      "command": "npm run prepare:member-deployment && npm run verify:member-security && npm run build && git diff --check",
+      "result": "通过。最终 SQL 重新生成，安全验证通过，Vite 生产构建通过，diff 空白检查通过。"
+    }
+  ],
+  "knownLimitations": [
+    "没有直接在生产 Supabase 中创建真实用户，因为本地不读取或输出生产密钥。",
+    "Supabase 的“Database error saving new user”是 Auth 包装后的通用错误；本次已修复前端传虚拟邮箱和 metadata 不完整的问题。如果生产仍报同样错误，需要查看 Supabase Auth/Postgres 日志中的触发器具体错误。",
+    "若希望注册后无需邮箱确认直接进入会员中心，Supabase Auth 的 Email confirmations 需要保持关闭。"
+  ],
+  "deploymentNotes": [
+    "部署前必须在 Supabase SQL Editor 执行最新 database/member_center_full_deploy.sql，因为本次新增了 member_login_names 表和两个 RPC。",
+    "Vercel 仍从 GitHub 分支部署；本次改动已准备提交到 codex/member-center 分支。"
+  ]
+}

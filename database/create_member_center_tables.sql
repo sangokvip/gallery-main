@@ -23,6 +23,13 @@ ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS wechat TEXT;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS contact_email TEXT;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS phone TEXT;
 
+CREATE TABLE IF NOT EXISTS member_login_names (
+  username TEXT PRIMARY KEY CHECK (username ~ '^[a-z0-9_]{3,24}$'),
+  auth_email TEXT NOT NULL UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
 CREATE TABLE IF NOT EXISTS member_subscriptions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   account_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -136,6 +143,7 @@ CREATE INDEX IF NOT EXISTS idx_member_account_events_type ON member_account_even
 CREATE INDEX IF NOT EXISTS idx_member_identity_links_account ON member_identity_links(account_id);
 CREATE INDEX IF NOT EXISTS idx_member_identity_links_legacy ON member_identity_links(legacy_user_id_text);
 CREATE INDEX IF NOT EXISTS idx_member_identity_claims_updated_at ON member_identity_claims(updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_member_login_names_email ON member_login_names(auth_email);
 CREATE INDEX IF NOT EXISTS idx_member_devices_account ON member_devices(account_id);
 DROP INDEX IF EXISTS idx_member_report_unlocks_user;
 CREATE INDEX IF NOT EXISTS idx_member_report_unlocks_account ON member_report_unlocks(account_id);
@@ -183,6 +191,7 @@ ALTER TABLE member_orders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_account_events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_identity_links ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_identity_claims ENABLE ROW LEVEL SECURITY;
+ALTER TABLE member_login_names ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_devices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_report_unlocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE member_share_links ENABLE ROW LEVEL SECURITY;
@@ -250,6 +259,7 @@ REVOKE INSERT ON member_report_unlocks FROM anon, authenticated;
 REVOKE INSERT ON member_account_events FROM anon, authenticated;
 REVOKE INSERT, UPDATE, DELETE ON member_identity_links FROM anon, authenticated;
 REVOKE SELECT, INSERT, UPDATE, DELETE ON member_identity_claims FROM anon, authenticated;
+REVOKE SELECT, INSERT, UPDATE, DELETE ON member_login_names FROM anon, authenticated;
 REVOKE INSERT, UPDATE, DELETE ON member_devices FROM anon, authenticated;
 REVOKE SELECT, INSERT, UPDATE, DELETE ON member_share_links FROM anon, authenticated;
 REVOKE SELECT (access_code_hash) ON member_share_links FROM anon, authenticated;
@@ -278,6 +288,89 @@ BEGIN
     'monthlySummary', COALESCE((input_settings->>'monthlySummary')::BOOLEAN, true),
     'trendReminder', COALESCE((input_settings->>'trendReminder')::BOOLEAN, false)
   );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION normalize_member_username(input_username TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  clean_username TEXT := lower(trim(COALESCE(input_username, '')));
+BEGIN
+  IF clean_username !~ '^[a-z0-9_]{3,24}$' THEN
+    RAISE EXCEPTION '用户名只能使用 3-24 位小写字母、数字或下划线';
+  END IF;
+  RETURN clean_username;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION reserve_member_login_name(input_username TEXT, input_auth_email TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  clean_username TEXT := normalize_member_username(input_username);
+  clean_email TEXT := lower(trim(COALESCE(input_auth_email, '')));
+BEGIN
+  IF clean_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' THEN
+    RAISE EXCEPTION '请输入有效邮箱';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM member_login_names
+    WHERE username = clean_username AND auth_email <> clean_email
+  ) THEN
+    RAISE EXCEPTION '用户名已被占用';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM member_login_names
+    WHERE auth_email = clean_email AND username <> clean_username
+  ) THEN
+    RAISE EXCEPTION '邮箱已被注册';
+  END IF;
+
+  INSERT INTO member_login_names (username, auth_email, created_at, updated_at)
+  VALUES (clean_username, clean_email, timezone('utc'::text, now()), timezone('utc'::text, now()))
+  ON CONFLICT (username) DO UPDATE
+  SET auth_email = excluded.auth_email,
+      updated_at = timezone('utc'::text, now());
+
+  IF NOT EXISTS (
+    SELECT 1 FROM member_login_names
+    WHERE username = clean_username AND auth_email = clean_email
+  ) THEN
+    RAISE EXCEPTION '用户名已被占用';
+  END IF;
+
+  RETURN jsonb_build_object('username', clean_username);
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION get_member_login_email(input_username TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  clean_username TEXT := normalize_member_username(input_username);
+  found_email TEXT;
+BEGIN
+  SELECT auth_email INTO found_email
+  FROM member_login_names
+  WHERE username = clean_username
+  LIMIT 1;
+
+  IF found_email IS NULL THEN
+    RAISE EXCEPTION '用户名或密码不正确';
+  END IF;
+
+  RETURN found_email;
 END;
 $$;
 
@@ -975,6 +1068,9 @@ REVOKE EXECUTE ON FUNCTION require_premium_member(UUID) FROM PUBLIC, anon, authe
 REVOKE EXECUTE ON FUNCTION ensure_member_record_owner(UUID, TEXT, UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION link_member_identity(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION normalize_member_username(TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION reserve_member_login_name(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION get_member_login_email(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_member_records() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
@@ -990,6 +1086,8 @@ REVOKE EXECUTE ON FUNCTION get_member_public_share(TEXT, TEXT) FROM PUBLIC, anon
 
 GRANT EXECUTE ON FUNCTION link_member_identity(TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION reserve_member_login_name(TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION get_member_login_email(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_member_records() TO authenticated;
 GRANT EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB) TO authenticated;
@@ -1008,6 +1106,7 @@ COMMENT ON TABLE member_orders IS '会员开通和续费订单，支付接入前
 COMMENT ON TABLE member_account_events IS '会员账号事件日志';
 COMMENT ON TABLE member_identity_links IS '会员账号绑定的匿名测评身份，用于跨设备读取同一账号的云端测评记录';
 COMMENT ON TABLE member_identity_claims IS '匿名测评身份的本地密钥证明，只保存 sha256 hash，用于防止仅凭 user_id 绑定他人记录';
+COMMENT ON TABLE member_login_names IS '会员用户名到 Supabase Auth 邮箱的映射，用于支持用户名密码登录';
 COMMENT ON TABLE member_devices IS '会员账号关联设备和匿名身份绑定';
 COMMENT ON TABLE member_report_unlocks IS '高级报告、对比报告、导出模板解锁记录';
 COMMENT ON TABLE member_share_links IS '私密报告分享链接';

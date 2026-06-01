@@ -9,6 +9,7 @@ WITH required_relations(name) AS (
     ('member_account_events'),
     ('member_identity_links'),
     ('member_identity_claims'),
+    ('member_login_names'),
     ('member_devices'),
     ('member_report_unlocks'),
     ('member_share_links'),
@@ -20,6 +21,8 @@ required_functions(name) AS (
     ('get_or_create_member_profile'),
     ('link_member_identity'),
     ('register_legacy_identity_claim'),
+    ('reserve_member_login_name'),
+    ('get_member_login_email'),
     ('get_member_records'),
     ('update_member_profile'),
     ('register_member_device'),
@@ -82,6 +85,7 @@ rls_check AS (
       'member_account_events',
       'member_identity_links',
       'member_identity_claims',
+      'member_login_names',
       'member_devices',
       'member_report_unlocks',
       'member_share_links',
@@ -116,6 +120,11 @@ security_policy_check AS (
     'member_identity_claims_not_selectable' AS name,
     NOT has_table_privilege('authenticated', 'member_identity_claims', 'SELECT')
       AND NOT has_table_privilege('anon', 'member_identity_claims', 'SELECT') AS ok
+  UNION ALL
+  SELECT
+    'member_login_names_not_selectable' AS name,
+    NOT has_table_privilege('authenticated', 'member_login_names', 'SELECT')
+      AND NOT has_table_privilege('anon', 'member_login_names', 'SELECT') AS ok
   UNION ALL
   SELECT
     'member_identity_links_no_owner_insert_policy' AS name,

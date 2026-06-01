@@ -81,6 +81,14 @@ function memberUsernameEmail(username) {
   return `${validateMemberUsername(username)}@members.mprofilelab.com`;
 }
 
+function validateMemberEmail(email) {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanEmail)) {
+    throw new Error('请输入有效邮箱');
+  }
+  return cleanEmail;
+}
+
 function randomAdminSessionToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return Array.from(bytes).map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -1461,13 +1469,15 @@ const localMemberCenterMockApi = {
   },
 
   async registerWithPassword({ username, password, profile }) {
+    const cleanEmail = validateMemberEmail(profile?.email);
     return {
       user: {
         id: mockMemberSession.user.id,
-        email: memberUsernameEmail(username),
+        email: cleanEmail,
         user_metadata: {
           username: validateMemberUsername(username),
-          display_name: profile?.displayName || username
+          display_name: profile?.displayName || username,
+          contact_email: cleanEmail
         }
       },
       session: mockMemberSession
@@ -1478,7 +1488,7 @@ const localMemberCenterMockApi = {
     return {
       user: {
         id: mockMemberSession.user.id,
-        email: memberUsernameEmail(username),
+        email: validateMemberEmail(`${validateMemberUsername(username)}@example.test`),
         user_metadata: { username: validateMemberUsername(username) }
       },
       session: mockMemberSession
@@ -1675,21 +1685,33 @@ const realMemberCenterApi = {
 
   async registerWithPassword({ username, password, profile = {} }) {
     const cleanUsername = validateMemberUsername(username);
+    const cleanEmail = validateMemberEmail(profile.email);
     if (!password || password.length < 6) {
       throw new Error('密码至少 6 位');
     }
 
-    const email = memberUsernameEmail(cleanUsername);
+    const reserveResult = await supabase.rpc('reserve_member_login_name', {
+      input_username: cleanUsername,
+      input_auth_email: cleanEmail
+    });
+    if (reserveResult.error) {
+      throw new Error(reserveResult.error.message || '用户名已被占用');
+    }
+
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: cleanEmail,
       password,
       options: {
         data: {
           username: cleanUsername,
+          full_name: profile.displayName || cleanUsername,
+          name: profile.displayName || cleanUsername,
+          nickname: profile.displayName || cleanUsername,
           display_name: profile.displayName || cleanUsername,
           qq: profile.qq || '',
           wechat: profile.wechat || '',
-          contact_email: profile.email || '',
+          email: cleanEmail,
+          contact_email: cleanEmail,
           phone: profile.phone || ''
         }
       }
@@ -1704,7 +1726,7 @@ const realMemberCenterApi = {
       return data;
     }
 
-    const loginResult = await supabase.auth.signInWithPassword({ email, password });
+    const loginResult = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
     if (loginResult.error) {
       throw new Error('注册已提交，但当前 Supabase 仍要求邮箱验证。请关闭 Auth 的 Email confirmations 后再试。');
     }
@@ -1712,7 +1734,19 @@ const realMemberCenterApi = {
   },
 
   async loginWithPassword({ username, password }) {
-    const email = memberUsernameEmail(username);
+    let email = '';
+    const identifier = String(username || '').trim();
+    if (identifier.includes('@')) {
+      email = validateMemberEmail(identifier);
+    } else {
+      const { data, error } = await supabase.rpc('get_member_login_email', {
+        input_username: identifier
+      });
+      if (error || !data) {
+        throw new Error('登录失败：用户名或密码不正确');
+      }
+      email = data;
+    }
     if (!password) throw new Error('请输入密码');
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
