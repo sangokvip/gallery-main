@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-01-member-center-layout-compact",
+  "date": "2026-06-01",
+  "summary": "继续压缩会员中心上半部分布局，合并账号与资料卡片，移除换设备读取记录说明，并让当前会员区域显示真实登录账号和会员 ID。",
+  "trigger": "用户反馈会员中心右侧空间浪费、会员账号和会员资料与隐私应合并、换设备读取记录可移除、记录库说明文字可移除、当前身份不应显示匿名用户。",
+  "changes": [
+    {
+      "category": "页面布局",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css"
+      ],
+      "details": "将会员账号与会员资料合并为一个全宽卡片，避免两列布局只放一个卡片导致右侧空白。"
+    },
+    {
+      "category": "身份显示",
+      "files": [
+        "src/MemberCenterApp.jsx"
+      ],
+      "details": "当前会员区域和资料卡优先显示 Supabase 登录用户名，并展示 Supabase 用户 ID，不再展示本地匿名测评身份。"
+    },
+    {
+      "category": "文案精简",
+      "files": [
+        "src/MemberCenterApp.jsx"
+      ],
+      "details": "移除换设备读取记录说明、身份备份导入控件，以及测评记录库中关于 test_records/test_results 的技术说明。"
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-member-center-authenticated.mjs"
+      ],
+      "details": "更新登录态会员中心断言，检查会员 ID 和合并后的会员资料模块，不再检查已移除的换设备读取记录文案。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 构建成功，仍有既有的大 chunk 警告。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过。320、375、390、430、768、1024、1440 宽度下登录态会员中心验证通过。"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过。8 组页面本地验证通过。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过。未发现空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "本次只改前端展示和验证脚本，没有修改数据库结构。",
+    "如果生产账号缺少 user_metadata.username，会回退显示资料昵称或邮箱前缀。"
+  ],
+  "deploymentNotes": [
+    "无需执行新的 SQL。",
+    "推送 codex/member-center 分支后，Vercel 会更新预览部署；合并 PR 后才会进入 main。"
+  ]
+}

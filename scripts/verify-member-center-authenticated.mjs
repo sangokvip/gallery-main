@@ -7,17 +7,15 @@ const port = Number(process.env.MEMBER_AUTH_VERIFY_PORT || 4182);
 const baseUrl = `http://${host}:${port}`;
 const widths = [320, 375, 390, 430, 768, 1024, 1440];
 const requiredTexts = [
-  '会员账号',
   '已登录：member_preview',
-  '会员表已连接',
+  '会员ID：',
   '长期云同步',
   '具体项目变化',
   '记录可导出',
-  '会员资料与隐私',
+  '会员资料',
   '评分数量趋势',
   '累计评级分布',
   '变化分析',
-  '换设备读取记录',
   '测评记录库',
   '查看明细'
 ];

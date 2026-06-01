@@ -247,6 +247,39 @@ body {
   margin-bottom: 22px;
 }
 
+.member-profile-card {
+  margin-bottom: 22px;
+}
+
+.member-account-summary {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.member-account-main {
+  min-width: 0;
+}
+
+.member-account-name {
+  margin: 0 0 6px;
+  color: #1e293b;
+  font-size: 1rem !important;
+  font-weight: 900 !important;
+}
+
+.member-account-id {
+  margin: 0 !important;
+  color: var(--member-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  overflow-wrap: anywhere;
+}
+
+.member-profile-form {
+  max-width: 980px;
+}
+
 .chart-card {
   min-height: 390px;
 }

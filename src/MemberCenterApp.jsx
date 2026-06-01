@@ -30,7 +30,6 @@ import {
 import HomeIcon from '@mui/icons-material/Home';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import SyncIcon from '@mui/icons-material/Sync';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import InsightsIcon from '@mui/icons-material/Insights';
 import {
   Bar,
@@ -45,7 +44,7 @@ import {
   YAxis
 } from 'recharts';
 import { memberCenterApi } from './utils/supabase';
-import userManager, { getIdentitySecret, getNickname, getUserId } from './utils/userManager';
+import { getNickname, getUserId } from './utils/userManager';
 import './styles/member-center.css';
 
 const TEST_LABEL = {
@@ -236,7 +235,6 @@ function MemberCenterApp() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [identityInput, setIdentityInput] = useState('');
   const [authMode, setAuthMode] = useState('register');
   const [authForm, setAuthForm] = useState({
     username: '',
@@ -250,12 +248,11 @@ function MemberCenterApp() {
   });
   const [session, setSession] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [memberData, setMemberData] = useState(null);
   const [profileDraft, setProfileDraft] = useState(null);
   const [memberLoading, setMemberLoading] = useState(true);
   const [detailRecordId, setDetailRecordId] = useState('');
   const [snackbar, setSnackbar] = useState('');
-  const [userInfo, setUserInfo] = useState(() => ({
+  const [userInfo] = useState(() => ({
     userId: getUserId(),
     nickname: getNickname()
   }));
@@ -284,7 +281,6 @@ function MemberCenterApp() {
     setMemberLoading(true);
     try {
       const data = await memberCenterApi.getMemberProfile(nextSession, userInfo.userId, userInfo.nickname);
-      setMemberData(data);
       setProfileDraft(data.profile);
       if (data.tablesReady) {
         memberCenterApi.registerDevice(nextSession, userInfo.userId).catch(() => {});
@@ -343,27 +339,11 @@ function MemberCenterApp() {
 
   const detailRecord = records.find(record => record.id === detailRecordId);
   const detailGroups = detailRecord ? groupRecordDetails(detailRecord.details) : {};
-  const tablesReady = memberData?.tablesReady ?? false;
-
-  const copyIdentity = async () => {
-    const payload = JSON.stringify({ userId: userInfo.userId, nickname: userInfo.nickname, identitySecret: getIdentitySecret() });
-    await navigator.clipboard.writeText(payload);
-    setSnackbar('身份备份已复制。换设备时导入这段内容即可读取同一批云记录。');
-  };
-
-  const importIdentity = () => {
-    try {
-      const payload = JSON.parse(identityInput);
-      if (!payload.userId || !payload.nickname || !payload.identitySecret) throw new Error('格式不正确');
-      const ok = userManager.importUserData(payload);
-      if (!ok) throw new Error('导入失败');
-      setUserInfo({ userId: payload.userId, nickname: payload.nickname });
-      setIdentityInput('');
-      setSnackbar('身份已导入，正在读取云端记录。');
-    } catch (err) {
-      setSnackbar('导入失败，请粘贴完整的身份备份 JSON。');
-    }
-  };
+  const memberUsername = session?.user?.user_metadata?.username
+    || profileDraft?.display_name
+    || session?.user?.email?.split('@')[0]
+    || '会员账号';
+  const memberAuthId = session?.user?.id || '-';
 
   const submitAuth = async () => {
     try {
@@ -399,7 +379,6 @@ function MemberCenterApp() {
             privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
             notification_settings: { monthlySummary: true, trendReminder: false }
           });
-          setMemberData(prev => ({ ...prev, profile: savedProfile }));
           setProfileDraft(savedProfile);
         }
         setSnackbar(authMode === 'register' ? '注册成功，已进入会员中心。' : '登录成功。');
@@ -414,7 +393,6 @@ function MemberCenterApp() {
       await memberCenterApi.signOut();
       setSession(null);
       setRecords([]);
-      setMemberData(null);
       setProfileDraft(null);
       setSnackbar('已退出会员账号。重新注册/登录后才能进入会员中心。');
     } catch (err) {
@@ -425,7 +403,6 @@ function MemberCenterApp() {
   const saveProfile = async () => {
     try {
       const saved = await memberCenterApi.updateMemberProfile(session, profileDraft);
-      setMemberData(prev => ({ ...prev, profile: saved }));
       setProfileDraft(saved);
       setSnackbar('会员资料已保存。');
     } catch (err) {
@@ -524,9 +501,9 @@ function MemberCenterApp() {
             <Typography className="member-subtitle">云同步测评档案、长期趋势和变化分析。会员功能仅限注册/登录用户使用。</Typography>
           </Box>
           <Box className="member-identity">
-            <Typography className="member-identity-label">当前身份</Typography>
-            <Typography className="member-identity-name">{userInfo.nickname}</Typography>
-            <Typography className="member-identity-id">{userInfo.userId}</Typography>
+            <Typography className="member-identity-label">当前会员</Typography>
+            <Typography className="member-identity-name">{memberUsername}</Typography>
+            <Typography className="member-identity-id">会员ID：{memberAuthId}</Typography>
           </Box>
         </Box>
 
@@ -558,29 +535,18 @@ function MemberCenterApp() {
           </Stack>
         </Paper>
 
-        <Box className="member-grid account-grid">
-          <Paper className="member-card">
-            <Typography className="card-title">会员账号</Typography>
-            {session ? (
-              <Stack spacing={1.5}>
-                <Typography className="muted-text">已登录：{session.user.user_metadata?.username || '会员账号'}</Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap">
-                  <Chip label={tablesReady ? '会员表已连接' : '会员表未创建'} color={tablesReady ? 'success' : 'warning'} variant="outlined" />
-                </Stack>
-                <Button onClick={logoutMember}>退出登录</Button>
-              </Stack>
-            ) : (
-              <Alert severity="warning">请先注册/登录。</Alert>
-            )}
-          </Paper>
-
-        </Box>
-
-        <Box className="member-grid account-grid">
-          <Paper className="member-card">
-            <Typography className="card-title">会员资料与隐私</Typography>
+        <Paper className="member-card member-profile-card">
+          <Stack direction={{ xs: 'column', md: 'row' }} className="member-account-summary" spacing={2}>
+            <Box className="member-account-main">
+              <Typography className="card-title">会员资料</Typography>
+              <Typography className="member-account-name">已登录：{memberUsername}</Typography>
+              <Typography className="member-account-id">会员ID：{memberAuthId}</Typography>
+            </Box>
+            <Button onClick={logoutMember}>退出登录</Button>
+          </Stack>
+          <Divider sx={{ my: 2 }} />
             {profileDraft ? (
-              <Stack spacing={1.5}>
+              <Stack spacing={1.5} className="member-profile-form">
                 <TextField
                   size="small"
                   label="显示昵称"
@@ -636,9 +602,7 @@ function MemberCenterApp() {
             ) : (
               <Box className="empty-panel">正在读取会员资料...</Box>
             )}
-          </Paper>
-
-        </Box>
+        </Paper>
 
         {loading ? (
           <Box className="member-loading"><CircularProgress /><Typography>正在读取云端记录...</Typography></Box>
@@ -686,14 +650,6 @@ function MemberCenterApp() {
                     <Box key={index} className="analysis-line">{line}</Box>
                   ))}
                 </Stack>
-                <Divider sx={{ my: 2 }} />
-                <Typography className="card-title small">换设备读取记录</Typography>
-                <Typography className="muted-text">同一个会员账号会读取已保存到云端的测评记录。旧设备上的匿名记录需要先复制备份，再到新设备导入。</Typography>
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}>
-                  <Button startIcon={<ContentCopyIcon />} onClick={copyIdentity}>复制身份备份</Button>
-                  <TextField size="small" value={identityInput} onChange={event => setIdentityInput(event.target.value)} placeholder="粘贴身份备份 JSON" fullWidth />
-                  <Button onClick={importIdentity} disabled={!identityInput.trim()}>导入</Button>
-                </Stack>
               </Paper>
             </Box>
 
@@ -701,7 +657,6 @@ function MemberCenterApp() {
               <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1} sx={{ mb: 2 }}>
                 <Box>
                   <Typography className="card-title">测评记录库</Typography>
-                  <Typography className="muted-text">按时间保存，每条记录都来自云端 `test_records` 和 `test_results`。</Typography>
                 </Box>
                 <Typography className="muted-text">当前筛选：{filteredRecords.length} 条</Typography>
               </Stack>
