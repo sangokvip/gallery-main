@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-01-member-center-record-flow-simplify",
+  "date": "2026-06-01",
+  "summary": "简化会员中心首页，移除暂不需要的会员权益、升级、订单、设备和突出维度入口，把重点改为云端记录、具体项目变化分析和单次测评明细查看。",
+  "trigger": "用户反馈会员中心里“绑定身份”含义不清、付费/设备模块暂时不需要、变化分析过于模糊、突出维度价值低、记录库无法快捷查看具体内容。",
+  "changes": [
+    {
+      "category": "会员中心信息架构",
+      "files": [
+        "src/MemberCenterApp.jsx"
+      ],
+      "details": "移除了会员等级、绑定身份数量、会员权益、开通/升级会员、订单与设备、高级报告与私密分享、最近一次突出维度等入口，保留账号、资料、记录、趋势和变化分析。"
+    },
+    {
+      "category": "变化分析",
+      "files": [
+        "src/MemberCenterApp.jsx"
+      ],
+      "details": "变化分析改为对比最近一次和上一次同类型测评的具体项目评分，输出上升项目、下降项目、新增高偏好和边界相关变化，不再用维度级别的模糊描述。"
+    },
+    {
+      "category": "记录明细",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css"
+      ],
+      "details": "测评记录库新增“查看明细”按钮，点击后弹出按分类分组的具体测评项目和评级，方便快速回看单次测评内容。"
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-member-center-authenticated.mjs"
+      ],
+      "details": "更新会员中心登录态验证脚本，移除旧付费/身份文案断言，新增记录明细弹窗点击验证。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 构建成功，仍有既有的大 chunk 警告。"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过。8 组页面在本地开发服务验证通过。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过。320、375、390、430、768、1024、1440 宽度下登录态会员中心验证通过，并确认“查看明细”弹窗可打开和关闭。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过。未发现空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "本次只调整会员中心前端体验和验证脚本，没有修改 Supabase 表结构或 RPC。",
+    "变化分析仍依赖云端记录中的明细项名称和评级；如果旧记录缺少明细，只能展示已有数据。"
+  ],
+  "deploymentNotes": [
+    "无需执行新的 SQL。",
+    "推送 codex/member-center 分支后，Vercel 会更新对应预览部署；合并 PR 后才会进入 main 生产分支。"
+  ]
+}

@@ -9,20 +9,17 @@ const widths = [320, 375, 390, 430, 768, 1024, 1440];
 const requiredTexts = [
   '会员账号',
   '已登录：member_preview',
-  '会员等级：premium',
   '会员表已连接',
-  '会员权益',
-  '开通 / 升级会员',
-  '高级报告与私密分享',
-  '高级报告',
+  '长期云同步',
+  '具体项目变化',
+  '记录可导出',
+  '会员资料与隐私',
   '评分数量趋势',
   '累计评级分布',
   '变化分析',
+  '换设备读取记录',
   '测评记录库',
-  '本地预览设备',
-  '已绑定 2 个测评身份',
-  '旧设备身份',
-  '换设备登录同一账号后'
+  '查看明细'
 ];
 
 function waitForServer(child) {
@@ -100,6 +97,11 @@ async function assertAuthenticatedMemberCenter(browser, width) {
   if (metrics.rows < 3) {
     throw new Error(`/member.html expected mock record rows at ${width}px, got ${metrics.rows}`);
   }
+
+  await page.getByRole('button', { name: '查看明细' }).first().click();
+  const detailsDialog = page.getByRole('dialog');
+  await detailsDialog.getByText('综合强度').waitFor({ timeout: 5000 });
+  await page.getByRole('button', { name: '关闭' }).click();
 
   for (const text of requiredTexts) {
     if (!metrics.bodyText.includes(text)) {

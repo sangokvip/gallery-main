@@ -7,6 +7,10 @@ import {
   CircularProgress,
   Container,
   Divider,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControlLabel,
   MenuItem,
   Paper,
@@ -28,8 +32,6 @@ import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import SyncIcon from '@mui/icons-material/Sync';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import InsightsIcon from '@mui/icons-material/Insights';
-import LockOpenIcon from '@mui/icons-material/LockOpen';
-import LinkIcon from '@mui/icons-material/Link';
 import {
   Bar,
   BarChart,
@@ -37,11 +39,6 @@ import {
   Legend,
   Line,
   LineChart,
-  Radar,
-  RadarChart,
-  PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -67,30 +64,6 @@ const RATING_COLORS = {
   Q: '#7c3aed',
   N: '#475569',
   W: '#94a3b8'
-};
-
-const PLAN_OPTIONS = [
-  { code: 'free', title: '免费', desc: '基础云记录、最近趋势', price: '¥0' },
-  { code: 'basic_monthly', title: '基础会员', desc: '无限记录、高清导出、月度总结', price: '¥19/月' },
-  { code: 'premium_monthly', title: '高级会员', desc: '高级报告、私密分享、双人对比', price: '¥39/月' },
-  { code: 'lifetime', title: '永久会员', desc: '长期档案、年度报告、全部模板', price: '¥299' }
-];
-
-const PLAN_TIER = {
-  free: 'free',
-  basic_monthly: 'basic',
-  premium_monthly: 'premium',
-  lifetime: 'lifetime'
-};
-
-const TIER_RANK = { free: 0, basic: 1, premium: 2, lifetime: 3 };
-const ORDER_STATUS_LABEL = {
-  pending: '待审核',
-  paid: '已付款',
-  approved: '已开通',
-  rejected: '已拒绝',
-  canceled: '已取消',
-  refunded: '已退款'
 };
 
 function formatDate(value) {
@@ -157,40 +130,88 @@ function summarizeRecord(record) {
 
 function buildAnalysis(records) {
   if (records.length === 0) {
-    return ['还没有云端测评记录。完成一次测评并保存后，这里会自动生成趋势分析。'];
+    return ['还没有云端测评记录。完成一次测评并保存后，这里会显示具体项目的变化。'];
   }
 
   const latest = records[records.length - 1];
-  const previous = records.length > 1 ? records[records.length - 2] : null;
-  const stableType = Object.entries(records.reduce((acc, record) => {
-    acc[record.test_type] = (acc[record.test_type] || 0) + 1;
-    return acc;
-  }, {})).sort((a, b) => b[1] - a[1])[0];
+  const previous = records
+    .slice(0, -1)
+    .reverse()
+    .find(record => record.test_type === latest.test_type);
 
   const lines = [
-    `当前档案共有 ${records.length} 次云端测评，最近一次是 ${TEST_LABEL[latest.test_type] || latest.test_type}。`
+    `最近一次是 ${TEST_LABEL[latest.test_type] || latest.test_type}，完成 ${latest.completedItems}/${latest.totalItems || latest.completedItems} 项。`
   ];
 
-  if (previous) {
-    const avgDelta = latest.averageScore - previous.averageScore;
-    const sssDelta = latest.counts.SSS - previous.counts.SSS;
-    const ssDelta = latest.counts.SS - previous.counts.SS;
-    const direction = avgDelta > 0.15 ? '上升' : avgDelta < -0.15 ? '下降' : '基本稳定';
-    lines.push(`与上次相比，综合偏好强度${direction}，SSS 项变化 ${sssDelta >= 0 ? '+' : ''}${sssDelta}，SS 项变化 ${ssDelta >= 0 ? '+' : ''}${ssDelta}。`);
-  } else {
-    lines.push('目前只有一次记录，建议后续每隔一段时间重新测一次，趋势图会更有参考价值。');
+  if (!previous) {
+    lines.push('当前筛选范围内还没有可对比的同类型上一次记录。再完成一次同类型测评后，这里会列出具体项目变化。');
+    const strongestItems = latest.details
+      .filter(detail => ['SSS', 'SS'].includes(detail.rating))
+      .slice(0, 5)
+      .map(detail => `${detail.item}（${detail.rating}）`);
+    if (strongestItems.length) {
+      lines.push(`本次高偏好项目：${strongestItems.join('、')}。`);
+    }
+    return lines;
   }
 
-  if (latest.topCategories.length > 0) {
-    lines.push(`最近一次最突出的维度是：${latest.topCategories.slice(0, 3).map(item => item.category).join('、')}。`);
+  const previousMap = new Map(previous.details.map(detail => [`${detail.category}::${detail.item}`, detail]));
+  const latestMap = new Map(latest.details.map(detail => [`${detail.category}::${detail.item}`, detail]));
+  const changedItems = [];
+
+  latestMap.forEach((detail, key) => {
+    const oldDetail = previousMap.get(key);
+    if (!oldDetail || oldDetail.rating === detail.rating) return;
+    changedItems.push({
+      category: detail.category,
+      item: detail.item,
+      from: oldDetail.rating,
+      to: detail.rating,
+      delta: (RATING_WEIGHT[detail.rating] || 0) - (RATING_WEIGHT[oldDetail.rating] || 0)
+    });
+  });
+
+  const newStrongItems = [];
+  latestMap.forEach((detail, key) => {
+    if (!previousMap.has(key) && ['SSS', 'SS'].includes(detail.rating)) {
+      newStrongItems.push(detail);
+    }
+  });
+
+  const raised = changedItems.filter(item => item.delta > 0).sort((a, b) => b.delta - a.delta).slice(0, 5);
+  const lowered = changedItems.filter(item => item.delta < 0).sort((a, b) => a.delta - b.delta).slice(0, 5);
+
+  if (raised.length) {
+    lines.push(`上升项目：${raised.map(item => `${item.item}（${item.from} → ${item.to}）`).join('、')}。`);
   }
 
-  if (stableType) {
-    lines.push(`你目前记录最多的是 ${TEST_LABEL[stableType[0]] || stableType[0]}，适合先围绕这个方向做长期观察。`);
+  if (lowered.length) {
+    lines.push(`下降项目：${lowered.map(item => `${item.item}（${item.from} → ${item.to}）`).join('、')}。`);
   }
 
-  lines.push('测评结果只适合做自我观察，不建议用单次结果直接替代真实沟通和边界确认。');
+  if (newStrongItems.length) {
+    lines.push(`新增高偏好：${newStrongItems.slice(0, 5).map(item => `${item.item}（${item.rating}）`).join('、')}。`);
+  }
+
+  if (!changedItems.length && !newStrongItems.length) {
+    lines.push('和上一次同类型测评相比，具体项目评分没有明显变化。');
+  }
+
+  const boundaryChanges = changedItems.filter(item => item.to === 'N' || item.from === 'N').slice(0, 4);
+  if (boundaryChanges.length) {
+    lines.push(`边界相关变化：${boundaryChanges.map(item => `${item.item}（${item.from} → ${item.to}）`).join('、')}，建议实际沟通时重点确认。`);
+  }
+
   return lines;
+}
+
+function groupRecordDetails(details) {
+  return details.reduce((groups, detail) => {
+    const category = detail.category || '未分类';
+    if (!groups[category]) groups[category] = [];
+    groups[category].push(detail);
+    return groups;
+  }, {});
 }
 
 function exportRecords(records, userId, nickname) {
@@ -208,11 +229,6 @@ function exportRecords(records, userId, nickname) {
   link.download = `mprofile-records-${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
   URL.revokeObjectURL(url);
-}
-
-function createShareToken() {
-  const bytes = crypto.getRandomValues(new Uint8Array(18));
-  return Array.from(bytes).map(byte => byte.toString(36).padStart(2, '0')).join('').slice(0, 24);
 }
 
 function MemberCenterApp() {
@@ -237,12 +253,7 @@ function MemberCenterApp() {
   const [memberData, setMemberData] = useState(null);
   const [profileDraft, setProfileDraft] = useState(null);
   const [memberLoading, setMemberLoading] = useState(true);
-  const [selectedRecordId, setSelectedRecordId] = useState('');
-  const [shareTitle, setShareTitle] = useState('我的测评报告');
-  const [sharePassword, setSharePassword] = useState('');
-  const [shareExpiresDays, setShareExpiresDays] = useState('30');
-  const [selectedPlan, setSelectedPlan] = useState('premium_monthly');
-  const [orderNote, setOrderNote] = useState('');
+  const [detailRecordId, setDetailRecordId] = useState('');
   const [snackbar, setSnackbar] = useState('');
   const [userInfo, setUserInfo] = useState(() => ({
     userId: getUserId(),
@@ -324,30 +335,14 @@ function MemberCenterApp() {
     count: filteredRecords.reduce((sum, record) => sum + record.counts[rating], 0)
   }));
 
-  const radarData = latest?.topCategories?.map(item => ({
-    category: item.category.replace(/^[^\s]+\s*/, ''),
-    score: item.score
-  })) || [];
-
   const totalCompleted = records.reduce((sum, record) => sum + record.completedItems, 0);
   const typeCount = new Set(records.map(record => record.test_type)).size;
-  const identityCount = memberData?.identities?.length || 0;
   const activeDays = first && latest
     ? Math.max(1, Math.ceil((new Date(latest.created_at) - new Date(first.created_at)) / 86400000) + 1)
     : records.length ? 1 : 0;
 
-  useEffect(() => {
-    if (!selectedRecordId && latest?.id) setSelectedRecordId(latest.id);
-  }, [latest?.id, selectedRecordId]);
-
-  const selectedRecord = records.find(record => record.id === selectedRecordId) || latest;
-  const unlockedRecordIds = new Set((memberData?.unlocks || []).filter(item => item.unlock_type === 'advanced_report').map(item => item.record_id));
-  const selectedRecordUnlocked = selectedRecord?.id ? unlockedRecordIds.has(selectedRecord.id) : false;
-  const membershipTier = memberData?.profile?.membership_tier || 'free';
-  const subscriptionStatus = memberData?.subscription?.status || (membershipTier === 'free' ? 'free' : 'active');
-  const subscriptionEndsAt = memberData?.subscription?.ends_at || null;
-  const canUseBasic = TIER_RANK[membershipTier] >= TIER_RANK.basic;
-  const canUsePremium = TIER_RANK[membershipTier] >= TIER_RANK.premium;
+  const detailRecord = records.find(record => record.id === detailRecordId);
+  const detailGroups = detailRecord ? groupRecordDetails(detailRecord.details) : {};
   const tablesReady = memberData?.tablesReady ?? false;
 
   const copyIdentity = async () => {
@@ -438,94 +433,6 @@ function MemberCenterApp() {
     }
   };
 
-  const unlockSelectedReport = async () => {
-    if (!canUsePremium) {
-      setSnackbar('高级报告需要高级会员或永久会员。');
-      return;
-    }
-    try {
-      const unlocked = await memberCenterApi.unlockReport(session, userInfo.userId, selectedRecord?.id);
-      setMemberData(prev => ({ ...prev, unlocks: [unlocked, ...(prev?.unlocks || [])] }));
-      setSnackbar('高级报告已解锁。');
-    } catch (err) {
-      setSnackbar(err.message || '解锁失败');
-    }
-  };
-
-  const createPrivateShare = async () => {
-    if (!canUsePremium) {
-      setSnackbar('私密分享需要高级会员或永久会员。');
-      return;
-    }
-    try {
-      const token = createShareToken();
-      const expiresAt = shareExpiresDays === 'never'
-        ? null
-        : new Date(Date.now() + Number(shareExpiresDays) * 86400000).toISOString();
-      const link = await memberCenterApi.createShareLink(session, userInfo.userId, {
-        share_token: token,
-        record_id: selectedRecord?.id,
-        title: shareTitle,
-        access_code: sharePassword.trim(),
-        hidden_sections: profileDraft?.privacy_settings?.hideSensitiveItems ? ['items'] : [],
-        expires_at: expiresAt
-      });
-      setMemberData(prev => ({ ...prev, shareLinks: [link, ...(prev?.shareLinks || [])] }));
-      setSnackbar('私密分享链接已创建。');
-    } catch (err) {
-      setSnackbar(err.message || '创建分享失败');
-    }
-  };
-
-  const deactivateShare = async (shareId) => {
-    try {
-      const updated = await memberCenterApi.deactivateShareLink(session, shareId);
-      setMemberData(prev => ({
-        ...prev,
-        shareLinks: (prev?.shareLinks || []).map(link => (
-          link.id === shareId ? { ...link, ...updated } : link
-        ))
-      }));
-      setSnackbar('分享链接已停用。');
-    } catch (err) {
-      setSnackbar(err.message || '停用分享失败');
-    }
-  };
-
-  const unlinkDevice = async (deviceId) => {
-    try {
-      await memberCenterApi.unlinkDevice(session, deviceId);
-      setMemberData(prev => ({
-        ...prev,
-        devices: (prev?.devices || []).filter(device => device.id !== deviceId)
-      }));
-      setSnackbar('设备已解绑。当前设备下次登录会重新登记。');
-    } catch (err) {
-      setSnackbar(err.message || '解绑设备失败');
-    }
-  };
-
-  const createMembershipOrder = async () => {
-    try {
-      const order = await memberCenterApi.createOrder(session, userInfo.userId, {
-        plan_code: selectedPlan,
-        contact_note: orderNote.trim()
-      });
-      setMemberData(prev => ({ ...prev, orders: [order, ...(prev?.orders || [])] }));
-      setOrderNote('');
-      setSnackbar('会员开通申请已提交，后台审核后会自动更新权益。');
-    } catch (err) {
-      setSnackbar(err.message || '提交会员申请失败');
-    }
-  };
-
-  const advancedReportLines = selectedRecord ? [
-    `本次 ${TEST_LABEL[selectedRecord.test_type] || selectedRecord.test_type} 完成 ${selectedRecord.completedItems}/${selectedRecord.totalItems || selectedRecord.completedItems} 项，综合强度 ${selectedRecord.averageScore.toFixed(2)}。`,
-    `高强度偏好集中在 ${selectedRecord.topCategories.slice(0, 3).map(item => item.category).join('、') || '暂无明显维度'}。`,
-    `SSS 与 SS 合计 ${selectedRecord.counts.SSS + selectedRecord.counts.SS} 项，适合优先作为自我认知和沟通清单。`,
-    `N 项 ${selectedRecord.counts.N} 个，建议在任何关系沟通中作为明确边界处理。`
-  ] : [];
-
   return (
     <Box className="member-shell">
       <Box component="header" className="member-nav">
@@ -546,7 +453,7 @@ function MemberCenterApp() {
               <Box className="benefit-grid">
                 <div><strong>云同步</strong><span>换设备也能看记录</span></div>
                 <div><strong>看变化</strong><span>每次测评自动对比</span></div>
-                <div><strong>高级报告</strong><span>长期趋势更直观</span></div>
+                <div><strong>看明细</strong><span>每次结果可快速回看</span></div>
               </Box>
               <Stack direction="row" spacing={1} className="auth-tabs">
                 <Button className={authMode === 'register' ? 'active' : ''} onClick={() => setAuthMode('register')}>注册</Button>
@@ -629,15 +536,15 @@ function MemberCenterApp() {
           <Paper className="member-card stat-card"><span>{records.length}</span><p>云端记录</p></Paper>
           <Paper className="member-card stat-card"><span>{totalCompleted}</span><p>累计评测项</p></Paper>
           <Paper className="member-card stat-card"><span>{typeCount}</span><p>已覆盖类型</p></Paper>
-          <Paper className="member-card stat-card"><span>{identityCount || activeDays}</span><p>{identityCount ? '绑定身份' : '观察天数'}</p></Paper>
+          <Paper className="member-card stat-card"><span>{activeDays}</span><p>观察天数</p></Paper>
         </Box>
 
         <Paper className="member-card member-toolbar">
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }} justifyContent="space-between">
             <Stack direction="row" spacing={1} flexWrap="wrap">
               <Chip label="长期云同步" color="primary" variant="outlined" />
-              <Chip label="趋势分析" color="secondary" variant="outlined" />
-              <Chip label="身份可迁移" variant="outlined" />
+              <Chip label="具体项目变化" color="secondary" variant="outlined" />
+              <Chip label="记录可导出" variant="outlined" />
             </Stack>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
               <Select size="small" value={typeFilter} onChange={event => setTypeFilter(event.target.value)}>
@@ -645,7 +552,7 @@ function MemberCenterApp() {
                 {Object.entries(TEST_LABEL).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
               </Select>
               <Button startIcon={<SaveAltIcon />} onClick={() => exportRecords(records, userInfo.userId, userInfo.nickname)} disabled={records.length === 0}>
-                {canUseBasic ? '导出数据' : '导出基础数据'}
+                导出数据
               </Button>
             </Stack>
           </Stack>
@@ -658,11 +565,7 @@ function MemberCenterApp() {
               <Stack spacing={1.5}>
                 <Typography className="muted-text">已登录：{session.user.user_metadata?.username || '会员账号'}</Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap">
-                  <Chip label={`会员等级：${membershipTier}`} color={membershipTier === 'free' ? 'default' : 'primary'} />
-                  <Chip label={`订阅状态：${subscriptionStatus}`} variant="outlined" />
-                  <Chip label={subscriptionEndsAt ? `有效期至：${formatDateTime(subscriptionEndsAt)}` : membershipTier === 'lifetime' ? '永久有效' : '暂无有效期'} variant="outlined" />
                   <Chip label={tablesReady ? '会员表已连接' : '会员表未创建'} color={tablesReady ? 'success' : 'warning'} variant="outlined" />
-                  <Chip label={`已绑定 ${identityCount} 个测评身份`} variant="outlined" />
                 </Stack>
                 <Button onClick={logoutMember}>退出登录</Button>
               </Stack>
@@ -671,79 +574,6 @@ function MemberCenterApp() {
             )}
           </Paper>
 
-          <Paper className="member-card">
-            <Typography className="card-title">会员权益</Typography>
-            <Box className="plan-grid">
-              {PLAN_OPTIONS.map(plan => (
-                <Box key={plan.code} className={`plan-card ${membershipTier === PLAN_TIER[plan.code] ? 'active' : ''}`}>
-                  <strong>{plan.title}<small>{plan.price}</small></strong>
-                  <span>{plan.desc}</span>
-                </Box>
-              ))}
-            </Box>
-          </Paper>
-        </Box>
-
-        <Box className="member-grid account-grid">
-          <Paper className="member-card">
-            <Typography className="card-title">开通 / 升级会员</Typography>
-            <Stack spacing={1.5}>
-              <Typography className="muted-text">当前版本支持先提交开通申请，后台审核后自动更新会员等级；后续接支付网关时沿用同一套订单数据。</Typography>
-              <Alert severity={canUseBasic ? 'success' : 'info'} className="member-alert">
-                {canUseBasic ? '当前账号已有会员权益。续费或升级后，后台审核通过会覆盖为新的权益等级。' : '免费账号可以查看基础云记录和趋势；高级报告、私密分享需要高级会员或永久会员。'}
-              </Alert>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                <Select size="small" value={selectedPlan} onChange={event => setSelectedPlan(event.target.value)} fullWidth>
-                  {PLAN_OPTIONS.filter(plan => plan.code !== 'free').map(plan => (
-                    <MenuItem key={plan.code} value={plan.code}>{plan.title} · {plan.price}</MenuItem>
-                  ))}
-                </Select>
-                <Button onClick={createMembershipOrder} disabled={!session || memberLoading}>提交申请</Button>
-              </Stack>
-              <TextField
-                size="small"
-                label="备注（可选）"
-                value={orderNote}
-                onChange={event => setOrderNote(event.target.value)}
-                placeholder="例如付款截图编号、联系邮箱、开通说明"
-                fullWidth
-              />
-            </Stack>
-          </Paper>
-
-          <Paper className="member-card">
-            <Typography className="card-title">订单与设备</Typography>
-            <Box className="mini-list">
-              {(memberData?.orders || []).slice(0, 4).map(order => (
-                <div key={order.id}>
-                  <strong>{PLAN_OPTIONS.find(plan => plan.code === order.plan_code)?.title || order.plan_code}</strong>
-                  <span>{ORDER_STATUS_LABEL[order.status] || order.status} · {formatDateTime(order.created_at)}</span>
-                </div>
-              ))}
-              {(memberData?.orders || []).length === 0 && <Typography className="muted-text">暂无会员订单。</Typography>}
-            </Box>
-            <Divider sx={{ my: 1.5 }} />
-            <Box className="mini-list">
-              {(memberData?.identities || []).slice(0, 3).map(identity => (
-                <div key={identity.legacy_user_id_text}>
-                  <strong>{identity.display_label || '测评身份'}</strong>
-                  <span>{identity.legacy_user_id_text} · 最近同步：{formatDateTime(identity.last_seen_at)}</span>
-                </div>
-              ))}
-              {(memberData?.identities || []).length === 0 && <Typography className="muted-text">登录会员中心后，当前设备的匿名测评身份会自动绑定到会员账号。</Typography>}
-            </Box>
-            <Divider sx={{ my: 1.5 }} />
-            <Box className="mini-list">
-              {(memberData?.devices || []).slice(0, 3).map(device => (
-                <div key={device.id}>
-                  <strong>{device.device_label}</strong>
-                  <span>最近同步：{formatDateTime(device.last_seen_at)}</span>
-                  <Button size="small" color="error" onClick={() => unlinkDevice(device.id)}>解绑</Button>
-                </div>
-              ))}
-              {(memberData?.devices || []).length === 0 && <Typography className="muted-text">当前设备会在会员表创建后自动登记。</Typography>}
-            </Box>
-          </Paper>
         </Box>
 
         <Box className="member-grid account-grid">
@@ -808,91 +638,7 @@ function MemberCenterApp() {
             )}
           </Paper>
 
-          <Paper className="member-card">
-            <Typography className="card-title"><LockOpenIcon fontSize="small" /> 高级报告与私密分享</Typography>
-            <Stack spacing={1.5}>
-              {!canUsePremium && <Alert severity="warning">高级报告和私密分享需要高级会员或永久会员。你可以先提交开通申请，后台审核通过后再使用。</Alert>}
-              <Select size="small" value={selectedRecord?.id || ''} onChange={event => setSelectedRecordId(event.target.value)} displayEmpty>
-                <MenuItem value="">选择测评记录</MenuItem>
-                {records.slice().reverse().map(record => (
-                  <MenuItem key={record.id} value={record.id}>{formatDateTime(record.created_at)} - {TEST_LABEL[record.test_type] || record.test_type}</MenuItem>
-                ))}
-              </Select>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                <Button startIcon={<LockOpenIcon />} onClick={unlockSelectedReport} disabled={!session || !selectedRecord || selectedRecordUnlocked || !canUsePremium}>
-                  {selectedRecordUnlocked ? '已解锁' : '解锁高级报告'}
-                </Button>
-                <TextField size="small" label="分享标题" value={shareTitle} onChange={event => setShareTitle(event.target.value)} fullWidth />
-              </Stack>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-                <TextField size="small" label="访问密码（可选）" value={sharePassword} onChange={event => setSharePassword(event.target.value)} fullWidth />
-                <Select size="small" value={shareExpiresDays} onChange={event => setShareExpiresDays(event.target.value)}>
-                  <MenuItem value="7">7 天</MenuItem>
-                  <MenuItem value="30">30 天</MenuItem>
-                  <MenuItem value="90">90 天</MenuItem>
-                  <MenuItem value="never">不过期</MenuItem>
-                </Select>
-                <Button startIcon={<LinkIcon />} onClick={createPrivateShare} disabled={!session || !selectedRecord || !canUsePremium}>创建链接</Button>
-              </Stack>
-              <Box className="share-list">
-                {(memberData?.shareLinks || []).length === 0 ? (
-                  <Typography className="muted-text">暂无分享链接。</Typography>
-                ) : memberData.shareLinks.slice(0, 4).map(link => (
-                  <Box key={link.id} className="share-item">
-                    <span>{link.title} {!link.is_active && '（已停用）'}</span>
-                    <code>/share.html?token={link.share_token}</code>
-                    <Button
-                      size="small"
-                      startIcon={<ContentCopyIcon />}
-                      disabled={!link.is_active}
-                      onClick={() => {
-                        navigator.clipboard.writeText(`${window.location.origin}/share.html?token=${link.share_token}`);
-                        setSnackbar('分享链接已复制。');
-                      }}
-                    >
-                      复制
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      disabled={!link.is_active}
-                      onClick={() => deactivateShare(link.id)}
-                    >
-                      停用
-                    </Button>
-                  </Box>
-                ))}
-              </Box>
-            </Stack>
-          </Paper>
         </Box>
-
-        <Paper className="member-card advanced-report-card">
-          <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1.5} sx={{ mb: 1.5 }}>
-            <Box>
-              <Typography className="card-title">高级报告</Typography>
-              <Typography className="muted-text">解锁后展示更完整的结果解释、边界摘要和沟通建议。</Typography>
-            </Box>
-            <Chip label={selectedRecordUnlocked ? '已解锁' : '未解锁'} color={selectedRecordUnlocked ? 'success' : 'default'} />
-          </Stack>
-          {!selectedRecord ? (
-            <Box className="empty-panel">暂无可分析记录。</Box>
-          ) : !canUsePremium ? (
-            <Alert severity="warning">高级报告需要高级会员或永久会员。免费账号仍可使用基础趋势、记录库和数据导出。</Alert>
-          ) : selectedRecordUnlocked ? (
-            <Box className="advanced-report-grid">
-              {advancedReportLines.map((line, index) => (
-                <Box key={index} className="analysis-line">{line}</Box>
-              ))}
-              <Box className="boundary-panel">
-                <strong>边界摘要</strong>
-                <span>拒绝项和未知项不会被推荐尝试；分享报告时可隐藏敏感明细，只保留汇总图表。</span>
-              </Box>
-            </Box>
-          ) : (
-            <Alert severity="info">选择一条测评记录并点击“解锁高级报告”后，这里会展示完整解析。</Alert>
-          )}
-        </Paper>
 
         {loading ? (
           <Box className="member-loading"><CircularProgress /><Typography>正在读取云端记录...</Typography></Box>
@@ -929,34 +675,20 @@ function MemberCenterApp() {
               </Paper>
             </Box>
 
-            <Box className="member-grid detail-grid">
-              <Paper className="member-card chart-card">
-                <Typography className="card-title">最近一次突出维度</Typography>
-                {radarData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={320}>
-                    <RadarChart data={radarData}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="category" tick={{ fontSize: 12 }} />
-                      <PolarRadiusAxis angle={30} domain={[0, 6]} />
-                      <Radar dataKey="score" stroke="#2563eb" fill="#2563eb" fillOpacity={0.35} />
-                      <Tooltip />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <Box className="empty-panel">保存一次完整测评后会显示维度雷达图。</Box>
-                )}
-              </Paper>
-
+            <Box className="member-grid detail-grid single-detail-grid">
               <Paper className="member-card analysis-card">
                 <Typography className="card-title"><InsightsIcon fontSize="small" /> 变化分析</Typography>
+                <Typography className="muted-text item-analysis-note">
+                  这里对比最近一次和上一次同类型测评，只列出具体项目的评分变化。
+                </Typography>
                 <Stack spacing={1.5}>
                   {analysis.map((line, index) => (
                     <Box key={index} className="analysis-line">{line}</Box>
                   ))}
                 </Stack>
                 <Divider sx={{ my: 2 }} />
-                <Typography className="card-title small">跨设备云同步</Typography>
-                <Typography className="muted-text">登录会员账号后，当前设备的匿名测评身份会用本地密钥绑定到账号；换设备登录同一账号后，会读取账号已绑定的所有云端记录。手动迁移需要复制包含身份密钥的备份 JSON。</Typography>
+                <Typography className="card-title small">换设备读取记录</Typography>
+                <Typography className="muted-text">同一个会员账号会读取已保存到云端的测评记录。旧设备上的匿名记录需要先复制备份，再到新设备导入。</Typography>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ mt: 1.5 }}>
                   <Button startIcon={<ContentCopyIcon />} onClick={copyIdentity}>复制身份备份</Button>
                   <TextField size="small" value={identityInput} onChange={event => setIdentityInput(event.target.value)} placeholder="粘贴身份备份 JSON" fullWidth />
@@ -983,7 +715,7 @@ function MemberCenterApp() {
                       <TableCell>SSS</TableCell>
                       <TableCell>SS</TableCell>
                       <TableCell>综合强度</TableCell>
-                      <TableCell>突出维度</TableCell>
+                      <TableCell>操作</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -1001,7 +733,9 @@ function MemberCenterApp() {
                         <TableCell>{record.counts.SSS}</TableCell>
                         <TableCell>{record.counts.SS}</TableCell>
                         <TableCell>{record.averageScore.toFixed(2)}</TableCell>
-                        <TableCell>{record.topCategories.slice(0, 2).map(item => item.category).join('、') || '-'}</TableCell>
+                        <TableCell>
+                          <Button size="small" onClick={() => setDetailRecordId(record.id)}>查看明细</Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -1013,6 +747,37 @@ function MemberCenterApp() {
           </>
         )}
       </Container>
+      <Dialog open={!!detailRecord} onClose={() => setDetailRecordId('')} maxWidth="md" fullWidth>
+        <DialogTitle>
+          {detailRecord ? `${TEST_LABEL[detailRecord.test_type] || detailRecord.test_type}明细` : '测评明细'}
+        </DialogTitle>
+        <DialogContent dividers>
+          {detailRecord ? (
+            <Stack spacing={2}>
+              <Typography className="muted-text">
+                {formatDateTime(detailRecord.created_at)} · 完成 {detailRecord.completedItems}/{detailRecord.totalItems || detailRecord.completedItems} 项 · 综合强度 {detailRecord.averageScore.toFixed(2)}
+              </Typography>
+              {Object.entries(detailGroups).map(([category, details]) => (
+                <Box key={category} className="record-detail-group">
+                  <Typography className="record-detail-category">{category}</Typography>
+                  <Box className="record-detail-items">
+                    {details.map(detail => (
+                      <span key={`${detail.category}-${detail.item}`}>
+                        <strong>{detail.rating || '-'}</strong>{detail.item}
+                      </span>
+                    ))}
+                  </Box>
+                </Box>
+              ))}
+            </Stack>
+          ) : (
+            <Box className="empty-panel">未选择记录。</Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDetailRecordId('')}>关闭</Button>
+        </DialogActions>
+      </Dialog>
       <Snackbar open={!!snackbar} autoHideDuration={3600} onClose={() => setSnackbar('')} message={snackbar} />
     </Box>
   );
