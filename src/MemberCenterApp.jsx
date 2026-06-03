@@ -238,7 +238,6 @@ function MemberCenterApp() {
     username: '',
     password: '',
     passwordConfirm: '',
-    displayName: '',
     qq: '',
     wechat: '',
     email: '',
@@ -352,7 +351,6 @@ function MemberCenterApp() {
         username: authForm.username,
         password: authForm.password,
         profile: {
-          displayName: authForm.displayName,
           qq: authForm.qq,
           wechat: authForm.wechat,
           email: authForm.email,
@@ -368,7 +366,7 @@ function MemberCenterApp() {
         await loadMemberProfile(nextSession);
         if (authMode === 'register') {
           const savedProfile = await memberCenterApi.updateMemberProfile(nextSession, {
-            display_name: authForm.displayName || authForm.username,
+            display_name: authForm.username,
             qq: authForm.qq,
             wechat: authForm.wechat,
             contact_email: authForm.email,
@@ -470,7 +468,6 @@ function MemberCenterApp() {
                       required
                       fullWidth
                     />
-                    <TextField size="small" label="昵称（选填）" value={authForm.displayName} onChange={event => setAuthForm(prev => ({ ...prev, displayName: event.target.value }))} fullWidth />
                     <Box className="optional-contact-grid">
                       <TextField size="small" label="QQ（选填）" value={authForm.qq} onChange={event => setAuthForm(prev => ({ ...prev, qq: event.target.value }))} />
                       <TextField size="small" label="微信（选填）" value={authForm.wechat} onChange={event => setAuthForm(prev => ({ ...prev, wechat: event.target.value }))} />
@@ -542,13 +539,6 @@ function MemberCenterApp() {
           <Divider sx={{ my: 2 }} />
             {profileDraft ? (
               <Stack spacing={1.5} className="member-profile-form">
-                <TextField
-                  size="small"
-                  label="显示昵称"
-                  value={profileDraft.display_name || ''}
-                  onChange={event => setProfileDraft(prev => ({ ...prev, display_name: event.target.value }))}
-                  disabled={!session}
-                />
                 <Box className="optional-contact-grid">
                   <TextField
                     size="small"

@@ -1476,7 +1476,7 @@ const localMemberCenterMockApi = {
         email: cleanEmail,
         user_metadata: {
           username: validateMemberUsername(username),
-          display_name: profile?.displayName || username,
+          display_name: username,
           contact_email: cleanEmail
         }
       },
@@ -1708,12 +1708,12 @@ const realMemberCenterApi = {
           user_name: cleanUsername,
           loginName: cleanUsername,
           login_name: cleanUsername,
-          displayName: profile.displayName || cleanUsername,
-          full_name: profile.displayName || cleanUsername,
-          fullName: profile.displayName || cleanUsername,
-          name: profile.displayName || cleanUsername,
-          nickname: profile.displayName || cleanUsername,
-          display_name: profile.displayName || cleanUsername,
+          displayName: cleanUsername,
+          full_name: cleanUsername,
+          fullName: cleanUsername,
+          name: cleanUsername,
+          nickname: cleanUsername,
+          display_name: cleanUsername,
           qq: profile.qq || '',
           wechat: profile.wechat || '',
           email: cleanEmail,
