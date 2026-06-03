@@ -74,7 +74,7 @@ async function assertRecordDetailCount(page, width) {
 }
 
 async function assertRecords(page, width) {
-  await page.getByRole('button', { name: '测评记录' }).first().click();
+  await page.locator('[data-admin-tab="records"]').click();
   await page.waitForFunction(() => document.body?.textContent?.includes('共 36 条记录'), { timeout: 10000 });
   let bodyText = await assertNoOverflow(page, 'admin records', width);
   if (!bodyText.includes('mock-record-001') || !bodyText.includes('108 项')) {
@@ -91,7 +91,7 @@ async function assertRecords(page, width) {
 }
 
 async function assertMembers(page, width) {
-  await page.getByRole('button', { name: '会员管理' }).first().click();
+  await page.locator('[data-admin-tab="members"]').click();
   await page.waitForFunction(() => document.body?.textContent?.includes('会员筛选'), { timeout: 10000 });
   let bodyText = await assertNoOverflow(page, 'admin members', width);
   for (const text of ['会员账号', '有效订阅', '待审核订单', '会员筛选', '联系方式', '订单审核', '本地预览待审核订单', '本地高级会员']) {
@@ -108,15 +108,23 @@ async function assertMembers(page, width) {
     throw new Error(`admin member search failed at ${width}px`);
   }
 
-  await page.getByRole('button', { name: '详情' }).first().click();
+  await page.locator('.member-list-table').getByRole('button', { name: '详情' }).first().click();
   await page.waitForFunction(() => document.body?.textContent?.includes('账号标识'), { timeout: 10000 });
   bodyText = await assertNoOverflow(page, 'admin member detail', width);
-  for (const text of ['账号标识', '订单记录', 'premium_preview']) {
+  for (const text of ['账号标识', '会员测评记录', '订单记录', 'premium_preview', 'mock-record-001', '108 项']) {
     if (!bodyText.includes(text)) {
       throw new Error(`admin member detail missing "${text}" at ${width}px`);
     }
   }
-  await page.getByRole('button', { name: '✕' }).click();
+
+  await page.getByRole('button', { name: '测评详情' }).first().click();
+  await page.waitForFunction(() => document.body?.textContent?.includes('评测项'), { timeout: 10000 });
+  bodyText = await assertNoOverflow(page, 'admin member record detail', width);
+  if (!bodyText.includes('108') || !bodyText.includes('评测项')) {
+    throw new Error(`admin member record detail did not show 108 items at ${width}px`);
+  }
+  await page.locator('.modal-close').last().click();
+  await page.locator('.modal-close').first().click();
 }
 
 async function assertAuthenticatedAdmin(browser, width) {

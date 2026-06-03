@@ -27,6 +27,15 @@ function formatMoney(cents = 0, currency = 'CNY') {
   return `${currency} ${(Number(cents || 0) / 100).toFixed(2)}`;
 }
 
+function getAdminRecordCount(record) {
+  if (Number.isFinite(record?.result_count)) return record.result_count;
+  if (Number.isFinite(record?.report_data?.completedItems)) return record.report_data.completedItems;
+  if (record?.report_data?.ratings && typeof record.report_data.ratings === 'object') {
+    return Object.values(record.report_data.ratings).filter(Boolean).length;
+  }
+  return 0;
+}
+
 // ===== Login =====
 function LoginPage({ onLogin }) {
   const [form, setForm] = useState({ username: '', password: '' });
@@ -219,7 +228,7 @@ function RecordsView({ records, loading, total, page, rowsPerPage, filters, onPa
 }
 
 // ===== Members =====
-function MembersView({ stats, members, orders, loading, error, actionMessage, onRefresh, onApproveOrder, onRejectOrder }) {
+function MembersView({ stats, members, orders, loading, error, actionMessage, onRefresh, onApproveOrder, onRejectOrder, onViewDetail }) {
   const [query, setQuery] = useState('');
   const [tierFilter, setTierFilter] = useState('');
   const [orderFilter, setOrderFilter] = useState('');
@@ -370,6 +379,7 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
             <MemberDetailModal
               member={selectedMember}
               orders={(orders || []).filter(order => order.account_id === selectedMember.account_id)}
+              onViewRecord={onViewDetail}
               onClose={() => setSelectedMember(null)}
             />
           )}
@@ -379,7 +389,32 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
   );
 }
 
-function MemberDetailModal({ member, orders, onClose }) {
+function MemberDetailModal({ member, orders, onViewRecord, onClose }) {
+  const [memberRecords, setMemberRecords] = useState([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [recordsError, setRecordsError] = useState('');
+
+  useEffect(() => {
+    if (!member) return;
+    let cancelled = false;
+    setRecordsLoading(true);
+    setRecordsError('');
+    adminApi.getMemberRecords(member)
+      .then(records => {
+        if (!cancelled) setMemberRecords(records);
+      })
+      .catch(error => {
+        if (!cancelled) {
+          setMemberRecords([]);
+          setRecordsError(error.message || '会员测评记录读取失败');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRecordsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [member]);
+
   if (!member) return null;
   const contactRows = [
     ['邮箱', member.contact_email || '-'],
@@ -416,6 +451,32 @@ function MemberDetailModal({ member, orders, onClose }) {
             <code>account_id: {member.account_id}</code>
             {member.legacy_user_id_text && <code>legacy_user_id: {member.legacy_user_id_text}</code>}
           </div>
+
+          <div className="section-header compact" style={{marginTop:'1.5rem'}}>
+            <h3>会员测评记录</h3>
+            <span className="sub">{recordsLoading ? '读取中' : `${memberRecords.length} 条`}</span>
+          </div>
+          <table className="brutal-table member-record-table">
+            <thead><tr><th>记录ID</th><th>类型</th><th>完成项</th><th>用户</th><th>时间</th><th>操作</th></tr></thead>
+            <tbody>
+              {recordsLoading ? (
+                <tr><td colSpan={6} style={{textAlign:'center', padding:'1.2rem', color:'#888'}}>正在读取测评记录...</td></tr>
+              ) : recordsError ? (
+                <tr><td colSpan={6} style={{textAlign:'center', padding:'1.2rem', color:'#dc2626'}}>{recordsError}</td></tr>
+              ) : memberRecords.length === 0 ? (
+                <tr><td colSpan={6} style={{textAlign:'center', padding:'1.2rem', color:'#888'}}>暂无测评记录</td></tr>
+              ) : memberRecords.map(record => (
+                <tr key={record.id}>
+                  <td><code>{record.id}</code></td>
+                  <td><span className={`badge ${TEST_BADGE[record.test_type] || ''}`}>{TEST_LABEL[record.test_type] || record.test_type}</span></td>
+                  <td>{getAdminRecordCount(record)} 项</td>
+                  <td>{record.nickname || record.user_id_text || '匿名用户'}</td>
+                  <td>{formatDateTime(record.created_at)}</td>
+                  <td><button className="btn-brutal" onClick={() => onViewRecord(record)}>测评详情</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
 
           <div className="section-header compact" style={{marginTop:'1.5rem'}}>
             <h3>订单记录</h3>
@@ -762,7 +823,14 @@ function ModernAdminApp() {
         <span className="admin-nav-logo">M-Profile Lab</span>
         <div className="admin-nav-tabs">
           {[{id:'dashboard',label:'仪表板'},{id:'records',label:'测评记录'},{id:'members',label:'会员管理'},{id:'security',label:'安全管理'},{id:'settings',label:'系统设置'}].map(t => (
-            <button key={t.id} className={`admin-nav-tab ${tab===t.id?'active':''}`} onClick={() => setTab(t.id)}>{t.label}</button>
+            <button
+              key={t.id}
+              className={`admin-nav-tab ${tab===t.id?'active':''}`}
+              data-admin-tab={t.id}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
           ))}
         </div>
         <div className="admin-nav-right">
@@ -773,7 +841,7 @@ function ModernAdminApp() {
       <div className="admin-content">
         {tab === 'dashboard' && <DashboardView stats={stats} loading={statsLoading} recentRecords={recentRecords} onViewDetail={viewDetail} onNavigate={setTab} />}
         {tab === 'records' && <RecordsView records={records} loading={recordsLoading} total={total} page={page} rowsPerPage={rpp} filters={filters} onPageChange={onPageChange} onRppChange={onRppChange} onFilterChange={onFilterChange} onRefresh={() => loadRecords(filters, page, rpp)} onViewDetail={viewDetail} />}
-        {tab === 'members' && <MembersView stats={memberStats} members={members} orders={memberOrders} loading={membersLoading} error={membersError} actionMessage={memberActionMessage} onRefresh={loadMembers} onApproveOrder={approveOrder} onRejectOrder={rejectOrder} />}
+        {tab === 'members' && <MembersView stats={memberStats} members={members} orders={memberOrders} loading={membersLoading} error={membersError} actionMessage={memberActionMessage} onRefresh={loadMembers} onApproveOrder={approveOrder} onRejectOrder={rejectOrder} onViewDetail={viewDetail} />}
         {tab === 'security' && <SecurityView />}
         {tab === 'settings' && <SettingsView />}
       </div>

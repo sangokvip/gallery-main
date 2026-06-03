@@ -226,6 +226,13 @@ const localAdminApi = {
     return mockRecordDetails.slice(0, 36).map(detail => ({ ...detail, record_id: recordId }));
   },
 
+  async getMemberRecords(member) {
+    if (!member?.legacy_user_id_text) return [];
+    return buildMockRecords()
+      .filter(record => record.user_id_text === member.legacy_user_id_text)
+      .slice(0, 10);
+  },
+
   async getMessages() {
     return { messages: [], total: 0 };
   },
@@ -438,6 +445,35 @@ const realAdminApi = {
   async getRecordDetails(recordId) {
     const { data, error } = await supabase.from('test_results').select('*').eq('record_id', recordId).order('category');
     return error ? [] : (data || []);
+  },
+
+  async getMemberRecords(member, limit = 20) {
+    if (!member?.legacy_user_id_text) return [];
+
+    const { data, error } = await supabase
+      .from('test_records')
+      .select('*')
+      .eq('user_id_text', member.legacy_user_id_text)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw new Error('会员测评记录读取失败: ' + error.message);
+    const records = data || [];
+    const resultCounts = await Promise.all(records.map(async (record) => {
+      const { count: resultCount, error: countError } = await supabase
+        .from('test_results')
+        .select('id', { count: 'exact', head: true })
+        .eq('record_id', record.id);
+
+      if (!countError && Number.isFinite(resultCount)) return resultCount;
+      return getReportDataCount(record.report_data);
+    }));
+
+    return records.map((record, index) => ({
+      ...record,
+      nickname: member.display_name || '会员用户',
+      result_count: resultCounts[index] || 0
+    }));
   },
 
   async getMessages() {
