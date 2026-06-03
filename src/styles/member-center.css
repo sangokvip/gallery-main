@@ -267,15 +267,6 @@ body {
   font-weight: 900 !important;
 }
 
-.member-account-id {
-  margin: 0 !important;
-  color: var(--member-muted);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace !important;
-  font-size: 0.78rem !important;
-  font-weight: 700 !important;
-  overflow-wrap: anywhere;
-}
-
 .member-profile-form {
   max-width: 980px;
 }

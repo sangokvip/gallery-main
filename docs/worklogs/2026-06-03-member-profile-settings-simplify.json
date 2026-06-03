@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-03-member-profile-settings-simplify",
+  "date": "2026-06-03",
+  "summary": "精简会员资料区，移除会员 ID 展示和当前没有可见功能承接的隐私/总结开关。",
+  "trigger": "用户反馈会员 ID 没有意义，并询问“生成月度总结”“隐藏敏感明细项”“分享时隐藏用户 ID”的实际含义，要求移除无意义设置。",
+  "changes": [
+    {
+      "category": "会员资料界面",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css"
+      ],
+      "details": "移除当前会员卡和资料卡中的会员 ID 展示，只保留登录用户名。"
+    },
+    {
+      "category": "设置项精简",
+      "files": [
+        "src/MemberCenterApp.jsx"
+      ],
+      "details": "移除“分享时隐藏用户ID”“分享时隐藏敏感明细项”“生成月度总结”三个开关，避免展示尚无可见功能承接的预留设置。"
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-member-center-authenticated.mjs"
+      ],
+      "details": "更新会员中心登录态验证脚本，不再要求页面展示会员 ID。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 构建成功，仍有既有的大 chunk 警告。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过。320、375、390、430、768、1024、1440 宽度下登录态会员中心验证通过。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过。未发现空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "注册后仍会写入默认隐私和通知配置，但这些配置不再显示在会员资料界面。",
+    "月度总结功能目前没有可见页面或生成结果，本次只移除入口，没有实现月度总结。"
+  ],
+  "deploymentNotes": [
+    "无需执行新的 SQL。",
+    "推送 codex/member-center 分支后，Vercel 会更新预览部署；合并 PR 后才会进入 main。"
+  ]
+}

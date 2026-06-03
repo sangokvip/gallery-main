@@ -11,13 +11,11 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
   MenuItem,
   Paper,
   Select,
   Snackbar,
   Stack,
-  Switch,
   Table,
   TableBody,
   TableCell,
@@ -343,7 +341,6 @@ function MemberCenterApp() {
     || profileDraft?.display_name
     || session?.user?.email?.split('@')[0]
     || '会员账号';
-  const memberAuthId = session?.user?.id || '-';
 
   const submitAuth = async () => {
     try {
@@ -503,7 +500,6 @@ function MemberCenterApp() {
           <Box className="member-identity">
             <Typography className="member-identity-label">当前会员</Typography>
             <Typography className="member-identity-name">{memberUsername}</Typography>
-            <Typography className="member-identity-id">会员ID：{memberAuthId}</Typography>
           </Box>
         </Box>
 
@@ -540,7 +536,6 @@ function MemberCenterApp() {
             <Box className="member-account-main">
               <Typography className="card-title">会员资料</Typography>
               <Typography className="member-account-name">已登录：{memberUsername}</Typography>
-              <Typography className="member-account-id">会员ID：{memberAuthId}</Typography>
             </Box>
             <Button onClick={logoutMember}>退出登录</Button>
           </Stack>
@@ -585,18 +580,6 @@ function MemberCenterApp() {
                     disabled={!session}
                   />
                 </Box>
-                <FormControlLabel
-                  control={<Switch checked={!!profileDraft.privacy_settings?.hideUserId} onChange={event => setProfileDraft(prev => ({ ...prev, privacy_settings: { ...prev.privacy_settings, hideUserId: event.target.checked } }))} />}
-                  label="分享时隐藏用户ID"
-                />
-                <FormControlLabel
-                  control={<Switch checked={!!profileDraft.privacy_settings?.hideSensitiveItems} onChange={event => setProfileDraft(prev => ({ ...prev, privacy_settings: { ...prev.privacy_settings, hideSensitiveItems: event.target.checked } }))} />}
-                  label="分享时隐藏敏感明细项"
-                />
-                <FormControlLabel
-                  control={<Switch checked={!!profileDraft.notification_settings?.monthlySummary} onChange={event => setProfileDraft(prev => ({ ...prev, notification_settings: { ...prev.notification_settings, monthlySummary: event.target.checked } }))} />}
-                  label="生成月度总结"
-                />
                 <Button onClick={saveProfile} disabled={!session || memberLoading}>保存资料</Button>
               </Stack>
             ) : (
