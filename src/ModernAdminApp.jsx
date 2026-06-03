@@ -7,6 +7,25 @@ const TEST_BADGE = { female: 'badge-female', male: 'badge-male', s: 'badge-s', l
 const TEST_LABEL = { female: '女M测试', male: '男M测试', s: 'S型测试', lgbt: 'LGBT+' };
 const TYPE_ACCENT = { female: 'accent-pink', male: 'accent-blue', s: 'accent-amber', lgbt: 'accent-green' };
 const RATING_COLORS = { SSS: '#dc2626', SS: '#ea580c', S: '#d97706', Q: '#2563eb', N: '#6b7280', W: '#94a3b8' };
+const MEMBER_TIER_LABEL = { free: '免费', basic: '基础', premium: '高级', lifetime: '永久' };
+const MEMBER_PLAN_LABEL = { basic_monthly: '基础会员', premium_monthly: '高级会员', lifetime: '永久会员' };
+const ORDER_STATUS_LABEL = {
+  pending: '待审核',
+  paid: '已付款',
+  approved: '已开通',
+  rejected: '已拒绝',
+  canceled: '已取消',
+  refunded: '已退款'
+};
+
+function formatDateTime(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('zh-CN');
+}
+
+function formatMoney(cents = 0, currency = 'CNY') {
+  return `${currency} ${(Number(cents || 0) / 100).toFixed(2)}`;
+}
 
 // ===== Login =====
 function LoginPage({ onLogin }) {
@@ -201,22 +220,33 @@ function RecordsView({ records, loading, total, page, rowsPerPage, filters, onPa
 
 // ===== Members =====
 function MembersView({ stats, members, orders, loading, error, actionMessage, onRefresh, onApproveOrder, onRejectOrder }) {
-  const planLabel = {
-    basic_monthly: '基础会员',
-    premium_monthly: '高级会员',
-    lifetime: '永久会员'
-  };
-  const tierLabel = {
-    free: '免费',
-    basic: '基础',
-    premium: '高级',
-    lifetime: '永久'
-  };
+  const [query, setQuery] = useState('');
+  const [tierFilter, setTierFilter] = useState('');
+  const [orderFilter, setOrderFilter] = useState('');
+  const [selectedMember, setSelectedMember] = useState(null);
+
+  const pendingOrders = (orders || []).filter(order => order.status === 'pending');
+  const visibleOrders = (orders || []).filter(order => !orderFilter || order.status === orderFilter);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredMembers = (members || []).filter(member => {
+    const matchesTier = !tierFilter || member.membership_tier === tierFilter;
+    const haystack = [
+      member.display_name,
+      member.contact_email,
+      member.qq,
+      member.wechat,
+      member.phone,
+      member.account_id,
+      member.legacy_user_id_text
+    ].filter(Boolean).join(' ').toLowerCase();
+    const matchesQuery = !normalizedQuery || haystack.includes(normalizedQuery);
+    return matchesTier && matchesQuery;
+  });
 
   return (
     <div>
       <div className="section-header">
-        <div><h2>会员管理</h2><span className="sub">账号、订单、订阅和私密分享</span></div>
+        <div><h2>会员管理</h2><span className="sub">会员账号、联系方式、订阅状态和历史订单</span></div>
         <button className="btn-brutal" onClick={onRefresh} disabled={loading}>↻ 刷新</button>
       </div>
       {loading ? <div className="loading">加载会员数据中...</div> : (
@@ -234,60 +264,179 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
           <div className="stats-grid">
             <div className="brutal-card stat-card accent-pink"><div className="stat-value">{stats?.totalMembers || 0}</div><div className="stat-label">会员账号</div><div className="stat-today">已注册</div></div>
             <div className="brutal-card stat-card accent-green"><div className="stat-value">{stats?.activeSubscriptions || 0}</div><div className="stat-label">有效订阅</div><div className="stat-today">active / trialing</div></div>
-            <div className="brutal-card stat-card accent-amber"><div className="stat-value">{stats?.pendingOrders || 0}</div><div className="stat-label">待审核订单</div><div className="stat-today">pending</div></div>
-            <div className="brutal-card stat-card accent-blue"><div className="stat-value">{stats?.activeShares || 0}</div><div className="stat-label">有效分享</div><div className="stat-today">active</div></div>
+            <div className="brutal-card stat-card accent-amber"><div className="stat-value">{pendingOrders.length}</div><div className="stat-label">待审核订单</div><div className="stat-today">人工处理</div></div>
+            <div className="brutal-card stat-card accent-blue"><div className="stat-value">{filteredMembers.length}</div><div className="stat-label">当前筛选</div><div className="stat-today">列表结果</div></div>
           </div>
 
-          <div className="section-header compact"><h3>待处理订单</h3></div>
-          <div className="brutal-card no-hover" style={{padding:0, overflow:'hidden', marginBottom:'1.5rem'}}>
-            <table className="brutal-table">
-              <thead><tr><th>方案</th><th>金额</th><th>状态</th><th>账号</th><th>备注</th><th>时间</th><th>操作</th></tr></thead>
+          <div className="member-admin-layout">
+            <div className="brutal-card no-hover">
+              <div className="section-header compact"><h3>会员筛选</h3></div>
+              <div className="member-filter-grid">
+                <div className="form-group">
+                  <label>搜索会员</label>
+                  <input
+                    value={query}
+                    onChange={event => setQuery(event.target.value)}
+                    placeholder="昵称 / 邮箱 / QQ / 微信 / 电话"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>会员等级</label>
+                  <select value={tierFilter} onChange={event => setTierFilter(event.target.value)}>
+                    <option value="">全部等级</option>
+                    <option value="free">免费</option>
+                    <option value="basic">基础</option>
+                    <option value="premium">高级</option>
+                    <option value="lifetime">永久</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>订单状态</label>
+                  <select value={orderFilter} onChange={event => setOrderFilter(event.target.value)}>
+                    <option value="">全部订单</option>
+                    <option value="pending">待审核</option>
+                    <option value="approved">已开通</option>
+                    <option value="rejected">已拒绝</option>
+                    <option value="canceled">已取消</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="brutal-card no-hover member-admin-help">
+              <h3>后台能做什么</h3>
+              <p>查看会员资料和联系方式，按等级筛选账号，处理历史人工订单。当前会员中心前台已隐藏付费入口，后续重新开放付费时这里可以继续承接订单审核。</p>
+            </div>
+          </div>
+
+          <div className="section-header compact"><h3>会员账号</h3><span className="sub">显示 {filteredMembers.length} / {members?.length || 0} 个</span></div>
+          <div className="brutal-card no-hover" style={{padding:0, overflow:'hidden'}}>
+            <table className="brutal-table records-table member-list-table">
+              <thead><tr><th>昵称</th><th>联系方式</th><th>等级</th><th>订阅</th><th>订单</th><th>创建时间</th><th>操作</th></tr></thead>
               <tbody>
-                {(orders || []).length === 0 ? (
-                  <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem', color:'#888'}}>暂无订单</td></tr>
-                ) : orders.map(order => (
-                  <tr key={order.id}>
-                    <td><strong>{planLabel[order.plan_code] || order.plan_code}</strong></td>
-                    <td>{order.currency} {(order.amount_cents / 100).toFixed(2)}</td>
-                    <td><span className={`badge ${order.status === 'pending' ? 'badge-s' : order.status === 'approved' ? 'badge-lgbt' : 'badge-male'}`}>{order.status}</span></td>
-                    <td style={{fontFamily:'monospace', fontSize:'0.78rem'}}>{order.account_id?.slice(0, 8)}...</td>
-                    <td>{order.contact_note || '-'}</td>
-                    <td>{new Date(order.created_at).toLocaleString('zh-CN')}</td>
+                {filteredMembers.length === 0 ? (
+                  <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem', color:'#888'}}>暂无会员账号</td></tr>
+                ) : filteredMembers.map(member => (
+                  <tr key={member.account_id}>
+                    <td>{member.display_name || '会员用户'}</td>
                     <td>
-                      <div className="row-actions">
-                        <button className="btn-brutal" disabled={order.status !== 'pending'} onClick={() => onApproveOrder(order)}>通过</button>
-                        <button className="btn-brutal" disabled={order.status !== 'pending'} onClick={() => onRejectOrder(order)}>拒绝</button>
+                      <div className="contact-stack">
+                        <span>{member.contact_email || '-'}</span>
+                        <small>{[member.qq && `QQ ${member.qq}`, member.wechat && `微信 ${member.wechat}`, member.phone && `电话 ${member.phone}`].filter(Boolean).join(' · ') || '未填写其他联系方式'}</small>
                       </div>
                     </td>
+                    <td><span className="badge badge-female">{MEMBER_TIER_LABEL[member.membership_tier] || member.membership_tier}</span></td>
+                    <td>{member.subscription?.status || '无'}</td>
+                    <td>{member.orders?.length || 0}</td>
+                    <td>{formatDateTime(member.created_at)}</td>
+                    <td><button className="btn-brutal" onClick={() => setSelectedMember(member)}>详情</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <div className="section-header compact"><h3>会员账号</h3></div>
+          <div className="section-header compact" style={{marginTop:'1.5rem'}}><h3>订单审核</h3><span className="sub">历史和人工订单</span></div>
           <div className="brutal-card no-hover" style={{padding:0, overflow:'hidden'}}>
-            <table className="brutal-table records-table">
-              <thead><tr><th>账号</th><th>昵称</th><th>等级</th><th>订阅</th><th>匿名身份</th><th>订单数</th><th>创建时间</th></tr></thead>
+            <table className="brutal-table member-order-table">
+              <thead><tr><th>方案</th><th>金额</th><th>状态</th><th>会员</th><th>备注</th><th>时间</th><th>操作</th></tr></thead>
               <tbody>
-                {(members || []).length === 0 ? (
-                  <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem', color:'#888'}}>暂无会员账号</td></tr>
-                ) : members.map(member => (
-                  <tr key={member.account_id}>
-                    <td style={{fontFamily:'monospace', fontSize:'0.78rem'}}>{member.account_id.slice(0, 8)}...</td>
-                    <td>{member.display_name || '会员用户'}</td>
-                    <td><span className="badge badge-female">{tierLabel[member.membership_tier] || member.membership_tier}</span></td>
-                    <td>{member.subscription?.status || '无'}</td>
-                    <td style={{fontFamily:'monospace', fontSize:'0.78rem'}}>{member.legacy_user_id_text || '-'}</td>
-                    <td>{member.orders?.length || 0}</td>
-                    <td>{new Date(member.created_at).toLocaleString('zh-CN')}</td>
-                  </tr>
-                ))}
+                {visibleOrders.length === 0 ? (
+                  <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem', color:'#888'}}>暂无订单</td></tr>
+                ) : visibleOrders.map(order => {
+                  const member = (members || []).find(item => item.account_id === order.account_id);
+                  return (
+                    <tr key={order.id}>
+                      <td><strong>{MEMBER_PLAN_LABEL[order.plan_code] || order.plan_code}</strong></td>
+                      <td>{formatMoney(order.amount_cents, order.currency)}</td>
+                      <td><span className={`badge ${order.status === 'pending' ? 'badge-s' : order.status === 'approved' ? 'badge-lgbt' : 'badge-male'}`}>{ORDER_STATUS_LABEL[order.status] || order.status}</span></td>
+                      <td>{member?.display_name || order.account_id?.slice(0, 8) || '-'}</td>
+                      <td>{order.contact_note || order.admin_note || '-'}</td>
+                      <td>{formatDateTime(order.created_at)}</td>
+                      <td>
+                        <div className="row-actions">
+                          <button className="btn-brutal" disabled={order.status !== 'pending'} onClick={() => onApproveOrder(order)}>通过</button>
+                          <button className="btn-brutal danger" disabled={order.status !== 'pending'} onClick={() => onRejectOrder(order)}>拒绝</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
+
+          {selectedMember && (
+            <MemberDetailModal
+              member={selectedMember}
+              orders={(orders || []).filter(order => order.account_id === selectedMember.account_id)}
+              onClose={() => setSelectedMember(null)}
+            />
+          )}
         </>
       )}
+    </div>
+  );
+}
+
+function MemberDetailModal({ member, orders, onClose }) {
+  if (!member) return null;
+  const contactRows = [
+    ['邮箱', member.contact_email || '-'],
+    ['QQ', member.qq || '-'],
+    ['微信', member.wechat || '-'],
+    ['电话', member.phone || '-'],
+    ['会员等级', MEMBER_TIER_LABEL[member.membership_tier] || member.membership_tier || '-'],
+    ['订阅状态', member.subscription?.status || '无'],
+    ['注册时间', formatDateTime(member.created_at)],
+    ['更新时间', formatDateTime(member.updated_at)]
+  ];
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content member-detail-modal" onClick={event => event.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{member.display_name || '会员用户'}</h3>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <div className="member-detail-grid">
+            {contactRows.map(([label, value]) => (
+              <div key={label} className="member-detail-field">
+                <small>{label}</small>
+                <strong>{value}</strong>
+              </div>
+            ))}
+          </div>
+
+          <div className="section-header compact" style={{marginTop:'1.5rem'}}>
+            <h3>账号标识</h3>
+          </div>
+          <div className="member-id-list">
+            <code>account_id: {member.account_id}</code>
+            {member.legacy_user_id_text && <code>legacy_user_id: {member.legacy_user_id_text}</code>}
+          </div>
+
+          <div className="section-header compact" style={{marginTop:'1.5rem'}}>
+            <h3>订单记录</h3>
+          </div>
+          <table className="brutal-table">
+            <thead><tr><th>方案</th><th>状态</th><th>金额</th><th>时间</th></tr></thead>
+            <tbody>
+              {orders.length === 0 ? (
+                <tr><td colSpan={4} style={{textAlign:'center', padding:'1.2rem', color:'#888'}}>暂无订单</td></tr>
+              ) : orders.map(order => (
+                <tr key={order.id}>
+                  <td>{MEMBER_PLAN_LABEL[order.plan_code] || order.plan_code}</td>
+                  <td>{ORDER_STATUS_LABEL[order.status] || order.status}</td>
+                  <td>{formatMoney(order.amount_cents, order.currency)}</td>
+                  <td>{formatDateTime(order.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

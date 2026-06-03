@@ -139,6 +139,10 @@ const localAdminApi = {
         {
           account_id: '00000000-0000-4000-8000-000000000001',
           display_name: '本地高级会员',
+          qq: '10001',
+          wechat: 'premium_preview',
+          contact_email: 'premium@example.com',
+          phone: '13800000001',
           membership_tier: 'premium',
           subscription: { status: 'active' },
           legacy_user_id_text: 'mock-user-01',
@@ -148,6 +152,10 @@ const localAdminApi = {
         {
           account_id: '00000000-0000-4000-8000-000000000002',
           display_name: '本地基础会员',
+          qq: '10002',
+          wechat: 'basic_preview',
+          contact_email: 'basic@example.com',
+          phone: '',
           membership_tier: 'basic',
           subscription: { status: 'active' },
           legacy_user_id_text: 'mock-user-02',
@@ -157,6 +165,10 @@ const localAdminApi = {
         {
           account_id: '00000000-0000-4000-8000-000000000003',
           display_name: '本地免费会员',
+          qq: '',
+          wechat: 'free_preview',
+          contact_email: 'free@example.com',
+          phone: '',
           membership_tier: 'free',
           subscription: null,
           legacy_user_id_text: 'mock-user-03',
