@@ -27,6 +27,7 @@ required_functions(name) AS (
     ('reserve_member_login_name'),
     ('get_member_login_email'),
     ('get_member_records'),
+    ('delete_member_record'),
     ('update_member_profile'),
     ('register_member_device'),
     ('unlink_member_device'),
@@ -323,6 +324,10 @@ security_policy_check AS (
   SELECT
     'member_share_links_hash_not_selectable_by_anon' AS name,
     NOT has_column_privilege('anon', 'member_share_links', 'access_code_hash', 'SELECT') AS ok
+  UNION ALL
+  SELECT
+    'delete_member_record_not_executable_by_anon' AS name,
+    NOT has_function_privilege('anon', 'delete_member_record(uuid)', 'EXECUTE') AS ok
   UNION ALL
   SELECT
     'verify_admin_password_not_executable_by_anon' AS name,

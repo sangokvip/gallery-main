@@ -32,6 +32,10 @@ const authenticatedOnlyRpc = [
     body: {}
   },
   {
+    name: 'delete_member_record',
+    body: { input_record_id: '00000000-0000-0000-0000-000000000000' }
+  },
+  {
     name: 'update_member_profile',
     body: { input_display_name: 'Codex Production Check', input_privacy_settings: {}, input_notification_settings: {} }
   },

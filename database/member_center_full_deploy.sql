@@ -215,7 +215,7 @@ ORDER BY check_type, name;
 
 -- ============================================================================
 -- 2. database/create_member_center_tables.sql
--- sha256: 2567f273657720fd13c830d065d0f15f8b441e454c627436e0c1f601d9ae9506
+-- sha256: c1fd350f8350e6fe1e2c0de20eb4b27212f7f5420aae86a67be14c426834e9dc
 -- ============================================================================
 
 -- M-profile Lab member center tables
@@ -1112,6 +1112,39 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION delete_member_record(input_record_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  current_account UUID := auth.uid();
+  deleted_count INTEGER;
+BEGIN
+  IF current_account IS NULL THEN
+    RAISE EXCEPTION '请先登录账号';
+  END IF;
+
+  DELETE FROM test_records r
+  WHERE r.id = input_record_id
+    AND EXISTS (
+      SELECT 1
+      FROM member_identity_links mil
+      WHERE mil.account_id = current_account
+        AND mil.legacy_user_id_text = r.user_id_text
+    );
+
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+
+  IF deleted_count = 0 THEN
+    RAISE EXCEPTION '记录不存在或不属于当前账号';
+  END IF;
+
+  RETURN true;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION create_member_order(
   input_legacy_user_id_text TEXT,
   input_plan_code TEXT,
@@ -1421,6 +1454,7 @@ REVOKE EXECUTE ON FUNCTION normalize_member_username(TEXT) FROM PUBLIC, anon, au
 REVOKE EXECUTE ON FUNCTION reserve_member_login_name(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_member_login_email(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_member_records() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION delete_member_record(UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
@@ -1438,6 +1472,7 @@ GRANT EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) TO anon, au
 GRANT EXECUTE ON FUNCTION reserve_member_login_name(TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_member_login_email(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_member_records() TO authenticated;
+GRANT EXECUTE ON FUNCTION delete_member_record(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB) TO authenticated;
 GRANT EXECUTE ON FUNCTION register_member_device(TEXT, TEXT, TEXT, TEXT) TO authenticated;
@@ -2093,7 +2128,7 @@ COMMENT ON TABLE admin_login_attempts IS '后台登录失败计数，用于数�
 
 -- ============================================================================
 -- 4. database/member_center_deployment_check.sql
--- sha256: e17b74bb921af7d86a66d6470a4800ae655c1867899260d216acd702b3cb74c5
+-- sha256: 3d1a919c14f420d0946a1adabe5a37d20403827dce736c50a3e8e762ac195650
 -- ============================================================================
 
 -- Member center deployment check
@@ -2125,6 +2160,7 @@ required_functions(name) AS (
     ('reserve_member_login_name'),
     ('get_member_login_email'),
     ('get_member_records'),
+    ('delete_member_record'),
     ('update_member_profile'),
     ('register_member_device'),
     ('unlink_member_device'),
@@ -2421,6 +2457,10 @@ security_policy_check AS (
   SELECT
     'member_share_links_hash_not_selectable_by_anon' AS name,
     NOT has_column_privilege('anon', 'member_share_links', 'access_code_hash', 'SELECT') AS ok
+  UNION ALL
+  SELECT
+    'delete_member_record_not_executable_by_anon' AS name,
+    NOT has_function_privilege('anon', 'delete_member_record(uuid)', 'EXECUTE') AS ok
   UNION ALL
   SELECT
     'verify_admin_password_not_executable_by_anon' AS name,

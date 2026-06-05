@@ -23,7 +23,7 @@ import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import Footer from './components/Footer'
 import { testRecordsApi, testNumberingApi } from './utils/supabase'
-import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
+import { userManager, getUserId, getNickname } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 import AdsterraAd from './components/AdsterraAd'
 import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
@@ -138,8 +138,6 @@ function SApp() {
   const [openAbout, setOpenAbout] = useState(false)
   const [openGuide, setOpenGuide] = useState(false)
   const [openHistory, setOpenHistory] = useState(false)
-  const [openUserSettings, setOpenUserSettings] = useState(false)
-  const [userNickname, setUserNickname] = useState(getNickname())
   const [testRecords, setTestRecords] = useState([])
   const [loading, setLoading] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -152,7 +150,7 @@ function SApp() {
   const [reportProgress, setReportProgress] = useState(0)
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
-  const { showMemberSignupPrompt, MemberSignupPromptSnackbar } = useMemberSignupPrompt()
+  const { memberStatusLabel, showMemberSignupPrompt, MemberSignupPromptSnackbar } = useMemberSignupPrompt()
 
   // 页面加载时初始化数据
   useEffect(() => {
@@ -335,14 +333,6 @@ function SApp() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // 更新用户昵称
-  const updateUserNickname = () => {
-    const newNickname = setNickname(userNickname);
-    setSnackbarMessage('昵称更新成功: ' + newNickname);
-    setSnackbarOpen(true);
-    setOpenUserSettings(false);
   };
 
   // 清空当前测试
@@ -725,20 +715,7 @@ function SApp() {
               <Button color="inherit" startIcon={<FemaleIcon />} href="/female.html">女版</Button>
               <Button color="inherit" startIcon={<FavoriteIcon />} href="/lgbt.html">🏳️‍🌈 LGBT+</Button>
               <Button color="inherit" startIcon={<MessageIcon />} href="/message.html">留言</Button>
-              <Button color="inherit" startIcon={<WorkspacePremiumIcon />} href="/member.html">会员中心</Button>
-              <Button
-                color="inherit"
-                startIcon={<PersonIcon />}
-                onClick={() => setOpenUserSettings(true)}
-                sx={{
-                  maxWidth: '100px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {getNickname().length > 6 ? getNickname().substring(0, 6) + '...' : getNickname()}
-              </Button>
+              <Button color="inherit" startIcon={<WorkspacePremiumIcon />} href="/member.html">我的档案</Button>
             </Box>
 
             <IconButton
@@ -781,11 +758,7 @@ function SApp() {
             </ListItem>
             <ListItem button component="a" href="/member.html" onClick={() => setMobileMenuOpen(false)}>
               <ListItemIcon><WorkspacePremiumIcon sx={{ color: '#ff0000' }} /></ListItemIcon>
-              <ListItemText primary="会员中心" sx={{ color: '#ff0000' }} />
-            </ListItem>
-            <ListItem button onClick={() => { setOpenUserSettings(true); setMobileMenuOpen(false); }}>
-              <ListItemIcon><PersonIcon sx={{ color: '#ff0000' }} /></ListItemIcon>
-              <ListItemText primary="用户设置" sx={{ color: '#ff0000' }} />
+              <ListItemText primary="我的档案" sx={{ color: '#ff0000' }} />
             </ListItem>
           </List>
         </Box>
@@ -868,7 +841,7 @@ function SApp() {
               />
             )}
             <Chip
-              label={`用户: ${getDisplayName()}`}
+              label={memberStatusLabel}
               color="secondary"
               variant="outlined"
               icon={<PersonIcon />}
@@ -1604,7 +1577,7 @@ function SApp() {
             4. 在报告页面，您可以将报告保存为图片或PDF格式，也可以直接分享给朋友。
           </Typography>
           <Typography variant="body1" paragraph>
-            5. 所有数据仅保存在您的浏览器中，刷新页面后数据将被清除。
+            5. 游客记录会以匿名设备身份保存；注册登录后可同步到您的账号。
           </Typography>
         </DialogContent>
         <DialogActions>
@@ -1690,63 +1663,6 @@ function SApp() {
         <DialogActions sx={{ justifyContent: 'center', pb: 2 }}>
           <Button onClick={() => setOpenHistory(false)}>
             关闭
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* 用户设置对话框 */}
-      <Dialog
-        open={openUserSettings}
-        onClose={() => setOpenUserSettings(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{
-          textAlign: 'center',
-          fontWeight: 'bold',
-          borderBottom: '2px dashed #ff0000',
-          mb: 2
-        }}>
-          用户设置
-        </DialogTitle>
-        <DialogContent sx={{ px: 3, py: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <TextField
-              label="用户昵称"
-              value={userNickname}
-              onChange={(e) => setUserNickname(e.target.value)}
-              fullWidth
-              helperText="设置一个好记的昵称，方便识别您的测试记录"
-              variant="outlined"
-            />
-
-            <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-              <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                用户信息
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                用户ID: {getUserId()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                当前昵称: {getNickname()}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                测试记录数: {testRecords.length}
-              </Typography>
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ justifyContent: 'center', pb: 2, gap: 2 }}>
-          <Button
-            onClick={updateUserNickname}
-            variant="contained"
-          >
-            保存昵称
-          </Button>
-          <Button
-            onClick={() => setOpenUserSettings(false)}
-          >
-            取消
           </Button>
         </DialogActions>
       </Dialog>

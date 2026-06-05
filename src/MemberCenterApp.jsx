@@ -5,6 +5,7 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Collapse,
   Container,
   Divider,
   Dialog,
@@ -211,12 +212,11 @@ function groupRecordDetails(details) {
   }, {});
 }
 
-function exportRecords(records, userId, nickname) {
+function exportRecords(records) {
   const payload = {
     schemaVersion: '1.0',
     exportType: 'mprofile-member-center',
     exportedAt: new Date().toISOString(),
-    user: { userId, nickname },
     records
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -248,6 +248,8 @@ function MemberCenterApp() {
   const [profileDraft, setProfileDraft] = useState(null);
   const [memberLoading, setMemberLoading] = useState(true);
   const [detailRecordId, setDetailRecordId] = useState('');
+  const [deleteRecordId, setDeleteRecordId] = useState('');
+  const [showOptionalContacts, setShowOptionalContacts] = useState(false);
   const [snackbar, setSnackbar] = useState('');
   const [userInfo] = useState(() => ({
     userId: getUserId(),
@@ -267,7 +269,7 @@ function MemberCenterApp() {
       const data = await memberCenterApi.getMemberRecords(userInfo.userId);
       setRecords(data.map(summarizeRecord));
     } catch (err) {
-      setError(err.message || '加载会员中心数据失败');
+      setError(err.message || '加载档案数据失败');
       setRecords([]);
     } finally {
       setLoading(false);
@@ -376,7 +378,7 @@ function MemberCenterApp() {
           });
           setProfileDraft(savedProfile);
         }
-        setSnackbar(authMode === 'register' ? '注册成功，已进入会员中心。' : '登录成功。');
+        setSnackbar(authMode === 'register' ? '注册成功，记录将自动同步。' : '登录成功，记录将自动同步。');
       }
     } catch (err) {
       setSnackbar(err.message || '注册/登录失败');
@@ -389,7 +391,7 @@ function MemberCenterApp() {
       setSession(null);
       setRecords([]);
       setProfileDraft(null);
-      setSnackbar('已退出会员账号。重新注册/登录后才能进入会员中心。');
+      setSnackbar('已退出账号。你仍可继续使用游客模式测评。');
     } catch (err) {
       setSnackbar(err.message || '退出失败');
     }
@@ -399,9 +401,21 @@ function MemberCenterApp() {
     try {
       const saved = await memberCenterApi.updateMemberProfile(session, profileDraft);
       setProfileDraft(saved);
-      setSnackbar('会员资料已保存。');
+      setSnackbar('联系方式已保存。');
     } catch (err) {
       setSnackbar(err.message || '保存失败');
+    }
+  };
+
+  const deleteMemberRecord = async () => {
+    try {
+      await memberCenterApi.deleteMemberRecord(session, deleteRecordId);
+      setRecords(prev => prev.filter(record => record.id !== deleteRecordId));
+      setDetailRecordId('');
+      setDeleteRecordId('');
+      setSnackbar('记录已删除。');
+    } catch (err) {
+      setSnackbar(err.message || '删除记录失败');
     }
   };
 
@@ -421,7 +435,7 @@ function MemberCenterApp() {
         ) : !session?.user?.id ? (
           <Box className="auth-gate">
             <Paper className="member-card auth-card">
-              <Typography component="h1" className="member-title compact">注册会员</Typography>
+              <Typography component="h1" className="member-title compact">保存你的测评变化</Typography>
               <Box className="benefit-grid">
                 <div><strong>云同步</strong><span>换设备也能看记录</span></div>
                 <div><strong>看变化</strong><span>每次测评自动对比</span></div>
@@ -466,13 +480,19 @@ function MemberCenterApp() {
                       value={authForm.email}
                       onChange={event => setAuthForm(prev => ({ ...prev, email: event.target.value }))}
                       required
+                      helperText="用于账号联系，不会公开"
                       fullWidth
                     />
-                    <Box className="optional-contact-grid">
-                      <TextField size="small" label="QQ（选填）" value={authForm.qq} onChange={event => setAuthForm(prev => ({ ...prev, qq: event.target.value }))} />
-                      <TextField size="small" label="微信（选填）" value={authForm.wechat} onChange={event => setAuthForm(prev => ({ ...prev, wechat: event.target.value }))} />
-                      <TextField size="small" label="电话（选填）" value={authForm.phone} onChange={event => setAuthForm(prev => ({ ...prev, phone: event.target.value }))} />
-                    </Box>
+                    <Button onClick={() => setShowOptionalContacts(value => !value)} size="small">
+                      {showOptionalContacts ? '收起选填联系方式' : '填写更多联系方式（选填）'}
+                    </Button>
+                    <Collapse in={showOptionalContacts}>
+                      <Box className="optional-contact-grid">
+                        <TextField size="small" label="QQ（选填）" value={authForm.qq} onChange={event => setAuthForm(prev => ({ ...prev, qq: event.target.value }))} />
+                        <TextField size="small" label="微信（选填）" value={authForm.wechat} onChange={event => setAuthForm(prev => ({ ...prev, wechat: event.target.value }))} />
+                        <TextField size="small" label="电话（选填）" value={authForm.phone} onChange={event => setAuthForm(prev => ({ ...prev, phone: event.target.value }))} />
+                      </Box>
+                    </Collapse>
                   </>
                 )}
                 <Button
@@ -480,22 +500,22 @@ function MemberCenterApp() {
                   disabled={!authForm.username.trim() || !authForm.password || (authMode === 'register' && (!authForm.passwordConfirm || !authForm.email.trim()))}
                   className="member-outline-button auth-submit"
                 >
-                  {authMode === 'register' ? '立即注册' : '登录会员中心'}
+                  {authMode === 'register' ? '注册并同步记录' : '登录并查看档案'}
                 </Button>
               </Stack>
               <Divider sx={{ my: 2 }} />
-              <Typography className="muted-text">不注册也能继续使用原有测评、保存、导出、留言板和图库。</Typography>
+              <Typography className="muted-text">不注册也能继续测评。游客记录以匿名设备身份保存；注册后可跨设备同步和管理。</Typography>
             </Paper>
           </Box>
         ) : (
           <>
         <Box className="member-hero">
           <Box>
-            <Typography component="h1" className="member-title">会员中心</Typography>
-            <Typography className="member-subtitle">云同步测评档案、长期趋势和变化分析。会员功能仅限注册/登录用户使用。</Typography>
+            <Typography component="h1" className="member-title">我的档案</Typography>
+            <Typography className="member-subtitle">查看每次测评明细，对比具体项目变化，并管理云端记录。</Typography>
           </Box>
           <Box className="member-identity">
-            <Typography className="member-identity-label">当前会员</Typography>
+            <Typography className="member-identity-label">已登录账号</Typography>
             <Typography className="member-identity-name">{memberUsername}</Typography>
           </Box>
         </Box>
@@ -521,66 +541,17 @@ function MemberCenterApp() {
                 <MenuItem value="all">全部类型</MenuItem>
                 {Object.entries(TEST_LABEL).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
               </Select>
-              <Button startIcon={<SaveAltIcon />} onClick={() => exportRecords(records, userInfo.userId, userInfo.nickname)} disabled={records.length === 0}>
+              <Button startIcon={<SaveAltIcon />} onClick={() => exportRecords(records)} disabled={records.length === 0}>
                 导出数据
               </Button>
             </Stack>
           </Stack>
         </Paper>
 
-        <Paper className="member-card member-profile-card">
-          <Stack direction={{ xs: 'column', md: 'row' }} className="member-account-summary" spacing={2}>
-            <Box className="member-account-main">
-              <Typography className="card-title">会员资料</Typography>
-              <Typography className="member-account-name">已登录：{memberUsername}</Typography>
-            </Box>
-            <Button onClick={logoutMember}>退出登录</Button>
-          </Stack>
-          <Divider sx={{ my: 2 }} />
-            {profileDraft ? (
-              <Stack spacing={1.5} className="member-profile-form">
-                <Box className="optional-contact-grid">
-                  <TextField
-                    size="small"
-                    label="QQ"
-                    value={profileDraft.qq || ''}
-                    onChange={event => setProfileDraft(prev => ({ ...prev, qq: event.target.value }))}
-                    disabled={!session}
-                  />
-                  <TextField
-                    size="small"
-                    label="微信"
-                    value={profileDraft.wechat || ''}
-                    onChange={event => setProfileDraft(prev => ({ ...prev, wechat: event.target.value }))}
-                    disabled={!session}
-                  />
-                  <TextField
-                    size="small"
-                    type="email"
-                    label="邮箱"
-                    value={profileDraft.contact_email || ''}
-                    onChange={event => setProfileDraft(prev => ({ ...prev, contact_email: event.target.value }))}
-                    disabled={!session}
-                  />
-                  <TextField
-                    size="small"
-                    label="电话"
-                    value={profileDraft.phone || ''}
-                    onChange={event => setProfileDraft(prev => ({ ...prev, phone: event.target.value }))}
-                    disabled={!session}
-                  />
-                </Box>
-                <Button onClick={saveProfile} disabled={!session || memberLoading}>保存资料</Button>
-              </Stack>
-            ) : (
-              <Box className="empty-panel">正在读取会员资料...</Box>
-            )}
-        </Paper>
-
         {loading ? (
           <Box className="member-loading"><CircularProgress /><Typography>正在读取云端记录...</Typography></Box>
         ) : (
-          <>
+          <Box className="member-content-flow">
             <Box className="member-grid charts-grid">
               <Paper className="member-card chart-card">
                 <Typography className="card-title">评分数量趋势</Typography>
@@ -626,7 +597,7 @@ function MemberCenterApp() {
               </Paper>
             </Box>
 
-            <Paper className="member-card">
+            <Paper className="member-card record-library-card">
               <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={1} sx={{ mb: 2 }}>
                 <Box>
                   <Typography className="card-title">测评记录库</Typography>
@@ -662,7 +633,10 @@ function MemberCenterApp() {
                         <TableCell>{record.counts.SS}</TableCell>
                         <TableCell>{record.averageScore.toFixed(2)}</TableCell>
                         <TableCell>
-                          <Button size="small" onClick={() => setDetailRecordId(record.id)}>查看明细</Button>
+                          <Stack direction="row" spacing={0.5}>
+                            <Button size="small" onClick={() => setDetailRecordId(record.id)}>查看明细</Button>
+                            <Button size="small" color="error" onClick={() => setDeleteRecordId(record.id)}>删除</Button>
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -670,8 +644,33 @@ function MemberCenterApp() {
                 </Table>
               </TableContainer>
             </Paper>
-          </>
+          </Box>
         )}
+
+        <Paper className="member-card member-profile-card">
+          <Stack direction={{ xs: 'column', md: 'row' }} className="member-account-summary" spacing={2}>
+            <Box className="member-account-main">
+              <Typography className="card-title">账号与联系方式</Typography>
+              <Typography className="member-account-name">已登录：{memberUsername}</Typography>
+              <Typography className="muted-text">这些联系方式不会出现在公开测评报告中。</Typography>
+            </Box>
+            <Button onClick={logoutMember}>退出登录</Button>
+          </Stack>
+          <Divider sx={{ my: 2 }} />
+          {profileDraft ? (
+            <Stack spacing={1.5} className="member-profile-form">
+              <Box className="optional-contact-grid">
+                <TextField size="small" label="QQ" value={profileDraft.qq || ''} onChange={event => setProfileDraft(prev => ({ ...prev, qq: event.target.value }))} disabled={!session} />
+                <TextField size="small" label="微信" value={profileDraft.wechat || ''} onChange={event => setProfileDraft(prev => ({ ...prev, wechat: event.target.value }))} disabled={!session} />
+                <TextField size="small" type="email" label="邮箱" value={profileDraft.contact_email || ''} onChange={event => setProfileDraft(prev => ({ ...prev, contact_email: event.target.value }))} disabled={!session} />
+                <TextField size="small" label="电话" value={profileDraft.phone || ''} onChange={event => setProfileDraft(prev => ({ ...prev, phone: event.target.value }))} disabled={!session} />
+              </Box>
+              <Button onClick={saveProfile} disabled={!session || memberLoading}>保存联系方式</Button>
+            </Stack>
+          ) : (
+            <Box className="empty-panel">正在读取账号资料...</Box>
+          )}
+        </Paper>
           </>
         )}
       </Container>
@@ -704,6 +703,16 @@ function MemberCenterApp() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailRecordId('')}>关闭</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={!!deleteRecordId} onClose={() => setDeleteRecordId('')} maxWidth="xs" fullWidth>
+        <DialogTitle>删除这条测评记录？</DialogTitle>
+        <DialogContent>
+          <Typography>删除后无法恢复，该记录的具体测评明细也会一并删除。</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteRecordId('')}>取消</Button>
+          <Button color="error" onClick={deleteMemberRecord}>确认删除</Button>
         </DialogActions>
       </Dialog>
       <Snackbar open={!!snackbar} autoHideDuration={3600} onClose={() => setSnackbar('')} message={snackbar} />

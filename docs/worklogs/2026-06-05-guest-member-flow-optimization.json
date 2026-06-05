@@ -1,0 +1,117 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-05-guest-member-flow-optimization",
+  "date": "2026-06-05",
+  "summary": "优化游客测评与账号档案并存时的用户流程，降低注册干扰，统一前台身份文案，增强我的档案页的记录管理能力。",
+  "trigger": "用户要求不要在 main 分支操作，在会员中心分支上实施流程优化计划。",
+  "changes": [
+    {
+      "category": "用户流程与文案",
+      "files": [
+        "index.html",
+        "member.html",
+        "src/App.jsx",
+        "src/MaleApp.jsx",
+        "src/SApp.jsx",
+        "src/LgbtApp.jsx",
+        "src/components/MemberSignupPrompt.jsx"
+      ],
+      "details": [
+        "把前台入口从“会员中心”统一改成“我的档案”，减少用户对付费会员的误解。",
+        "四个测评页移除昵称、用户 ID、用户设置入口，改为只显示“游客模式”或“已登录”状态。",
+        "报告保存后只对游客提示一次注册价值，登录用户不再看到注册提示。",
+        "首页说明改为“无需注册即可测评，注册后可跨设备同步和对比记录”。"
+      ]
+    },
+    {
+      "category": "我的档案体验",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css"
+      ],
+      "details": [
+        "注册页主标题改为“保存你的测评变化”，首屏只保留云同步、看变化、看明细三个利益点。",
+        "注册表单保留用户名、密码、确认密码、邮箱必填，QQ、微信、电话折叠为选填联系方式。",
+        "登录后的档案页优先展示测评记录库、具体项目变化和图表，账号联系方式放到下方。",
+        "导出数据不再附带本地用户 ID 和昵称字段。",
+        "新增单条测评记录删除确认框。"
+      ]
+    },
+    {
+      "category": "数据同步与安全",
+      "files": [
+        "src/utils/supabase.js",
+        "database/create_member_center_tables.sql",
+        "database/member_center_full_deploy.sql",
+        "database/member_center_deployment_check.sql"
+      ],
+      "details": [
+        "登录用户保存测评记录后会立即调用 link_member_identity 关联当前设备记录，减少进入档案页后才同步的延迟。",
+        "新增 delete_member_record RPC，只允许当前登录账号删除已绑定测评身份下的记录。",
+        "完整部署 SQL、部署检查 SQL 和安全验证脚本同步加入 delete_member_record。"
+      ]
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-member-center.mjs",
+        "scripts/verify-member-center-authenticated.mjs",
+        "scripts/verify-member-production.mjs",
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "多视口检查更新为“我的档案”文案，并加入 female.html 覆盖。",
+        "登录档案验证改为检查账号与联系方式、查看明细等当前 UI。",
+        "安全验证加入 delete_member_record 的存在性和 anon 不可执行检查。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment",
+      "result": "通过，重新生成 database/member_center_full_deploy.sql。"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 输出既有 chunk size warning，未阻断构建。"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过，覆盖 /member.html、/share.html、/sangok.html、/message.html、/index.html、/female.html、/male.html、/s.html、/lgbt.html 的 320、375、390、430、768、1024、1440 等宽度组合，未发现横向滚动或本地资源错误。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过，登录态我的档案页在 320、375、390、430、768、1024、1440 宽度下可渲染记录、图表和明细弹窗。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，确认敏感 RPC 和新删除记录 RPC 的权限约束。"
+    },
+    {
+      "command": "npm run verify:admin-auth",
+      "result": "通过，后台登录态 7 个宽度验证通过。"
+    },
+    {
+      "command": "npm run verify:share-report",
+      "result": "通过，分享报告 7 个宽度验证通过。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，没有空白错误。"
+    },
+    {
+      "command": "rg -n \"会员中心|注册会员|登录会员中心|openUserSettings|userNickname|用户设置|用户昵称|当前昵称|用户ID|setNickname|getDisplayName\" index.html member.html src/App.jsx src/MaleApp.jsx src/SApp.jsx src/LgbtApp.jsx src/MemberCenterApp.jsx scripts/verify-member-center*.mjs || true",
+      "result": "通过，本次用户路径无旧身份文案残留。"
+    }
+  ],
+  "knownLimitations": [
+    "没有在真实 Supabase 生产库执行新增 SQL；上线前需要在 Supabase SQL Editor 执行最新 database/member_center_full_deploy.sql。",
+    "没有在真实 Vercel 生产域名验证注册、登录、删除记录和同步行为；本次验证覆盖本地 mock、多视口和静态安全检查。",
+    "密码找回流程仍未实现，因此前台邮箱说明只保留账号联系用途。"
+  ],
+  "deploymentNotes": [
+    "当前修改位于 codex/member-center 分支。",
+    "Vercel 预览部署应使用该分支构建。",
+    "部署数据库前建议先执行 database/member_center_predeploy_check.sql，再执行 database/member_center_full_deploy.sql，最后执行 database/member_center_deployment_check.sql。"
+  ]
+}

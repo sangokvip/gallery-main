@@ -892,6 +892,39 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION delete_member_record(input_record_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  current_account UUID := auth.uid();
+  deleted_count INTEGER;
+BEGIN
+  IF current_account IS NULL THEN
+    RAISE EXCEPTION '请先登录账号';
+  END IF;
+
+  DELETE FROM test_records r
+  WHERE r.id = input_record_id
+    AND EXISTS (
+      SELECT 1
+      FROM member_identity_links mil
+      WHERE mil.account_id = current_account
+        AND mil.legacy_user_id_text = r.user_id_text
+    );
+
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+
+  IF deleted_count = 0 THEN
+    RAISE EXCEPTION '记录不存在或不属于当前账号';
+  END IF;
+
+  RETURN true;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION create_member_order(
   input_legacy_user_id_text TEXT,
   input_plan_code TEXT,
@@ -1201,6 +1234,7 @@ REVOKE EXECUTE ON FUNCTION normalize_member_username(TEXT) FROM PUBLIC, anon, au
 REVOKE EXECUTE ON FUNCTION reserve_member_login_name(TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_member_login_email(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_member_records() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION delete_member_record(UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
@@ -1218,6 +1252,7 @@ GRANT EXECUTE ON FUNCTION register_legacy_identity_claim(TEXT, TEXT) TO anon, au
 GRANT EXECUTE ON FUNCTION reserve_member_login_name(TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_member_login_email(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_member_records() TO authenticated;
+GRANT EXECUTE ON FUNCTION delete_member_record(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB) TO authenticated;
 GRANT EXECUTE ON FUNCTION register_member_device(TEXT, TEXT, TEXT, TEXT) TO authenticated;

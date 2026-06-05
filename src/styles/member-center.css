@@ -247,8 +247,27 @@ body {
   margin-bottom: 22px;
 }
 
+.member-content-flow {
+  display: flex;
+  flex-direction: column;
+}
+
+.record-library-card {
+  order: 1;
+  margin-bottom: 22px;
+}
+
+.single-detail-grid {
+  order: 2;
+}
+
+.charts-grid {
+  order: 3;
+}
+
 .member-profile-card {
   margin-bottom: 22px;
+  margin-top: 22px;
 }
 
 .member-account-summary {

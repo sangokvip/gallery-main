@@ -26,6 +26,7 @@ const checks = [
       'get_or_create_member_profile',
       'link_member_identity',
       'get_member_records',
+      'delete_member_record',
       'update_member_profile',
       'register_member_device',
       'unlink_member_device',
@@ -66,7 +67,7 @@ const checks = [
   {
     file: 'src/MemberCenterApp.jsx',
     absent: ['hashText', 'access_code_hash'],
-    present: ['access_code: sharePassword.trim()', 'identitySecret', 'getIdentitySecret']
+    present: ['deleteMemberRecord', '删除后无法恢复', '账号与联系方式']
   },
   {
     file: 'src/ShareReportApp.jsx',
@@ -207,6 +208,7 @@ const checks = [
       'member_identity_links_no_owner_update_policy',
       'member_identity_links_no_owner_delete_policy',
       'member_identity_links_write_not_granted',
+      'delete_member_record_not_executable_by_anon',
       'member_identity_claims_not_selectable',
       'member_login_names_not_selectable',
       'auth_user_metadata_normalizer_trigger_exists',
@@ -293,8 +295,8 @@ const checks = [
     present: [
       'VITE_MEMBER_CENTER_MOCK',
       'member_preview',
-      '会员等级：premium',
-      '会员表已连接',
+      '账号与联系方式',
+      '查看明细',
       '评分数量趋势',
       '测评记录库',
       'scrollWidth',

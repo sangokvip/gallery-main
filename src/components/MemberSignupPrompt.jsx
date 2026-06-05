@@ -1,12 +1,27 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { Alert, Button, Snackbar } from '@mui/material'
+import { memberCenterApi } from '../utils/supabase'
 
 const SESSION_KEY = 'mprofile_member_signup_prompt_seen'
 
 export function useMemberSignupPrompt() {
   const [open, setOpen] = useState(false)
+  const [isMember, setIsMember] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    memberCenterApi.getAuthSession()
+      .then(session => {
+        if (!cancelled) setIsMember(Boolean(session?.user?.id))
+      })
+      .catch(() => {
+        if (!cancelled) setIsMember(false)
+      })
+    return () => { cancelled = true }
+  }, [])
 
   const showMemberSignupPrompt = useCallback(() => {
+    if (isMember) return
     if (typeof window !== 'undefined' && window.sessionStorage.getItem(SESSION_KEY) === '1') {
       return
     }
@@ -14,7 +29,7 @@ export function useMemberSignupPrompt() {
       window.sessionStorage.setItem(SESSION_KEY, '1')
     }
     setOpen(true)
-  }, [])
+  }, [isMember])
 
   const closePrompt = useCallback(() => {
     setOpen(false)
@@ -44,7 +59,7 @@ export function useMemberSignupPrompt() {
         action={
           <>
             <Button color="inherit" size="small" href="/member.html" sx={{ fontWeight: 800, whiteSpace: 'nowrap' }}>
-              去注册
+              注册并同步
             </Button>
             <Button color="inherit" size="small" onClick={closePrompt} sx={{ whiteSpace: 'nowrap' }}>
               稍后
@@ -52,10 +67,15 @@ export function useMemberSignupPrompt() {
           </>
         }
       >
-        注册后可云同步保存记录，查看每次变化趋势，并生成私密分享链接。
+        这份报告已保存到当前设备。注册后可跨设备查看，并自动对比以后每次变化。
       </Alert>
     </Snackbar>
   )
 
-  return { showMemberSignupPrompt, MemberSignupPromptSnackbar }
+  return {
+    isMember,
+    memberStatusLabel: isMember ? '已登录 · 记录自动同步' : '游客模式 · 记录仅此设备可访问',
+    showMemberSignupPrompt,
+    MemberSignupPromptSnackbar
+  }
 }

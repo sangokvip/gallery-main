@@ -1000,6 +1000,18 @@ export const testRecordsApi = {
         }
       }
 
+      const { data: authData } = await supabase.auth.getSession();
+      if (authData?.session?.user?.id && identitySecret) {
+        const { error: linkError } = await supabase.rpc('link_member_identity', {
+          input_legacy_user_id_text: userId,
+          input_claim_secret: identitySecret,
+          input_display_label: '当前设备'
+        });
+        if (linkError) {
+          console.warn('记录已保存，但暂未同步到会员账号:', linkError.message || linkError);
+        }
+      }
+
       console.log('测试记录保存成功:', recordId);
       return recordData[0];
     } catch (error) {
@@ -1507,6 +1519,12 @@ const localMemberCenterMockApi = {
     return buildMockMemberRecords(userId || 'local-member-user');
   },
 
+  async deleteMemberRecord(session, recordId) {
+    if (!session?.user?.id) throw new Error('请先登录账号');
+    if (!recordId) throw new Error('请选择要删除的记录');
+    return true;
+  },
+
   async getMemberProfile(session, legacyUserId, nickname) {
     return {
       profile: {
@@ -1795,6 +1813,18 @@ const realMemberCenterApi = {
     }
 
     return Array.isArray(data) ? data : [];
+  },
+
+  async deleteMemberRecord(session, recordId) {
+    if (!session?.user?.id) throw new Error('请先登录账号');
+    if (!recordId) throw new Error('请选择要删除的记录');
+
+    const { data, error } = await supabase.rpc('delete_member_record', {
+      input_record_id: recordId
+    });
+
+    if (error) throw new Error('删除记录失败: ' + (error.message || '未知错误'));
+    return data;
   },
 
   async getMemberProfile(session, legacyUserId, nickname) {
