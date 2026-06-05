@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -30,6 +30,10 @@ import HomeIcon from '@mui/icons-material/Home';
 import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import SyncIcon from '@mui/icons-material/Sync';
 import InsightsIcon from '@mui/icons-material/Insights';
+import LinkIcon from '@mui/icons-material/Link';
+import ImageIcon from '@mui/icons-material/Image';
+import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import {
   Bar,
   BarChart,
@@ -43,6 +47,7 @@ import {
   YAxis
 } from 'recharts';
 import { memberCenterApi } from './utils/supabase';
+import { createReportImageBlob, saveReportImageBlob } from './utils/reportExport';
 import { REPORT_RATING_ORDER, buildReportOrderIndex } from './utils/testCatalogs';
 import { getNickname, getUserId } from './utils/userManager';
 import './styles/member-center.css';
@@ -231,6 +236,199 @@ function groupRecordDetailsByRating(record) {
     }));
 }
 
+function buildRecordTitle(record) {
+  if (!record) return '测评记录';
+  return `${TEST_LABEL[record.test_type] || record.test_type} · ${formatDateTime(record.created_at)}`;
+}
+
+function buildShareUrl(token) {
+  if (!token || typeof window === 'undefined') return '';
+  return `${window.location.origin}/share.html?token=${encodeURIComponent(token)}`;
+}
+
+function buildDetailMap(record) {
+  return new Map((record?.details || []).map(detail => [`${detail.category}::${detail.item}`, detail]));
+}
+
+function getRatingWeight(rating) {
+  return RATING_WEIGHT[rating] || 0;
+}
+
+function buildCompatibilityReport(baseRecord, targetRecord, mode) {
+  if (!baseRecord || !targetRecord) return null;
+
+  const baseMap = buildDetailMap(baseRecord);
+  const targetMap = buildDetailMap(targetRecord);
+  const paired = [];
+
+  baseMap.forEach((baseDetail, key) => {
+    const targetDetail = targetMap.get(key);
+    if (!targetDetail) return;
+    const baseWeight = getRatingWeight(baseDetail.rating);
+    const targetWeight = getRatingWeight(targetDetail.rating);
+    paired.push({
+      category: baseDetail.category,
+      item: baseDetail.item,
+      baseRating: baseDetail.rating,
+      targetRating: targetDetail.rating,
+      baseWeight,
+      targetWeight,
+      delta: Math.abs(baseWeight - targetWeight),
+      sum: baseWeight + targetWeight
+    });
+  });
+
+  const comparableCount = paired.length;
+  if (!comparableCount) {
+    return {
+      mode,
+      score: 0,
+      comparableCount,
+      sharedStrong: [],
+      differences: [],
+      boundaries: [],
+      suggestions: ['两条记录没有可对比的共同项目。建议选择同类型测评记录。']
+    };
+  }
+
+  const compatibleItems = paired.filter(item => item.baseWeight >= 4 && item.targetWeight >= 4);
+  const boundaries = paired
+    .filter(item => (item.baseWeight >= 5 && item.targetWeight <= 2) || (item.targetWeight >= 5 && item.baseWeight <= 2))
+    .sort((a, b) => b.sum - a.sum)
+    .slice(0, 8);
+  const differences = paired
+    .filter(item => item.delta >= 3 && !boundaries.includes(item))
+    .sort((a, b) => b.delta - a.delta || b.sum - a.sum)
+    .slice(0, 10);
+  const sharedStrong = compatibleItems
+    .sort((a, b) => b.sum - a.sum || a.delta - b.delta)
+    .slice(0, 12);
+
+  const rawScore = paired.reduce((sum, item) => {
+    const samePreference = 1 - Math.min(item.delta, 5) / 5;
+    const strongBonus = item.baseWeight >= 4 && item.targetWeight >= 4 ? 0.18 : 0;
+    const boundaryPenalty = ((item.baseWeight >= 5 && item.targetWeight <= 2) || (item.targetWeight >= 5 && item.baseWeight <= 2)) ? 0.32 : 0;
+    return sum + Math.max(0, Math.min(1, samePreference + strongBonus - boundaryPenalty));
+  }, 0) / comparableCount;
+
+  const modeNotes = {
+    masterSlave: '主奴关系：重点看一方高偏好是否落在另一方可接受范围内，边界冲突要优先沟通。',
+    slaveSlave: '奴奴关系：重点看共同偏好、可一起探索的项目，以及双方都不适合承接的项目。',
+    masterMaster: '主主关系：重点看控制类偏好的重叠，重叠越高越需要明确分工。',
+    partner: '探索搭档：重点看共同可探索项目，低接受度项目不建议直接尝试。'
+  };
+
+  const suggestions = [
+    modeNotes[mode] || modeNotes.partner,
+    sharedStrong.length ? `可优先从 ${sharedStrong.slice(0, 4).map(item => item.item).join('、')} 开始沟通。` : '共同高偏好项目较少，建议先从低风险、可中止的项目开始。',
+    boundaries.length ? `边界冲突集中在 ${boundaries.slice(0, 4).map(item => item.item).join('、')}，不应默认同意。` : '没有明显高低冲突项目，但仍需要逐项确认边界。'
+  ];
+
+  return {
+    mode,
+    score: Math.round(rawScore * 100),
+    comparableCount,
+    sharedStrong,
+    differences,
+    boundaries,
+    suggestions
+  };
+}
+
+function RecordImageCard({ record }, ref) {
+  const groups = record ? groupRecordDetailsByRating(record) : [];
+  return (
+    <Box ref={ref} className="record-export-card">
+      <Typography component="h2" className="record-export-title">
+        {record ? TEST_LABEL[record.test_type] || record.test_type : '测评记录'}
+      </Typography>
+      {record && (
+        <>
+          <Typography className="record-export-meta">
+            {formatDateTime(record.created_at)} · 完成 {record.completedItems}/{record.totalItems || record.completedItems} 项 · 综合强度 {record.averageScore.toFixed(2)}
+          </Typography>
+          <Box className="record-export-stats">
+            {RATING_ORDER.map(rating => (
+              <div key={rating}>
+                <strong style={{ color: RATING_COLORS[rating] }}>{rating}</strong>
+                <span>{record.counts[rating] || 0}</span>
+              </div>
+            ))}
+          </Box>
+          <Stack spacing={2}>
+            {groups.map(({ rating, details }) => (
+              <Box key={rating} className="record-detail-group">
+                <Typography className="record-detail-category record-detail-rating-title" sx={{ color: RATING_COLORS[rating] || '#475569' }}>
+                  {rating} ({details.length})
+                </Typography>
+                <Box className="record-detail-items">
+                  {details.map(detail => (
+                    <span key={`${detail.category}-${detail.item}`}>
+                      <em>{detail.category}</em>{detail.item}
+                    </span>
+                  ))}
+                </Box>
+              </Box>
+            ))}
+          </Stack>
+        </>
+      )}
+    </Box>
+  );
+}
+
+const ForwardedRecordImageCard = React.forwardRef(RecordImageCard);
+
+function PairReportPanel({ report, baseRecord, targetRecord }) {
+  if (!report) {
+    return <Box className="empty-panel compact">请选择另一条记录生成分析。</Box>;
+  }
+
+  const renderItems = (items, emptyText) => (
+    items.length ? (
+      <Box className="pair-item-list">
+        {items.map(item => (
+          <span key={`${item.category}-${item.item}-${item.baseRating}-${item.targetRating}`}>
+            {item.item}<em>{item.baseRating} / {item.targetRating}</em>
+          </span>
+        ))}
+      </Box>
+    ) : <Typography className="muted-text">{emptyText}</Typography>
+  );
+
+  return (
+    <Box className="pair-report">
+      <Box className="pair-score-card">
+        <strong>{report.score}</strong>
+        <span>契合度</span>
+        <small>共同项目 {report.comparableCount} 项</small>
+      </Box>
+      <Box className="pair-record-names">
+        <span>{buildRecordTitle(baseRecord)}</span>
+        <span>{buildRecordTitle(targetRecord)}</span>
+      </Box>
+      <Box className="pair-report-section">
+        <Typography className="card-title small">高契合项目</Typography>
+        {renderItems(report.sharedStrong, '没有明显共同高偏好项目。')}
+      </Box>
+      <Box className="pair-report-section">
+        <Typography className="card-title small">差异项目</Typography>
+        {renderItems(report.differences, '没有明显评分差异。')}
+      </Box>
+      <Box className="pair-report-section warning">
+        <Typography className="card-title small">边界冲突</Typography>
+        {renderItems(report.boundaries, '没有明显高低冲突。')}
+      </Box>
+      <Box className="pair-report-section">
+        <Typography className="card-title small">建议</Typography>
+        <Stack spacing={1}>
+          {report.suggestions.map(line => <Box key={line} className="analysis-line">{line}</Box>)}
+        </Stack>
+      </Box>
+    </Box>
+  );
+}
+
 function exportRecords(records) {
   const payload = {
     schemaVersion: '1.0',
@@ -265,11 +463,21 @@ function MemberCenterApp() {
   const [session, setSession] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [profileDraft, setProfileDraft] = useState(null);
+  const [shareLinks, setShareLinks] = useState([]);
   const [memberLoading, setMemberLoading] = useState(true);
   const [detailRecordId, setDetailRecordId] = useState('');
   const [deleteRecordId, setDeleteRecordId] = useState('');
+  const [shareRecordId, setShareRecordId] = useState('');
+  const [shareAccessCode, setShareAccessCode] = useState('');
+  const [shareCreating, setShareCreating] = useState(false);
+  const [imageRecordId, setImageRecordId] = useState('');
+  const [imageExporting, setImageExporting] = useState(false);
+  const [pairBaseRecordId, setPairBaseRecordId] = useState('');
+  const [pairTargetRecordId, setPairTargetRecordId] = useState('');
+  const [pairMode, setPairMode] = useState('masterSlave');
   const [showOptionalContacts, setShowOptionalContacts] = useState(false);
   const [snackbar, setSnackbar] = useState('');
+  const imageCardRef = useRef(null);
   const [userInfo] = useState(() => ({
     userId: getUserId(),
     nickname: getNickname()
@@ -300,6 +508,7 @@ function MemberCenterApp() {
     try {
       const data = await memberCenterApi.getMemberProfile(nextSession, userInfo.userId, userInfo.nickname);
       setProfileDraft(data.profile);
+      setShareLinks(data.shareLinks || []);
       if (data.tablesReady) {
         memberCenterApi.registerDevice(nextSession, userInfo.userId).catch(() => {});
       }
@@ -357,10 +566,88 @@ function MemberCenterApp() {
 
   const detailRecord = records.find(record => record.id === detailRecordId);
   const detailGroups = detailRecord ? groupRecordDetailsByRating(detailRecord) : [];
+  const shareRecord = records.find(record => record.id === shareRecordId);
+  const imageRecord = records.find(record => record.id === imageRecordId);
+  const pairBaseRecord = records.find(record => record.id === pairBaseRecordId);
+  const pairTargetRecord = records.find(record => record.id === pairTargetRecordId);
+  const pairReport = useMemo(
+    () => buildCompatibilityReport(pairBaseRecord, pairTargetRecord, pairMode),
+    [pairBaseRecord, pairTargetRecord, pairMode]
+  );
+  const shareRecordLinks = shareRecord
+    ? shareLinks.filter(link => link.record_id === shareRecord.id && link.is_active !== false)
+    : [];
   const memberUsername = session?.user?.user_metadata?.username
     || profileDraft?.display_name
     || session?.user?.email?.split('@')[0]
     || '会员账号';
+
+  const openPairDialog = (record) => {
+    setPairBaseRecordId(record.id);
+    const firstOther = records.find(candidate => candidate.id !== record.id);
+    setPairTargetRecordId(firstOther?.id || '');
+    setPairMode('masterSlave');
+  };
+
+  const createShareLinkForRecord = async () => {
+    if (!shareRecord) return;
+    setShareCreating(true);
+    try {
+      const link = await memberCenterApi.createShareLink(session, userInfo.userId, {
+        record_id: shareRecord.id,
+        title: buildRecordTitle(shareRecord),
+        access_code: shareAccessCode.trim() || null,
+        hidden_sections: [],
+        expires_at: null
+      });
+      setShareLinks(prev => [link, ...prev.filter(item => item.id !== link.id)]);
+      setShareAccessCode('');
+      setSnackbar('分享链接已生成。');
+    } catch (err) {
+      setSnackbar(err.message || '创建分享链接失败');
+    } finally {
+      setShareCreating(false);
+    }
+  };
+
+  const copyShareLink = async (link) => {
+    const url = buildShareUrl(link.share_token);
+    try {
+      await navigator.clipboard.writeText(url);
+      setSnackbar('分享链接已复制。');
+    } catch (err) {
+      setSnackbar('浏览器不允许自动复制，请手动复制链接。');
+    }
+  };
+
+  const deactivateShareLink = async (link) => {
+    try {
+      await memberCenterApi.deactivateShareLink(session, link.id);
+      setShareLinks(prev => prev.map(item => item.id === link.id ? { ...item, is_active: false } : item));
+      setSnackbar('分享链接已停用。');
+    } catch (err) {
+      setSnackbar(err.message || '停用分享链接失败');
+    }
+  };
+
+  const saveRecordImage = async () => {
+    if (!imageRecord || !imageCardRef.current) return;
+    setImageExporting(true);
+    try {
+      const blob = await createReportImageBlob(imageCardRef.current);
+      const result = await saveReportImageBlob({
+        blob,
+        filename: `mprofile-${imageRecord.test_type}-${new Date(imageRecord.created_at).toISOString().slice(0, 10)}.png`,
+        title: buildRecordTitle(imageRecord),
+        text: 'M-profile Lab 测评记录'
+      });
+      setSnackbar(result.message || '图片已生成。');
+    } catch (err) {
+      setSnackbar(err.message || '保存图片失败');
+    } finally {
+      setImageExporting(false);
+    }
+  };
 
   const submitAuth = async () => {
     try {
@@ -410,6 +697,7 @@ function MemberCenterApp() {
       setSession(null);
       setRecords([]);
       setProfileDraft(null);
+      setShareLinks([]);
       setSnackbar('已退出账号。你仍可继续使用游客模式测评。');
     } catch (err) {
       setSnackbar(err.message || '退出失败');
@@ -652,8 +940,11 @@ function MemberCenterApp() {
                         <TableCell>{record.counts.SS}</TableCell>
                         <TableCell>{record.averageScore.toFixed(2)}</TableCell>
                         <TableCell>
-                          <Stack direction="row" spacing={0.5}>
+                          <Stack direction="row" spacing={0.5} className="record-action-stack">
                             <Button size="small" onClick={() => setDetailRecordId(record.id)}>查看明细</Button>
+                            <Button size="small" startIcon={<LinkIcon />} onClick={() => setShareRecordId(record.id)}>分享</Button>
+                            <Button size="small" startIcon={<ImageIcon />} onClick={() => setImageRecordId(record.id)}>保存图片</Button>
+                            <Button size="small" startIcon={<CompareArrowsIcon />} onClick={() => openPairDialog(record)} disabled={records.length < 2}>双人分析</Button>
                             <Button size="small" color="error" onClick={() => setDeleteRecordId(record.id)}>删除</Button>
                           </Stack>
                         </TableCell>
@@ -724,6 +1015,122 @@ function MemberCenterApp() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailRecordId('')}>关闭</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={!!shareRecord} onClose={() => setShareRecordId('')} maxWidth="md" fullWidth>
+        <DialogTitle>{shareRecord ? `分享 ${TEST_LABEL[shareRecord.test_type] || shareRecord.test_type}` : '分享测评记录'}</DialogTitle>
+        <DialogContent dividers>
+          {shareRecord ? (
+            <Stack spacing={2}>
+              <Typography className="muted-text">
+                分享链接打开后会记录浏览次数。图片保存不会计入浏览次数。
+              </Typography>
+              <Box className="share-create-panel">
+                <TextField
+                  size="small"
+                  label="访问密码（选填）"
+                  value={shareAccessCode}
+                  onChange={event => setShareAccessCode(event.target.value)}
+                  helperText="不填写则任何拿到链接的人都能查看。"
+                  fullWidth
+                />
+                <Button
+                  onClick={createShareLinkForRecord}
+                  disabled={shareCreating}
+                  startIcon={shareCreating ? <CircularProgress size={16} /> : <LinkIcon />}
+                >
+                  生成分享链接
+                </Button>
+              </Box>
+              {shareRecordLinks.length ? (
+                <Box className="share-list">
+                  {shareRecordLinks.map(link => {
+                    const url = buildShareUrl(link.share_token);
+                    return (
+                      <Box className="share-item detailed" key={link.id}>
+                        <Box>
+                          <strong>{link.title || '测评分享'}</strong>
+                          <code>{url}</code>
+                          <span>浏览 {link.view_count || 0} 次 · 创建于 {formatDateTime(link.created_at)}</span>
+                        </Box>
+                        <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                          <Button size="small" startIcon={<ContentCopyIcon />} onClick={() => copyShareLink(link)}>复制</Button>
+                          <Button size="small" href={url} target="_blank" rel="noopener noreferrer">打开</Button>
+                          <Button size="small" color="error" onClick={() => deactivateShareLink(link)}>停用</Button>
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              ) : (
+                <Box className="empty-panel compact">还没有为这条记录生成分享链接。</Box>
+              )}
+            </Stack>
+          ) : (
+            <Box className="empty-panel">未选择记录。</Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShareRecordId('')}>关闭</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={!!imageRecord} onClose={() => setImageRecordId('')} maxWidth="md" fullWidth>
+        <DialogTitle>{imageRecord ? `保存 ${TEST_LABEL[imageRecord.test_type] || imageRecord.test_type} 图片` : '保存图片'}</DialogTitle>
+        <DialogContent dividers>
+          {imageRecord ? (
+            <ForwardedRecordImageCard ref={imageCardRef} record={imageRecord} />
+          ) : (
+            <Box className="empty-panel">未选择记录。</Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setImageRecordId('')}>关闭</Button>
+          <Button onClick={saveRecordImage} disabled={!imageRecord || imageExporting} startIcon={imageExporting ? <CircularProgress size={16} /> : <ImageIcon />}>
+            保存图片
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={!!pairBaseRecord} onClose={() => setPairBaseRecordId('')} maxWidth="lg" fullWidth>
+        <DialogTitle>双人分析报告</DialogTitle>
+        <DialogContent dividers>
+          {pairBaseRecord ? (
+            <Stack spacing={2}>
+              <Typography className="muted-text">
+                第一版先支持当前账号内两条记录对比。跨用户邀请选择记录会作为下一步接入。
+              </Typography>
+              <Box className="pair-controls">
+                <TextField
+                  select
+                  size="small"
+                  label="关系模式"
+                  value={pairMode}
+                  onChange={event => setPairMode(event.target.value)}
+                >
+                  <MenuItem value="masterSlave">主奴关系</MenuItem>
+                  <MenuItem value="slaveSlave">奴奴关系</MenuItem>
+                  <MenuItem value="masterMaster">主主关系</MenuItem>
+                  <MenuItem value="partner">探索搭档</MenuItem>
+                </TextField>
+                <TextField
+                  select
+                  size="small"
+                  label="对比记录"
+                  value={pairTargetRecordId}
+                  onChange={event => setPairTargetRecordId(event.target.value)}
+                >
+                  {records.filter(record => record.id !== pairBaseRecord.id).map(record => (
+                    <MenuItem key={record.id} value={record.id}>{buildRecordTitle(record)}</MenuItem>
+                  ))}
+                </TextField>
+              </Box>
+              <PairReportPanel report={pairReport} baseRecord={pairBaseRecord} targetRecord={pairTargetRecord} />
+            </Stack>
+          ) : (
+            <Box className="empty-panel">未选择记录。</Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPairBaseRecordId('')}>关闭</Button>
         </DialogActions>
       </Dialog>
       <Dialog open={!!deleteRecordId} onClose={() => setDeleteRecordId('')} maxWidth="xs" fullWidth>

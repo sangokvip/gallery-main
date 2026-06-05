@@ -1557,9 +1557,11 @@ const localMemberCenterMockApi = {
       shareLinks: [
         {
           id: 'mock-share-001',
+          record_id: 'mock-record-003',
           title: '本地预览分享',
           share_token: 'mock-share-token',
           is_active: true,
+          view_count: 3,
           expires_at: '2026-12-31T23:59:59.000Z',
           created_at: '2026-05-25T08:00:00.000Z'
         }
@@ -1635,10 +1637,12 @@ const localMemberCenterMockApi = {
 
   async createShareLink(session, legacyUserId, payload) {
     return {
-      id: `mock-share-${payload.share_token}`,
+      id: `mock-share-${payload.share_token || Date.now()}`,
+      record_id: payload.record_id,
       title: payload.title || '我的测评报告',
       share_token: payload.share_token || 'mock-share-token-new',
       is_active: true,
+      view_count: 0,
       expires_at: payload.expires_at || null,
       created_at: new Date().toISOString()
     };
@@ -1675,12 +1679,13 @@ const localMemberCenterMockApi = {
       };
     }
 
-    if (token === 'mock-open-share-token') {
+    if (token === 'mock-open-share-token' || token === 'mock-share-token-new') {
       return {
         requiresAccessCode: false,
         link: {
           title: '本地预览公开分享',
-          hidden_sections: []
+          hidden_sections: [],
+          view_count: 1
         },
         record: openRecord
       };

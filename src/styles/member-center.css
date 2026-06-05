@@ -459,10 +459,171 @@ body {
   flex-wrap: wrap;
 }
 
+.share-item.detailed {
+  align-items: flex-start;
+}
+
+.share-item.detailed > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
 .share-item code {
   color: var(--member-muted);
   font-size: 0.78rem;
   overflow-wrap: anywhere;
+}
+
+.share-item span {
+  color: var(--member-muted);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.share-create-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.record-action-stack {
+  flex-wrap: wrap;
+}
+
+.record-action-stack .MuiButton-root {
+  min-height: 34px;
+  white-space: nowrap;
+}
+
+.record-export-card {
+  background: #fff;
+  color: #0f172a;
+  border: 3px solid #0f172a;
+  border-radius: 8px;
+  padding: 22px;
+}
+
+.record-export-title {
+  margin: 0 0 8px !important;
+  font-size: 2rem !important;
+  font-weight: 950 !important;
+  line-height: 1.1 !important;
+}
+
+.record-export-meta {
+  color: var(--member-muted);
+  font-size: 1rem !important;
+  font-weight: 900 !important;
+  margin-bottom: 16px !important;
+}
+
+.record-export-stats {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.record-export-stats div {
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+  display: grid;
+  gap: 4px;
+}
+
+.record-export-stats strong,
+.record-export-stats span {
+  font-weight: 950;
+}
+
+.record-export-stats span {
+  font-size: 1.35rem;
+}
+
+.pair-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.pair-report {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.pair-score-card {
+  border: 3px solid #0f172a;
+  border-radius: 8px;
+  background: #eff6ff;
+  box-shadow: 4px 4px 0 #0f172a;
+  padding: 16px;
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-height: 150px;
+}
+
+.pair-score-card strong {
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.pair-score-card span,
+.pair-score-card small {
+  font-weight: 900;
+  color: #1e293b;
+}
+
+.pair-record-names,
+.pair-report-section {
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 12px;
+}
+
+.pair-record-names {
+  display: grid;
+  gap: 8px;
+  font-weight: 900;
+  color: #1e293b;
+}
+
+.pair-report-section {
+  grid-column: 1 / -1;
+}
+
+.pair-report-section.warning {
+  background: #fff7ed;
+}
+
+.pair-item-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pair-item-list span {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  padding: 7px 9px;
+  color: #1e293b;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.pair-item-list em {
+  margin-left: 6px;
+  color: #64748b;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .shared-item-list {
@@ -519,6 +680,10 @@ body {
   font-weight: 800;
 }
 
+.empty-panel.compact {
+  min-height: 92px;
+}
+
 .member-loading {
   gap: 12px;
   flex-direction: column;
@@ -546,6 +711,12 @@ body {
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .record-export-stats,
+  .pair-report,
+  .pair-controls {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -582,6 +753,11 @@ body {
 
   .member-card {
     padding: 16px;
+  }
+
+  .share-create-panel,
+  .record-export-stats {
+    grid-template-columns: 1fr;
   }
 
   .chart-card,

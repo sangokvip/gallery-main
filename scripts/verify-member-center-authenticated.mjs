@@ -16,7 +16,10 @@ const requiredTexts = [
   '累计评级分布',
   '变化分析',
   '测评记录库',
-  '查看明细'
+  '查看明细',
+  '分享',
+  '保存图片',
+  '双人分析'
 ];
 
 function waitForServer(child) {
@@ -101,6 +104,27 @@ async function assertAuthenticatedMemberCenter(browser, width) {
   await detailsDialog.getByText(/^SSS \(\d+\)$/).waitFor({ timeout: 5000 });
   await detailsDialog.getByText(/^SS \(\d+\)$/).waitFor({ timeout: 5000 });
   await detailsDialog.getByText(/^S \(\d+\)$/).waitFor({ timeout: 5000 });
+  await page.getByRole('button', { name: '关闭' }).click();
+
+  await page.getByRole('button', { name: /^分享$/ }).first().click();
+  const shareDialog = page.getByRole('dialog');
+  await shareDialog.getByText('分享链接打开后会记录浏览次数').waitFor({ timeout: 5000 });
+  await shareDialog.getByText(/浏览 \d+ 次/).waitFor({ timeout: 5000 });
+  await shareDialog.getByRole('button', { name: '生成分享链接' }).waitFor({ timeout: 5000 });
+  await page.getByRole('button', { name: '关闭' }).click();
+
+  await page.getByRole('button', { name: '保存图片' }).first().click();
+  const imageDialog = page.getByRole('dialog');
+  await imageDialog.getByText(/完成 \d+\/\d+ 项/).waitFor({ timeout: 5000 });
+  await imageDialog.getByRole('button', { name: '保存图片' }).waitFor({ timeout: 5000 });
+  await page.getByRole('button', { name: '关闭' }).click();
+
+  await page.getByRole('button', { name: '双人分析' }).first().click();
+  const pairDialog = page.getByRole('dialog');
+  await pairDialog.getByText('双人分析报告').waitFor({ timeout: 5000 });
+  await pairDialog.getByLabel('关系模式').waitFor({ timeout: 5000 });
+  await pairDialog.getByText('契合度').waitFor({ timeout: 5000 });
+  await pairDialog.getByText('边界冲突').waitFor({ timeout: 5000 });
   await page.getByRole('button', { name: '关闭' }).click();
 
   for (const text of requiredTexts) {
