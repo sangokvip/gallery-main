@@ -1535,25 +1535,12 @@ const localMemberCenterMockApi = {
         wechat: '',
         contact_email: '',
         phone: '',
-        membership_tier: 'premium',
+        membership_tier: 'free',
         privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
         notification_settings: { monthlySummary: true, trendReminder: true }
       },
-      subscription: {
-        id: 'mock-subscription-001',
-        status: 'active',
-        tier: 'premium',
-        started_at: '2026-05-18T08:00:00.000Z',
-        ends_at: '2026-12-31T23:59:59.000Z'
-      },
-      unlocks: [
-        {
-          id: 'mock-unlock-001',
-          record_id: 'mock-record-003',
-          unlock_type: 'advanced_report',
-          created_at: '2026-05-25T08:00:00.000Z'
-        }
-      ],
+      subscription: null,
+      unlocks: [],
       shareLinks: [
         {
           id: 'mock-share-001',
@@ -1569,7 +1556,7 @@ const localMemberCenterMockApi = {
       orders: [
         {
           id: 'mock-order-001',
-          plan_code: 'premium_monthly',
+          plan_code: 'basic_monthly',
           status: 'approved',
           created_at: '2026-05-24T08:00:00.000Z'
         }

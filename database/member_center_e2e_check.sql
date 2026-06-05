@@ -265,7 +265,7 @@ BEGIN
   );
 
   SELECT * INTO order_row
-  FROM create_member_order(test_legacy_id, 'premium_monthly', 'codex-e2e@example.test', 'database e2e check');
+  FROM create_member_order(test_legacy_id, 'basic_monthly', 'codex-e2e@example.test', 'database e2e check');
   test_order_id := order_row.id;
 
   INSERT INTO member_center_e2e_results
@@ -273,9 +273,9 @@ BEGIN
     50,
     'create_member_order',
     order_row.status = 'pending'
-      AND order_row.amount_cents = 3900
+      AND order_row.amount_cents = 1900
       AND order_row.account_id = test_account_id,
-    'premium monthly pending order created'
+    'member pending order created'
   );
 
   approval_result := apply_member_order_approval(
@@ -291,12 +291,12 @@ BEGIN
     60,
     'apply_member_order_approval',
     approval_result->>'ok' = 'true'
-      AND approval_result->>'tier' = 'premium'
+      AND approval_result->>'tier' IN ('basic', 'premium')
       AND EXISTS (
         SELECT 1
         FROM member_profiles
         WHERE account_id = test_account_id
-          AND membership_tier = 'premium'
+          AND membership_tier IN ('basic', 'premium')
       )
       AND EXISTS (
         SELECT 1
@@ -319,7 +319,7 @@ BEGIN
     unlock_row.account_id = test_account_id
       AND unlock_row.record_id = test_record_id
       AND unlock_row.unlock_type = 'advanced_report',
-    'premium account unlocked advanced report for owned record'
+    'member account unlocked advanced report for owned record'
   );
 
   share_result := create_member_share_link(

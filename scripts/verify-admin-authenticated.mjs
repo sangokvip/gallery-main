@@ -94,24 +94,24 @@ async function assertMembers(page, width) {
   await page.locator('[data-admin-tab="members"]').click();
   await page.waitForFunction(() => document.body?.textContent?.includes('会员筛选'), { timeout: 10000 });
   let bodyText = await assertNoOverflow(page, 'admin members', width);
-  for (const text of ['会员账号', '有效订阅', '待审核订单', '会员筛选', '联系方式', '订单审核', '本地预览待审核订单', '本地高级会员']) {
+  for (const text of ['会员账号', '分享链接', '历史待处理', '会员筛选', '联系方式', '历史订单', '本地预览待审核订单', '本地会员 A']) {
     if (!bodyText.includes(text)) {
       throw new Error(`admin members missing "${text}" at ${width}px`);
     }
   }
 
-  await page.getByPlaceholder('昵称 / 邮箱 / QQ / 微信 / 电话').fill('premium');
-  await page.waitForFunction(() => document.body?.textContent?.includes('premium@example.com'), { timeout: 10000 });
+  await page.getByPlaceholder('昵称 / 邮箱 / QQ / 微信 / 电话').fill('member-a');
+  await page.waitForFunction(() => document.body?.textContent?.includes('member-a@example.com'), { timeout: 10000 });
   await assertNoOverflow(page, 'admin members search', width);
   const memberTableText = await page.locator('.member-list-table').innerText();
-  if (!memberTableText.includes('本地高级会员') || memberTableText.includes('本地基础会员')) {
+  if (!memberTableText.includes('本地会员 A') || memberTableText.includes('本地会员 B')) {
     throw new Error(`admin member search failed at ${width}px`);
   }
 
   await page.locator('.member-list-table').getByRole('button', { name: '详情' }).first().click();
   await page.waitForFunction(() => document.body?.textContent?.includes('账号标识'), { timeout: 10000 });
   bodyText = await assertNoOverflow(page, 'admin member detail', width);
-  for (const text of ['账号标识', '会员测评记录', '订单记录', 'premium_preview', 'mock-record-001', '108 项']) {
+  for (const text of ['账号标识', '会员测评记录', '订单记录', 'member_preview_a', 'mock-record-001', '108 项']) {
     if (!bodyText.includes(text)) {
       throw new Error(`admin member detail missing "${text}" at ${width}px`);
     }

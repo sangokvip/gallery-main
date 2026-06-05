@@ -126,7 +126,7 @@ const localAdminApi = {
   async getMemberStats() {
     return {
       totalMembers: 18,
-      activeSubscriptions: 9,
+      activeSubscriptions: 0,
       pendingOrders: 2,
       activeShares: 6
     };
@@ -138,33 +138,33 @@ const localAdminApi = {
       members: [
         {
           account_id: '00000000-0000-4000-8000-000000000001',
-          display_name: '本地高级会员',
+          display_name: '本地会员 A',
           qq: '10001',
-          wechat: 'premium_preview',
-          contact_email: 'premium@example.com',
+          wechat: 'member_preview_a',
+          contact_email: 'member-a@example.com',
           phone: '13800000001',
-          membership_tier: 'premium',
-          subscription: { status: 'active' },
+          membership_tier: 'free',
+          subscription: null,
           legacy_user_id_text: 'mock-user-01',
           orders: [{ id: 'mock-order-001' }],
           created_at: '2026-05-24T08:00:00.000Z'
         },
         {
           account_id: '00000000-0000-4000-8000-000000000002',
-          display_name: '本地基础会员',
+          display_name: '本地会员 B',
           qq: '10002',
-          wechat: 'basic_preview',
-          contact_email: 'basic@example.com',
+          wechat: 'member_preview_b',
+          contact_email: 'member-b@example.com',
           phone: '',
-          membership_tier: 'basic',
-          subscription: { status: 'active' },
+          membership_tier: 'free',
+          subscription: null,
           legacy_user_id_text: 'mock-user-02',
           orders: [],
           created_at: '2026-05-25T08:00:00.000Z'
         },
         {
           account_id: '00000000-0000-4000-8000-000000000003',
-          display_name: '本地免费会员',
+          display_name: '本地会员 C',
           qq: '',
           wechat: 'free_preview',
           contact_email: 'free@example.com',
@@ -183,7 +183,7 @@ const localAdminApi = {
     return [
       {
         id: 'mock-order-pending-001',
-        plan_code: 'premium_monthly',
+        plan_code: 'basic_monthly',
         amount_cents: 3900,
         currency: 'CNY',
         status: 'pending',
@@ -193,7 +193,7 @@ const localAdminApi = {
       },
       {
         id: 'mock-order-approved-001',
-        plan_code: 'lifetime',
+        plan_code: 'basic_monthly',
         amount_cents: 29900,
         currency: 'CNY',
         status: 'approved',

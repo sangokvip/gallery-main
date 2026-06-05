@@ -7,8 +7,8 @@ const TEST_BADGE = { female: 'badge-female', male: 'badge-male', s: 'badge-s', l
 const TEST_LABEL = { female: '女M测试', male: '男M测试', s: 'S型测试', lgbt: 'LGBT+' };
 const TYPE_ACCENT = { female: 'accent-pink', male: 'accent-blue', s: 'accent-amber', lgbt: 'accent-green' };
 const RATING_COLORS = { SSS: '#dc2626', SS: '#ea580c', S: '#d97706', Q: '#2563eb', N: '#6b7280', W: '#94a3b8' };
-const MEMBER_TIER_LABEL = { free: '免费', basic: '基础', premium: '高级', lifetime: '永久' };
-const MEMBER_PLAN_LABEL = { basic_monthly: '基础会员', premium_monthly: '高级会员', lifetime: '永久会员' };
+const getMemberTierLabel = () => '会员';
+const getMemberPlanLabel = () => '会员';
 const ORDER_STATUS_LABEL = {
   pending: '待审核',
   paid: '已付款',
@@ -68,7 +68,7 @@ function LoginPage({ onLogin }) {
 
 const ADMIN_SHORTCUTS = [
   { label: '测评记录', description: '查看、筛选和翻页测评数据', target: 'records', accent: 'accent-blue' },
-  { label: '会员管理', description: '审核订单、查看会员等级和订阅', target: 'members', accent: 'accent-pink' },
+  { label: '会员管理', description: '查看会员账号、联系方式和测评记录', target: 'members', accent: 'accent-pink' },
   { label: '安全管理', description: '修改密码和查看当前会话', target: 'security', accent: 'accent-green' },
   { label: '系统设置', description: '站点配置和外部工具入口', target: 'settings', accent: 'accent-amber' },
 ];
@@ -255,7 +255,7 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
   return (
     <div>
       <div className="section-header">
-        <div><h2>会员管理</h2><span className="sub">会员账号、联系方式、订阅状态和历史订单</span></div>
+        <div><h2>会员管理</h2><span className="sub">会员账号、联系方式和测评记录</span></div>
         <button className="btn-brutal" onClick={onRefresh} disabled={loading}>↻ 刷新</button>
       </div>
       {loading ? <div className="loading">加载会员数据中...</div> : (
@@ -272,8 +272,8 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
           )}
           <div className="stats-grid">
             <div className="brutal-card stat-card accent-pink"><div className="stat-value">{stats?.totalMembers || 0}</div><div className="stat-label">会员账号</div><div className="stat-today">已注册</div></div>
-            <div className="brutal-card stat-card accent-green"><div className="stat-value">{stats?.activeSubscriptions || 0}</div><div className="stat-label">有效订阅</div><div className="stat-today">active / trialing</div></div>
-            <div className="brutal-card stat-card accent-amber"><div className="stat-value">{pendingOrders.length}</div><div className="stat-label">待审核订单</div><div className="stat-today">人工处理</div></div>
+            <div className="brutal-card stat-card accent-green"><div className="stat-value">{stats?.activeShares || 0}</div><div className="stat-label">分享链接</div><div className="stat-today">已生成</div></div>
+            <div className="brutal-card stat-card accent-amber"><div className="stat-value">{pendingOrders.length}</div><div className="stat-label">历史待处理</div><div className="stat-today">兼容旧订单</div></div>
             <div className="brutal-card stat-card accent-blue"><div className="stat-value">{filteredMembers.length}</div><div className="stat-label">当前筛选</div><div className="stat-today">列表结果</div></div>
           </div>
 
@@ -290,13 +290,11 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
                   />
                 </div>
                 <div className="form-group">
-                  <label>会员等级</label>
+                  <label>账号类型</label>
                   <select value={tierFilter} onChange={event => setTierFilter(event.target.value)}>
-                    <option value="">全部等级</option>
-                    <option value="free">免费</option>
-                    <option value="basic">基础</option>
-                    <option value="premium">高级</option>
-                    <option value="lifetime">永久</option>
+                    <option value="">全部会员</option>
+                    <option value="free">普通会员</option>
+                    <option value="basic">普通会员</option>
                   </select>
                 </div>
                 <div className="form-group">
@@ -314,14 +312,14 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
 
             <div className="brutal-card no-hover member-admin-help">
               <h3>后台能做什么</h3>
-              <p>查看会员资料和联系方式，按等级筛选账号，处理历史人工订单。当前会员中心前台已隐藏付费入口，后续重新开放付费时这里可以继续承接订单审核。</p>
+              <p>查看会员资料、联系方式和测评记录。旧订单数据仅保留兼容查看，不再用于限制会员功能。</p>
             </div>
           </div>
 
           <div className="section-header compact"><h3>会员账号</h3><span className="sub">显示 {filteredMembers.length} / {members?.length || 0} 个</span></div>
           <div className="brutal-card no-hover" style={{padding:0, overflow:'hidden'}}>
             <table className="brutal-table records-table member-list-table">
-              <thead><tr><th>昵称</th><th>联系方式</th><th>等级</th><th>订阅</th><th>订单</th><th>创建时间</th><th>操作</th></tr></thead>
+              <thead><tr><th>昵称</th><th>联系方式</th><th>账号类型</th><th>分享</th><th>历史订单</th><th>创建时间</th><th>操作</th></tr></thead>
               <tbody>
                 {filteredMembers.length === 0 ? (
                   <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem', color:'#888'}}>暂无会员账号</td></tr>
@@ -334,8 +332,8 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
                         <small>{[member.qq && `QQ ${member.qq}`, member.wechat && `微信 ${member.wechat}`, member.phone && `电话 ${member.phone}`].filter(Boolean).join(' · ') || '未填写其他联系方式'}</small>
                       </div>
                     </td>
-                    <td><span className="badge badge-female">{MEMBER_TIER_LABEL[member.membership_tier] || member.membership_tier}</span></td>
-                    <td>{member.subscription?.status || '无'}</td>
+                    <td><span className="badge badge-female">{getMemberTierLabel(member.membership_tier)}</span></td>
+                    <td>{member.share_links?.length || member.shares?.length || 0}</td>
                     <td>{member.orders?.length || 0}</td>
                     <td>{formatDateTime(member.created_at)}</td>
                     <td><button className="btn-brutal" onClick={() => setSelectedMember(member)}>详情</button></td>
@@ -345,7 +343,7 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
             </table>
           </div>
 
-          <div className="section-header compact" style={{marginTop:'1.5rem'}}><h3>订单审核</h3><span className="sub">历史和人工订单</span></div>
+          <div className="section-header compact" style={{marginTop:'1.5rem'}}><h3>历史订单</h3><span className="sub">仅兼容旧数据</span></div>
           <div className="brutal-card no-hover" style={{padding:0, overflow:'hidden'}}>
             <table className="brutal-table member-order-table">
               <thead><tr><th>方案</th><th>金额</th><th>状态</th><th>会员</th><th>备注</th><th>时间</th><th>操作</th></tr></thead>
@@ -356,7 +354,7 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
                   const member = (members || []).find(item => item.account_id === order.account_id);
                   return (
                     <tr key={order.id}>
-                      <td><strong>{MEMBER_PLAN_LABEL[order.plan_code] || order.plan_code}</strong></td>
+                      <td><strong>{getMemberPlanLabel(order.plan_code)}</strong></td>
                       <td>{formatMoney(order.amount_cents, order.currency)}</td>
                       <td><span className={`badge ${order.status === 'pending' ? 'badge-s' : order.status === 'approved' ? 'badge-lgbt' : 'badge-male'}`}>{ORDER_STATUS_LABEL[order.status] || order.status}</span></td>
                       <td>{member?.display_name || order.account_id?.slice(0, 8) || '-'}</td>
@@ -421,8 +419,8 @@ function MemberDetailModal({ member, orders, onViewRecord, onClose }) {
     ['QQ', member.qq || '-'],
     ['微信', member.wechat || '-'],
     ['电话', member.phone || '-'],
-    ['会员等级', MEMBER_TIER_LABEL[member.membership_tier] || member.membership_tier || '-'],
-    ['订阅状态', member.subscription?.status || '无'],
+    ['账号类型', '会员'],
+    ['历史订阅', member.subscription?.status || '无'],
     ['注册时间', formatDateTime(member.created_at)],
     ['更新时间', formatDateTime(member.updated_at)]
   ];
@@ -488,7 +486,7 @@ function MemberDetailModal({ member, orders, onViewRecord, onClose }) {
                 <tr><td colSpan={4} style={{textAlign:'center', padding:'1.2rem', color:'#888'}}>暂无订单</td></tr>
               ) : orders.map(order => (
                 <tr key={order.id}>
-                  <td>{MEMBER_PLAN_LABEL[order.plan_code] || order.plan_code}</td>
+                  <td>{getMemberPlanLabel(order.plan_code)}</td>
                   <td>{ORDER_STATUS_LABEL[order.status] || order.status}</td>
                   <td>{formatMoney(order.amount_cents, order.currency)}</td>
                   <td>{formatDateTime(order.created_at)}</td>

@@ -56,7 +56,7 @@ const authenticatedOnlyRpc = [
     name: 'create_member_order',
     body: {
       input_legacy_user_id_text: 'codex-production-check',
-      input_plan_code: 'premium_monthly',
+      input_plan_code: 'basic_monthly',
       input_contact_email: 'codex-production-check@example.test',
       input_contact_note: 'production check'
     }

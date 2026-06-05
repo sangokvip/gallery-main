@@ -309,13 +309,8 @@ BEGIN
   resolved_provider := COALESCE(NULLIF(input_provider, ''), order_row.provider, 'manual');
   resolved_provider_ref := COALESCE(NULLIF(input_provider_ref, ''), order_row.provider_ref, order_row.id::TEXT);
 
-  next_tier := CASE order_row.plan_code
-    WHEN 'basic_monthly' THEN 'basic'
-    WHEN 'premium_monthly' THEN 'premium'
-    WHEN 'lifetime' THEN 'lifetime'
-    ELSE 'premium'
-  END;
-  next_ends_at := CASE WHEN order_row.plan_code = 'lifetime' THEN NULL ELSE timezone('utc'::text, now()) + interval '31 days' END;
+  next_tier := 'basic';
+  next_ends_at := timezone('utc'::text, now()) + interval '31 days';
 
   UPDATE member_orders
   SET status = 'approved',

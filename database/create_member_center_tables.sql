@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS member_profiles (
   wechat TEXT,
   contact_email TEXT,
   phone TEXT,
-  membership_tier TEXT NOT NULL DEFAULT 'free' CHECK (membership_tier IN ('free', 'basic', 'premium', 'lifetime')),
+  membership_tier TEXT NOT NULL DEFAULT 'free' CHECK (membership_tier IN ('free', 'basic')),
   privacy_settings JSONB NOT NULL DEFAULT '{"hideUserId": true, "hideSensitiveItems": true, "allowPrivateShare": true}'::jsonb,
   notification_settings JSONB NOT NULL DEFAULT '{"monthlySummary": true, "trendReminder": false}'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS member_login_names (
 CREATE TABLE IF NOT EXISTS member_subscriptions (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   account_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  plan_code TEXT NOT NULL CHECK (plan_code IN ('free', 'basic_monthly', 'premium_monthly', 'lifetime')),
+  plan_code TEXT NOT NULL CHECK (plan_code IN ('free', 'basic_monthly')),
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'trialing', 'past_due', 'canceled', 'expired')),
   provider TEXT NOT NULL DEFAULT 'manual',
   provider_ref TEXT,
@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS member_orders (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   account_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   legacy_user_id_text TEXT REFERENCES users(id) ON DELETE SET NULL,
-  plan_code TEXT NOT NULL CHECK (plan_code IN ('basic_monthly', 'premium_monthly', 'lifetime')),
+  plan_code TEXT NOT NULL CHECK (plan_code IN ('basic_monthly')),
   amount_cents INTEGER NOT NULL DEFAULT 0 CHECK (amount_cents >= 0),
   currency TEXT NOT NULL DEFAULT 'CNY',
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'approved', 'rejected', 'canceled', 'refunded')),
@@ -798,17 +798,12 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, extensions
 AS $$
-DECLARE
-  profile_tier TEXT;
 BEGIN
-  SELECT membership_tier INTO profile_tier
-  FROM member_profiles
-  WHERE account_id = input_account_id
-  LIMIT 1;
-
-  IF profile_tier NOT IN ('premium', 'lifetime') THEN
-    RAISE EXCEPTION '该功能需要高级会员或永久会员';
+  IF input_account_id IS NULL THEN
+    RAISE EXCEPTION '请先登录会员账号';
   END IF;
+
+  RETURN;
 END;
 $$;
 
@@ -947,8 +942,6 @@ BEGIN
 
   amount_value := CASE input_plan_code
     WHEN 'basic_monthly' THEN 1900
-    WHEN 'premium_monthly' THEN 3900
-    WHEN 'lifetime' THEN 29900
     ELSE NULL
   END;
 
@@ -1006,7 +999,6 @@ BEGIN
     RAISE EXCEPTION '解锁类型无效';
   END IF;
 
-  PERFORM require_premium_member(current_account);
   PERFORM ensure_member_record_owner(current_account, input_legacy_user_id_text, input_record_id);
 
   INSERT INTO member_report_unlocks (
@@ -1055,7 +1047,6 @@ BEGIN
     RAISE EXCEPTION '请先登录会员账号';
   END IF;
 
-  PERFORM require_premium_member(current_account);
   PERFORM ensure_member_record_owner(current_account, input_legacy_user_id_text, input_record_id);
 
   INSERT INTO member_share_links (
