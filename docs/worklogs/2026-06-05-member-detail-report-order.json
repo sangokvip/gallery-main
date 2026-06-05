@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-05-member-detail-report-order",
+  "date": "2026-06-05",
+  "summary": "调整我的档案测评明细弹窗，使明细按照生成报告一致的评分分组和项目顺序展示。",
+  "trigger": "用户反馈明细需要按照与生成的测评报告一样的分组排序方式展示。",
+  "changes": [
+    {
+      "category": "明细排序",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/utils/testCatalogs.js"
+      ],
+      "details": [
+        "新增 REPORT_RATING_ORDER 和四个测评类型的报告项目顺序表。",
+        "明细弹窗从按类别分组改为按 SSS、SS、S、Q、W、N 分组。",
+        "每个评分分组内部按照对应测评页 CATEGORIES 的分类顺序和项目顺序排序。"
+      ]
+    },
+    {
+      "category": "界面展示",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css"
+      ],
+      "details": [
+        "评分分组标题显示为“SSS (数量)”格式。",
+        "每个明细项显示原分类和项目名，避免跨分类项目重名时看不清来源。"
+      ]
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-member-center-authenticated.mjs"
+      ],
+      "details": [
+        "登录态我的档案多视口验证新增明细弹窗评分分组断言，检查 SSS、SS、S 分组标题存在。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "node --input-type=module ... REPORT_CATEGORIES_BY_TYPE count check",
+      "result": "通过。female 9 类 108 项；male 10 类 145 项；s 9 类 108 项；lgbt 8 类 99 项。"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 输出既有 chunk size warning，未阻断构建。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过。320、375、390、430、768、1024、1440 宽度下登录态我的档案页可打开明细弹窗，并能看到 SSS、SS、S 评分分组标题。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，没有空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "本次验证使用本地 mock 数据，没有连接真实生产 Supabase 数据。",
+    "如果未来四个测评页的 CATEGORIES 变更，需要同步更新 src/utils/testCatalogs.js。"
+  ],
+  "deploymentNotes": [
+    "只涉及前端展示和验证脚本，不需要新增数据库 SQL。",
+    "当前修改位于 codex/member-center 分支。"
+  ]
+}

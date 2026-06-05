@@ -43,6 +43,7 @@ import {
   YAxis
 } from 'recharts';
 import { memberCenterApi } from './utils/supabase';
+import { REPORT_RATING_ORDER, buildReportOrderIndex } from './utils/testCatalogs';
 import { getNickname, getUserId } from './utils/userManager';
 import './styles/member-center.css';
 
@@ -203,13 +204,31 @@ function buildAnalysis(records) {
   return lines;
 }
 
-function groupRecordDetails(details) {
-  return details.reduce((groups, detail) => {
-    const category = detail.category || '未分类';
-    if (!groups[category]) groups[category] = [];
-    groups[category].push(detail);
+function groupRecordDetailsByRating(record) {
+  if (!record) return [];
+  const orderIndex = buildReportOrderIndex(record.test_type);
+  const fallbackBase = orderIndex.size + 1000;
+  const details = record.details.map((detail, index) => ({ ...detail, originalIndex: index }));
+
+  const grouped = details.reduce((groups, detail) => {
+    const rating = detail.rating && REPORT_RATING_ORDER.includes(detail.rating) ? detail.rating : '未评分';
+    if (!groups[rating]) groups[rating] = [];
+    groups[rating].push(detail);
     return groups;
   }, {});
+
+  return [...REPORT_RATING_ORDER, '未评分']
+    .filter(rating => grouped[rating]?.length)
+    .map(rating => ({
+      rating,
+      details: grouped[rating].sort((a, b) => {
+        const aKey = `${a.category}::${a.item}`;
+        const bKey = `${b.category}::${b.item}`;
+        const aOrder = orderIndex.has(aKey) ? orderIndex.get(aKey) : fallbackBase + a.originalIndex;
+        const bOrder = orderIndex.has(bKey) ? orderIndex.get(bKey) : fallbackBase + b.originalIndex;
+        return aOrder - bOrder;
+      })
+    }));
 }
 
 function exportRecords(records) {
@@ -337,7 +356,7 @@ function MemberCenterApp() {
     : records.length ? 1 : 0;
 
   const detailRecord = records.find(record => record.id === detailRecordId);
-  const detailGroups = detailRecord ? groupRecordDetails(detailRecord.details) : {};
+  const detailGroups = detailRecord ? groupRecordDetailsByRating(detailRecord) : [];
   const memberUsername = session?.user?.user_metadata?.username
     || profileDraft?.display_name
     || session?.user?.email?.split('@')[0]
@@ -684,13 +703,15 @@ function MemberCenterApp() {
               <Typography className="muted-text">
                 {formatDateTime(detailRecord.created_at)} · 完成 {detailRecord.completedItems}/{detailRecord.totalItems || detailRecord.completedItems} 项 · 综合强度 {detailRecord.averageScore.toFixed(2)}
               </Typography>
-              {Object.entries(detailGroups).map(([category, details]) => (
-                <Box key={category} className="record-detail-group">
-                  <Typography className="record-detail-category">{category}</Typography>
+              {detailGroups.map(({ rating, details }) => (
+                <Box key={rating} className="record-detail-group">
+                  <Typography className="record-detail-category record-detail-rating-title" sx={{ color: RATING_COLORS[rating] || '#475569' }}>
+                    {rating} ({details.length})
+                  </Typography>
                   <Box className="record-detail-items">
                     {details.map(detail => (
                       <span key={`${detail.category}-${detail.item}`}>
-                        <strong>{detail.rating || '-'}</strong>{detail.item}
+                        <em>{detail.category}</em>{detail.item}
                       </span>
                     ))}
                   </Box>

@@ -340,6 +340,10 @@ body {
   font-weight: 900 !important;
 }
 
+.record-detail-rating-title {
+  font-size: 1.05rem !important;
+}
+
 .record-detail-items {
   display: flex;
   flex-wrap: wrap;
@@ -359,6 +363,13 @@ body {
 .record-detail-items strong {
   margin-right: 6px;
   color: #2563eb;
+}
+
+.record-detail-items em {
+  margin-right: 6px;
+  color: #64748b;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .plan-grid {

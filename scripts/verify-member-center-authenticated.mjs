@@ -98,6 +98,9 @@ async function assertAuthenticatedMemberCenter(browser, width) {
   await page.getByRole('button', { name: '查看明细' }).first().click();
   const detailsDialog = page.getByRole('dialog');
   await detailsDialog.getByText('综合强度').waitFor({ timeout: 5000 });
+  await detailsDialog.getByText(/^SSS \(\d+\)$/).waitFor({ timeout: 5000 });
+  await detailsDialog.getByText(/^SS \(\d+\)$/).waitFor({ timeout: 5000 });
+  await detailsDialog.getByText(/^S \(\d+\)$/).waitFor({ timeout: 5000 });
   await page.getByRole('button', { name: '关闭' }).click();
 
   for (const text of requiredTexts) {
