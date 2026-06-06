@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-06-member-profile-identity-link-fallback",
+  "date": "2026-06-06",
+  "summary": "修复会员中心账号资料因匿名身份密钥不匹配而一直显示加载中的问题。",
+  "trigger": "用户反馈会员中心账号资料区域一直卡在“正在读取账号资料...”，页面提示“匿名身份密钥不匹配，无法绑定该测评身份”。",
+  "changes": [
+    {
+      "category": "数据库 RPC",
+      "files": [
+        "database/member_center_refinements_2026_06_06.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "调整 get_member_profile_bundle：先读取或创建会员资料，再尝试绑定当前匿名测评身份。",
+        "匿名身份绑定失败时不再让整个资料读取失败，而是通过 identityLinkError 返回错误信息。",
+        "重新生成 member_center_full_deploy.sql，确保完整部署脚本包含该修复。"
+      ]
+    },
+    {
+      "category": "前端兜底",
+      "files": [
+        "src/utils/supabase.js",
+        "src/MemberCenterApp.jsx"
+      ],
+      "details": [
+        "会员资料 RPC 失败时返回账号基本资料，避免资料卡片一直显示加载中。",
+        "会员中心收到 identityLinkError 时显示当前设备记录未能绑定的提示，但联系方式表单照常显示。"
+      ]
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "增加 identityLinkError 文本检查，确保非阻断绑定错误返回逻辑保留。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，Vite 成功完成生产构建。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，会员安全检查通过。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过，在 320、375、390、430、768、1024、1440 宽度验证会员中心 mock 登录页。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，无尾随空白或空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "如果当前设备匿名身份密钥确实不匹配，该设备下的游客测评记录不会自动绑定到会员账号，但会员账号资料会正常显示。",
+    "本轮未直接连接真实 Supabase 项目执行 SQL，需要在 SQL Editor 执行更新后的增量 SQL 或完整部署 SQL。"
+  ],
+  "deploymentNotes": [
+    "生产库需要执行更新后的 database/member_center_refinements_2026_06_06.sql，或完整执行 database/member_center_full_deploy.sql。",
+    "执行后重新打开会员中心，账号与联系方式区域应显示表单，不应停留在“正在读取账号资料...”。"
+  ]
+}

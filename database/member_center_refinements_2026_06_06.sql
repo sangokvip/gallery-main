@@ -122,15 +122,31 @@ AS $$
 DECLARE
   current_account UUID := auth.uid();
   profile_row member_profiles%ROWTYPE;
+  identity_link_error TEXT := NULL;
 BEGIN
   IF current_account IS NULL THEN
     RAISE EXCEPTION '请先登录会员账号';
   END IF;
 
-  profile_row := get_or_create_member_profile(input_legacy_user_id_text, input_display_name, input_claim_secret);
+  profile_row := get_or_create_member_profile(NULL, input_display_name, NULL);
+
+  IF NULLIF(trim(COALESCE(input_legacy_user_id_text, '')), '') IS NOT NULL THEN
+    BEGIN
+      PERFORM link_member_identity(input_legacy_user_id_text, input_claim_secret, '当前身份');
+
+      UPDATE member_profiles
+      SET legacy_user_id_text = COALESCE(legacy_user_id_text, NULLIF(input_legacy_user_id_text, '')),
+          updated_at = timezone('utc'::text, now())
+      WHERE account_id = current_account
+      RETURNING * INTO profile_row;
+    EXCEPTION WHEN OTHERS THEN
+      identity_link_error := SQLERRM;
+    END;
+  END IF;
 
   RETURN jsonb_build_object(
     'profile', to_jsonb(profile_row),
+    'identityLinkError', identity_link_error,
     'subscription', (
       SELECT to_jsonb(ms)
       FROM member_subscriptions ms

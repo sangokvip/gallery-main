@@ -1920,7 +1920,18 @@ const realMemberCenterApi = {
     });
 
     if (bundleError) {
-      throw new Error('会员资料读取失败: ' + (bundleError.message || '未知错误'));
+      return {
+        profile: baseProfile,
+        subscription: null,
+        unlocks: [],
+        shareLinks: [],
+        orders: [],
+        devices: [],
+        identities: [],
+        isAuthenticated: true,
+        tablesReady: false,
+        profileError: bundleError.message || '未知错误'
+      };
     }
 
     return {
@@ -1932,7 +1943,8 @@ const realMemberCenterApi = {
       devices: bundle?.devices || [],
       identities: bundle?.identities || [],
       isAuthenticated: true,
-      tablesReady: bundle?.tablesReady !== false
+      tablesReady: bundle?.tablesReady !== false,
+      identityLinkError: bundle?.identityLinkError || null
     };
   },
 

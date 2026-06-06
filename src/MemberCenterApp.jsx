@@ -525,10 +525,27 @@ function MemberCenterApp() {
       const data = await memberCenterApi.getMemberProfile(nextSession, userInfo.userId, userInfo.nickname);
       setProfileDraft(data.profile);
       setShareLinks(data.shareLinks || []);
+      if (data.profileError) {
+        setSnackbar(`会员资料读取失败，已显示账号基本资料：${data.profileError}`);
+      } else if (data.identityLinkError) {
+        setSnackbar(`当前设备记录未能绑定：${data.identityLinkError}`);
+      }
       if (data.tablesReady) {
         memberCenterApi.registerDevice(nextSession, userInfo.userId).catch(() => {});
       }
     } catch (err) {
+      setProfileDraft({
+        account_id: nextSession?.user?.id || null,
+        legacy_user_id_text: userInfo.userId,
+        display_name: nextSession?.user?.user_metadata?.username || nextSession?.user?.email?.split('@')[0] || '会员用户',
+        qq: '',
+        wechat: '',
+        contact_email: nextSession?.user?.email || '',
+        phone: '',
+        membership_tier: 'free',
+        privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
+        notification_settings: { monthlySummary: true, trendReminder: false }
+      });
       setSnackbar(err.message || '会员资料读取失败');
     } finally {
       setMemberLoading(false);
