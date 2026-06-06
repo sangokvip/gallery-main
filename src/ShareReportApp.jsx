@@ -16,11 +16,39 @@ import {
   YAxis
 } from 'recharts';
 import { memberCenterApi } from './utils/supabase';
+import { REPORT_RATING_ORDER, buildReportOrderIndex } from './utils/testCatalogs';
 import './styles/member-center.css';
 
 const TEST_LABEL = { female: '女M测试', male: '男M测试', s: 'S型测试', lgbt: 'LGBT+探索' };
 const RATING_ORDER = ['SSS', 'SS', 'S', 'Q', 'N', 'W'];
 const RATING_WEIGHT = { SSS: 6, SS: 5, S: 4, Q: 3, N: 2, W: 1 };
+
+function groupSharedDetailsByRating(record) {
+  if (!record?.details?.length) return [];
+
+  const orderIndex = buildReportOrderIndex(record.test_type);
+  const fallbackBase = orderIndex.size + 1000;
+  const details = record.details.map((detail, index) => ({ ...detail, originalIndex: index }));
+  const grouped = details.reduce((groups, detail) => {
+    const rating = detail.rating && REPORT_RATING_ORDER.includes(detail.rating) ? detail.rating : '未评分';
+    if (!groups[rating]) groups[rating] = [];
+    groups[rating].push(detail);
+    return groups;
+  }, {});
+
+  return [...REPORT_RATING_ORDER, '未评分']
+    .filter(rating => grouped[rating]?.length)
+    .map(rating => ({
+      rating,
+      details: grouped[rating].sort((a, b) => {
+        const aKey = `${a.category}::${a.item}`;
+        const bKey = `${b.category}::${b.item}`;
+        const aOrder = orderIndex.has(aKey) ? orderIndex.get(aKey) : fallbackBase + a.originalIndex;
+        const bOrder = orderIndex.has(bKey) ? orderIndex.get(bKey) : fallbackBase + b.originalIndex;
+        return aOrder - bOrder;
+      })
+    }));
+}
 
 function summarize(record) {
   const counts = RATING_ORDER.reduce((acc, rating) => ({ ...acc, [rating]: 0 }), {});
@@ -86,6 +114,7 @@ function ShareReportApp() {
   }, []);
 
   const summary = useMemo(() => payload?.record ? summarize(payload.record) : null, [payload]);
+  const detailGroups = useMemo(() => payload?.record ? groupSharedDetailsByRating(payload.record) : [], [payload]);
   const hideItems = (payload?.link?.hidden_sections || []).includes('items');
   const ratingData = summary ? RATING_ORDER.map(rating => ({ rating, count: summary.counts[rating] })) : [];
   const requiresAccessCode = !!payload?.requiresAccessCode;
@@ -198,11 +227,22 @@ function ShareReportApp() {
               {hideItems ? (
                 <Alert severity="info" sx={{ mt: 2 }}>分享者已隐藏敏感明细项，仅展示汇总图表。</Alert>
               ) : (
-                <Box className="shared-item-list">
-                  {(payload.record.details || []).slice(0, 80).map((item, index) => (
-                    <span key={`${item.category}-${item.item}-${index}`}>{item.rating} · {item.item || item.category}</span>
+                <Stack spacing={2} className="shared-detail-groups">
+                  {detailGroups.map(({ rating, details }) => (
+                    <Box key={rating} className="record-detail-group">
+                      <Typography className="record-detail-category record-detail-rating-title">
+                        {rating} ({details.length})
+                      </Typography>
+                      <Box className="record-detail-items">
+                        {details.map((item, index) => (
+                          <span key={`${item.category}-${item.item}-${index}`}>
+                            <em>{item.category}</em>{item.item || item.category}
+                          </span>
+                        ))}
+                      </Box>
+                    </Box>
                   ))}
-                </Box>
+                </Stack>
               )}
             </Paper>
           </>

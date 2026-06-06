@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-06-share-report-detail-order",
+  "date": "2026-06-06",
+  "summary": "分享报告页的明细项目改为按正式测评报告的评级分组和目录顺序展示。",
+  "trigger": "用户要求分享报告链接里的项目排序与生成的测评报告保持一致。",
+  "changes": [
+    {
+      "category": "分享页明细排序",
+      "files": [
+        "src/ShareReportApp.jsx"
+      ],
+      "details": "分享页引入 REPORT_RATING_ORDER 和 buildReportOrderIndex，将公开明细从平铺列表改为按 SSS、SS、S、Q、W、N 分组，并在每个分组内按对应测试目录原始顺序排序。"
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-share-report.mjs",
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": "分享页多视口验证改为检查 SSS/SS 分组标题，安全脚本同步更新静态检查文本。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，Vite 生产构建成功。"
+    },
+    {
+      "command": "npm run verify:share-report",
+      "result": "通过，分享页在 320、375、390、430、768、1024、1440 宽度下验证成功。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，会员中心安全检查脚本通过。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，没有空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "隐藏明细项的分享链接仍只展示汇总图表，不展示分组明细。",
+    "排序依赖 src/utils/testCatalogs.js 中维护的各测试目录顺序。"
+  ],
+  "deploymentNotes": [
+    "当前修改位于 codex/member-center 分支。",
+    "无需新增数据库 SQL。推送后等待 Vercel 预览部署即可验证 /share.html。"
+  ]
+}

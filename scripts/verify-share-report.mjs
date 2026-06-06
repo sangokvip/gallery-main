@@ -119,11 +119,14 @@ async function assertOpenShare(browser, width) {
   await page.waitForFunction(() => document.querySelectorAll('.recharts-wrapper').length >= 2, { timeout: 10000 });
 
   const metrics = await assertNoErrors(page, errors, 'open share report', width);
-  for (const text of ['本地预览公开分享', '已评测项', '总项目', '评级分布', '报告摘要', 'SSS ·']) {
+  for (const text of ['本地预览公开分享', '已评测项', '总项目', '评级分布', '报告摘要']) {
     if (!metrics.bodyText.includes(text)) {
       throw new Error(`open share missing "${text}" at ${width}px`);
     }
   }
+
+  await page.getByText(/^SSS \(\d+\)$/).first().waitFor({ timeout: 5000 });
+  await page.getByText(/^SS \(\d+\)$/).first().waitFor({ timeout: 5000 });
 
   if (metrics.bodyText.includes('分享者已隐藏敏感明细项')) {
     throw new Error(`open share unexpectedly hid item details at ${width}px`);

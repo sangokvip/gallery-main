@@ -324,7 +324,7 @@ const checks = [
       'preview-code',
       '分享者已隐藏敏感明细项',
       'mock-open-share-token',
-      'SSS ·',
+      '^SSS \\(\\d+\\)$',
       'scrollWidth'
     ]
   },
