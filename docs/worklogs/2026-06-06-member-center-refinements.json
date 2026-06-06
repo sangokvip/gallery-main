@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-06-member-center-refinements",
+  "date": "2026-06-06",
+  "summary": "完善会员中心的数据正确性、分享统计、双人分析和移动端操作体验。",
+  "trigger": "用户指出会员中心仍存在删除记录未停用分享、双人分析只限同账号、算法粗略、浏览次数不准、资料读取静默降级、移动端按钮过多和信息架构堆叠等问题。",
+  "changes": [
+    {
+      "category": "数据库与 RPC",
+      "files": [
+        "database/member_center_refinements_2026_06_06.sql",
+        "database/member_center_full_deploy.sql",
+        "database/member_center_deployment_check.sql"
+      ],
+      "details": [
+        "新增分享浏览去重表 member_share_link_views，公开分享 RPC 增加 input_viewer_key，用访客键哈希避免同一浏览器刷新重复增加总浏览数。",
+        "删除测评记录前先停用关联 member_share_links，并把分享链接到 test_records 的外键调整为 ON DELETE SET NULL，避免只靠级联删除掩盖业务状态。",
+        "新增 get_member_profile_bundle，一次性返回资料、分享、订单、设备、身份等数据，前端不再逐表读取并静默降级。",
+        "新增跨用户双人分析邀请和报告表，以及 create_member_pair_request、get_member_pair_request、accept_member_pair_request RPC。",
+        "更新部署检查，加入新增表和 RPC 的存在性、RLS 检查。"
+      ]
+    },
+    {
+      "category": "会员中心前端",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css",
+        "src/utils/supabase.js"
+      ],
+      "details": [
+        "会员资料改为调用 get_member_profile_bundle，数据库读取失败时直接提示错误，不再把失败显示成空数据。",
+        "分享公开页请求加入稳定本地 viewer key，用于数据库侧去重统计。",
+        "双人分析加入邀请链接入口；带 pair 参数访问会员中心时，登录后可选择自己的记录接受邀请并生成双人报告。",
+        "契合度算法加入共同高偏好、边界冲突、覆盖率、差异比例等权重，并在报告中展示分数构成。",
+        "移动端测评记录卡片只保留查看明细和分享两个主按钮，其余操作收进更多菜单。",
+        "删除记录后前端立即把对应分享链接标记为停用。"
+      ]
+    },
+    {
+      "category": "部署与验证脚本",
+      "files": [
+        "scripts/prepare-member-deployment.mjs",
+        "scripts/verify-member-center-authenticated.mjs",
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "完整部署 SQL 生成流程加入本次增量 SQL，避免重新生成 full deploy 时丢失新增功能。",
+        "会员中心多视口验证脚本适配移动端更多菜单。",
+        "安全验证脚本加入新增 RPC、表和权限检查。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，Vite 成功完成生产构建。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，会员安全与部署文本检查通过。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过，在 320、375、390、430、768、1024、1440 宽度验证会员中心 mock 登录页、记录明细、分享、图片保存、双人分析和移动端更多菜单，无横向滚动。"
+    },
+    {
+      "command": "npm run verify:share-report",
+      "result": "通过，在 320、375、390、430、768、1024、1440 宽度验证分享报告页面。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，无尾随空白或空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "本轮没有在真实 Supabase 生产库执行新增 SQL，也没有用真实账号完整测试跨用户邀请接受流程。",
+    "分享浏览次数依赖浏览器本地访客键去重，能避免普通刷新重复计数，但不能防止清空本地存储或更换设备造成的新访客计数。",
+    "双人分析算法已比原先细化，但仍是规则评分，不等同于专业关系评估。"
+  ],
+  "deploymentNotes": [
+    "部署前需要在 Supabase SQL Editor 执行更新后的 database/member_center_full_deploy.sql，或在已执行过旧 full deploy 的库上执行 database/member_center_refinements_2026_06_06.sql。",
+    "执行后再运行 database/member_center_deployment_check.sql，确认新增表和 RPC 均为 ok=true。",
+    "前端仍需通过 Vercel 预览部署验证真实 Supabase 环境中的注册、资料读取、分享访问计数、删除记录停用分享和双人邀请流程。"
+  ]
+}

@@ -89,6 +89,24 @@ function validateMemberEmail(email) {
   return cleanEmail;
 }
 
+function getStableLocalKey(storageKey) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+  }
+
+  const existing = window.localStorage.getItem(storageKey);
+  if (existing) return existing;
+
+  const nextValue = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+  window.localStorage.setItem(storageKey, nextValue);
+  return nextValue;
+}
+
+function getShareViewerKey(token) {
+  const normalizedToken = String(token || '').slice(0, 80);
+  return getStableLocalKey(`mprofile_share_viewer:${normalizedToken}`);
+}
+
 function randomAdminSessionToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return Array.from(bytes).map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -1679,6 +1697,48 @@ const localMemberCenterMockApi = {
     }
 
     throw new Error('分享链接不存在或已失效');
+  },
+
+  async createPairRequest(session, legacyUserId, payload) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    return {
+      id: `mock-pair-${Date.now()}`,
+      invite_token: payload.invite_token || 'mock-pair-token',
+      requester_record_id: payload.record_id,
+      relationship_mode: payload.relationship_mode || 'masterSlave',
+      status: 'open',
+      expires_at: '2026-12-31T23:59:59.000Z',
+      created_at: new Date().toISOString()
+    };
+  },
+
+  async getPairRequest(token) {
+    if (!token) throw new Error('双人分析邀请无效');
+    const records = buildMockMemberRecords('local-member-user');
+    return {
+      id: 'mock-pair-request',
+      invite_token: token,
+      relationship_mode: 'masterSlave',
+      expires_at: '2026-12-31T23:59:59.000Z',
+      requester_record: {
+        id: records[0].id,
+        test_type: records[0].test_type,
+        created_at: records[0].created_at
+      }
+    };
+  },
+
+  async acceptPairRequest(session, legacyUserId, token, recordId) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    const records = buildMockMemberRecords(legacyUserId || 'local-member-user');
+    const responder = records.find(record => record.id === recordId) || records[1];
+    return {
+      id: `mock-pair-report-${Date.now()}`,
+      relationship_mode: 'masterSlave',
+      created_at: new Date().toISOString(),
+      requester_record: records[0],
+      responder_record: responder
+    };
   }
 };
 
@@ -1853,63 +1913,26 @@ const realMemberCenterApi = {
       notification_settings: { monthlySummary: true, trendReminder: false }
     };
 
-    const { data: profile, error: profileError } = await supabase.rpc('get_or_create_member_profile', {
+    const { data: bundle, error: bundleError } = await supabase.rpc('get_member_profile_bundle', {
       input_legacy_user_id_text: legacyUserId,
       input_display_name: nickname || session.user.email || '会员用户',
       input_claim_secret: getIdentitySecret()
     });
 
-    let resolvedProfile = profile || baseProfile;
-    let tablesReady = true;
-
-    if (profileError) {
-      console.warn('会员资料 RPC 不可用，使用本地默认资料:', profileError.message);
-      resolvedProfile = baseProfile;
-      tablesReady = false;
+    if (bundleError) {
+      throw new Error('会员资料读取失败: ' + (bundleError.message || '未知错误'));
     }
 
-    const accountId = session.user.id;
-    const [subscriptionResult, unlocksResult, shareLinksResult, ordersResult, devicesResult, identitiesResult] = await Promise.all([
-      supabase
-        .from('member_subscriptions')
-        .select('*')
-        .eq('account_id', accountId)
-        .order('created_at', { ascending: false })
-        .limit(1),
-      supabase
-        .from('member_report_unlocks')
-        .select('*')
-        .eq('account_id', accountId)
-        .order('created_at', { ascending: false }),
-      supabase
-        .rpc('get_member_share_links'),
-      supabase
-        .from('member_orders')
-        .select('*')
-        .eq('account_id', accountId)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('member_devices')
-        .select('*')
-        .eq('account_id', accountId)
-        .order('created_at', { ascending: false }),
-      supabase
-        .from('member_identity_links')
-        .select('*')
-        .eq('account_id', accountId)
-        .order('last_seen_at', { ascending: false })
-    ]);
-
     return {
-      profile: resolvedProfile,
-      subscription: subscriptionResult.error ? null : subscriptionResult.data?.[0] || null,
-      unlocks: unlocksResult.error ? [] : unlocksResult.data || [],
-      shareLinks: shareLinksResult.error ? [] : shareLinksResult.data || [],
-      orders: ordersResult.error ? [] : ordersResult.data || [],
-      devices: devicesResult.error ? [] : devicesResult.data || [],
-      identities: identitiesResult.error ? [] : identitiesResult.data || [],
+      profile: bundle?.profile || baseProfile,
+      subscription: bundle?.subscription || null,
+      unlocks: bundle?.unlocks || [],
+      shareLinks: bundle?.shareLinks || [],
+      orders: bundle?.orders || [],
+      devices: bundle?.devices || [],
+      identities: bundle?.identities || [],
       isAuthenticated: true,
-      tablesReady
+      tablesReady: bundle?.tablesReady !== false
     };
   },
 
@@ -2025,7 +2048,8 @@ const realMemberCenterApi = {
 
     const { data: rpcData, error: rpcError } = await supabase.rpc('get_member_public_share', {
       input_token: token,
-      input_access_code: accessCode
+      input_access_code: accessCode,
+      input_viewer_key: getShareViewerKey(token)
     });
 
     if (rpcError) {
@@ -2037,6 +2061,48 @@ const realMemberCenterApi = {
     }
 
     return rpcData;
+  },
+
+  async createPairRequest(session, legacyUserId, payload) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    if (!payload.record_id) throw new Error('请选择要邀请分析的记录');
+
+    const { data, error } = await supabase.rpc('create_member_pair_request', {
+      input_legacy_user_id_text: legacyUserId,
+      input_record_id: payload.record_id,
+      input_relationship_mode: payload.relationship_mode || 'masterSlave',
+      input_expires_at: payload.expires_at || null,
+      input_invite_token: payload.invite_token || null
+    });
+
+    if (error) throw new Error('创建双人分析邀请失败: ' + (error.message || '未知错误'));
+    return data;
+  },
+
+  async getPairRequest(token) {
+    if (!token) throw new Error('双人分析邀请无效');
+
+    const { data, error } = await supabase.rpc('get_member_pair_request', {
+      input_invite_token: token
+    });
+
+    if (error) throw new Error(error.message || '双人分析邀请不存在或已失效');
+    return data;
+  },
+
+  async acceptPairRequest(session, legacyUserId, token, recordId) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    if (!token) throw new Error('双人分析邀请无效');
+    if (!recordId) throw new Error('请选择自己的测评记录');
+
+    const { data, error } = await supabase.rpc('accept_member_pair_request', {
+      input_invite_token: token,
+      input_legacy_user_id_text: legacyUserId,
+      input_record_id: recordId
+    });
+
+    if (error) throw new Error('生成双人分析失败: ' + (error.message || '未知错误'));
+    return data;
   }
 };
 

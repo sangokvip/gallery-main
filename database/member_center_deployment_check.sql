@@ -13,12 +13,16 @@ WITH required_relations(name) AS (
     ('member_devices'),
     ('member_report_unlocks'),
     ('member_share_links'),
+    ('member_share_link_views'),
+    ('member_pair_requests'),
+    ('member_pair_reports'),
     ('admin_sessions'),
     ('admin_login_attempts')
 ),
 required_functions(name) AS (
   VALUES
     ('get_or_create_member_profile'),
+    ('get_member_profile_bundle'),
     ('link_member_identity'),
     ('register_legacy_identity_claim'),
     ('normalize_member_auth_user_metadata'),
@@ -37,6 +41,9 @@ required_functions(name) AS (
     ('get_member_share_links'),
     ('deactivate_member_share_link'),
     ('get_member_public_share'),
+    ('create_member_pair_request'),
+    ('get_member_pair_request'),
+    ('accept_member_pair_request'),
     ('create_admin_session'),
     ('change_admin_password'),
     ('get_admin_session'),
@@ -93,6 +100,9 @@ rls_check AS (
       'member_devices',
       'member_report_unlocks',
       'member_share_links',
+      'member_share_link_views',
+      'member_pair_requests',
+      'member_pair_reports',
       'admin_sessions',
       'admin_login_attempts'
     )

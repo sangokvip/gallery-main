@@ -250,11 +250,11 @@ body {
 .member-content-flow {
   display: flex;
   flex-direction: column;
+  gap: 22px;
 }
 
 .record-library-card {
   order: 1;
-  margin-bottom: 22px;
 }
 
 .single-detail-grid {
@@ -266,8 +266,7 @@ body {
 }
 
 .member-profile-card {
-  margin-bottom: 22px;
-  margin-top: 22px;
+  order: 4;
 }
 
 .member-account-summary {
@@ -497,6 +496,45 @@ body {
   white-space: nowrap;
 }
 
+.danger-menu-item {
+  color: #dc2626 !important;
+  font-weight: 900 !important;
+}
+
+.record-mobile-more {
+  width: 36px;
+  height: 36px;
+  border: 2px solid #0f172a !important;
+  border-radius: 8px !important;
+  color: #0f172a !important;
+  background: #fff !important;
+}
+
+.pair-invite-panel {
+  border: 2px solid #0f172a;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.pair-invite-title {
+  font-weight: 950 !important;
+  color: #0f172a;
+}
+
+.pair-invite-panel code {
+  display: block;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  padding: 10px;
+  color: #475569;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
 .record-export-card {
   background: #fff;
   color: #0f172a;
@@ -578,6 +616,17 @@ body {
 .pair-score-card small {
   font-weight: 900;
   color: #1e293b;
+}
+
+.pair-score-parts {
+  margin-top: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.pair-score-parts span {
+  color: #475569;
+  font-size: 0.78rem;
 }
 
 .pair-record-names,
@@ -856,8 +905,15 @@ body {
   }
 
   .record-mobile-actions .MuiButton-root {
-    flex: 1 1 calc(50% - 4px);
+    flex: 1 1 0;
     min-width: 0;
+  }
+
+  .record-mobile-actions {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px;
+    align-items: center;
+    width: 100%;
   }
 
   .share-create-panel,

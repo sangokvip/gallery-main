@@ -12,6 +12,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
+  Menu,
   MenuItem,
   Paper,
   Select,
@@ -34,6 +36,7 @@ import LinkIcon from '@mui/icons-material/Link';
 import ImageIcon from '@mui/icons-material/Image';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import {
   Bar,
   BarChart,
@@ -304,12 +307,24 @@ function buildCompatibilityReport(baseRecord, targetRecord, mode) {
     .sort((a, b) => b.sum - a.sum || a.delta - b.delta)
     .slice(0, 12);
 
-  const rawScore = paired.reduce((sum, item) => {
-    const samePreference = 1 - Math.min(item.delta, 5) / 5;
-    const strongBonus = item.baseWeight >= 4 && item.targetWeight >= 4 ? 0.18 : 0;
-    const boundaryPenalty = ((item.baseWeight >= 5 && item.targetWeight <= 2) || (item.targetWeight >= 5 && item.baseWeight <= 2)) ? 0.32 : 0;
-    return sum + Math.max(0, Math.min(1, samePreference + strongBonus - boundaryPenalty));
+  const alignedStrength = paired.reduce((sum, item) => {
+    const distanceScore = 1 - Math.min(item.delta, 5) / 5;
+    const sharedIntentBonus = item.baseWeight >= 4 && item.targetWeight >= 4 ? 0.2 : 0;
+    const mutualLowBonus = item.baseWeight <= 2 && item.targetWeight <= 2 ? 0.06 : 0;
+    return sum + Math.max(0, Math.min(1, distanceScore + sharedIntentBonus + mutualLowBonus));
   }, 0) / comparableCount;
+  const sharedStrongRatio = compatibleItems.length / comparableCount;
+  const differenceRatio = differences.length / comparableCount;
+  const boundaryRatio = boundaries.length / comparableCount;
+  const coverageScore = Math.min(1, comparableCount / Math.max(baseMap.size, targetMap.size, 1));
+  const modeWeight = mode === 'masterSlave' ? 0.72 : mode === 'slaveSlave' ? 0.78 : mode === 'masterMaster' ? 0.7 : 0.76;
+  const rawScore = Math.max(0, Math.min(1,
+    alignedStrength * modeWeight
+    + sharedStrongRatio * 0.22
+    + coverageScore * 0.1
+    - boundaryRatio * 0.45
+    - differenceRatio * 0.08
+  ));
 
   const modeNotes = {
     masterSlave: '主奴关系：重点看一方高偏好是否落在另一方可接受范围内，边界冲突要优先沟通。',
@@ -328,6 +343,11 @@ function buildCompatibilityReport(baseRecord, targetRecord, mode) {
     mode,
     score: Math.round(rawScore * 100),
     comparableCount,
+    scoreParts: {
+      sharedStrong: Math.round(sharedStrongRatio * 100),
+      boundary: Math.round(boundaryRatio * 100),
+      coverage: Math.round(coverageScore * 100)
+    },
     sharedStrong,
     differences,
     boundaries,
@@ -402,6 +422,13 @@ function PairReportPanel({ report, baseRecord, targetRecord }) {
         <strong>{report.score}</strong>
         <span>契合度</span>
         <small>共同项目 {report.comparableCount} 项</small>
+        {report.scoreParts && (
+          <Box className="pair-score-parts">
+            <span>共同高偏好 {report.scoreParts.sharedStrong}%</span>
+            <span>边界冲突 {report.scoreParts.boundary}%</span>
+            <span>覆盖率 {report.scoreParts.coverage}%</span>
+          </Box>
+        )}
       </Box>
       <Box className="pair-record-names">
         <span>{buildRecordTitle(baseRecord)}</span>
@@ -475,6 +502,15 @@ function MemberCenterApp() {
   const [pairBaseRecordId, setPairBaseRecordId] = useState('');
   const [pairTargetRecordId, setPairTargetRecordId] = useState('');
   const [pairMode, setPairMode] = useState('masterSlave');
+  const [pairInviteLink, setPairInviteLink] = useState('');
+  const [pairCreating, setPairCreating] = useState(false);
+  const [pairInvitation, setPairInvitation] = useState(null);
+  const [pairInviteToken, setPairInviteToken] = useState('');
+  const [pairAcceptRecordId, setPairAcceptRecordId] = useState('');
+  const [pairAccepting, setPairAccepting] = useState(false);
+  const [externalPairReportData, setExternalPairReportData] = useState(null);
+  const [mobileActionAnchor, setMobileActionAnchor] = useState(null);
+  const [mobileActionRecordId, setMobileActionRecordId] = useState('');
   const [showOptionalContacts, setShowOptionalContacts] = useState(false);
   const [snackbar, setSnackbar] = useState('');
   const imageCardRef = useRef(null);
@@ -536,6 +572,27 @@ function MemberCenterApp() {
     })();
   }, [userInfo.userId]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const token = new URLSearchParams(window.location.search).get('pair') || '';
+    if (token) setPairInviteToken(token);
+  }, []);
+
+  useEffect(() => {
+    if (!pairInviteToken || !session?.user?.id) return;
+    (async () => {
+      try {
+        const invite = await memberCenterApi.getPairRequest(pairInviteToken);
+        setPairInvitation(invite);
+        setPairMode(invite.relationship_mode || 'masterSlave');
+        const firstRecord = records.find(record => record.id !== invite.requester_record?.id) || records[0];
+        setPairAcceptRecordId(firstRecord?.id || '');
+      } catch (err) {
+        setSnackbar(err.message || '读取双人分析邀请失败');
+      }
+    })();
+  }, [pairInviteToken, session?.user?.id, records]);
+
   const filteredRecords = useMemo(() => {
     if (typeFilter === 'all') return records;
     return records.filter(record => record.test_type === typeFilter);
@@ -574,6 +631,17 @@ function MemberCenterApp() {
     () => buildCompatibilityReport(pairBaseRecord, pairTargetRecord, pairMode),
     [pairBaseRecord, pairTargetRecord, pairMode]
   );
+  const externalPairReport = useMemo(() => {
+    if (!externalPairReportData) return null;
+    return buildCompatibilityReport(
+      summarizeRecord(externalPairReportData.requester_record),
+      summarizeRecord(externalPairReportData.responder_record),
+      externalPairReportData.relationship_mode || pairMode
+    );
+  }, [externalPairReportData, pairMode]);
+  const externalPairBaseRecord = externalPairReportData?.requester_record ? summarizeRecord(externalPairReportData.requester_record) : null;
+  const externalPairTargetRecord = externalPairReportData?.responder_record ? summarizeRecord(externalPairReportData.responder_record) : null;
+  const mobileActionRecord = records.find(record => record.id === mobileActionRecordId);
   const shareRecordLinks = shareRecord
     ? shareLinks.filter(link => link.record_id === shareRecord.id && link.is_active !== false)
     : [];
@@ -587,6 +655,66 @@ function MemberCenterApp() {
     const firstOther = records.find(candidate => candidate.id !== record.id);
     setPairTargetRecordId(firstOther?.id || '');
     setPairMode('masterSlave');
+    setPairInviteLink('');
+    setExternalPairReportData(null);
+  };
+
+  const buildPairInviteUrl = (token) => {
+    if (!token || typeof window === 'undefined') return '';
+    return `${window.location.origin}/member.html?pair=${encodeURIComponent(token)}`;
+  };
+
+  const createPairInvite = async () => {
+    if (!pairBaseRecord) return;
+    setPairCreating(true);
+    try {
+      const invite = await memberCenterApi.createPairRequest(session, userInfo.userId, {
+        record_id: pairBaseRecord.id,
+        relationship_mode: pairMode,
+        expires_at: null
+      });
+      setPairInviteLink(buildPairInviteUrl(invite.invite_token));
+      setSnackbar('双人分析邀请链接已生成。');
+    } catch (err) {
+      setSnackbar(err.message || '创建双人分析邀请失败');
+    } finally {
+      setPairCreating(false);
+    }
+  };
+
+  const copyPairInviteLink = async () => {
+    if (!pairInviteLink) return;
+    try {
+      await navigator.clipboard.writeText(pairInviteLink);
+      setSnackbar('邀请链接已复制。');
+    } catch (err) {
+      setSnackbar('浏览器不允许自动复制，请手动复制链接。');
+    }
+  };
+
+  const acceptPairInvitation = async () => {
+    if (!pairInviteToken || !pairAcceptRecordId) return;
+    setPairAccepting(true);
+    try {
+      const report = await memberCenterApi.acceptPairRequest(session, userInfo.userId, pairInviteToken, pairAcceptRecordId);
+      setExternalPairReportData(report);
+      setPairInvitation(null);
+      setSnackbar('双人分析报告已生成。');
+    } catch (err) {
+      setSnackbar(err.message || '生成双人分析失败');
+    } finally {
+      setPairAccepting(false);
+    }
+  };
+
+  const openMobileActionMenu = (event, record) => {
+    setMobileActionAnchor(event.currentTarget);
+    setMobileActionRecordId(record.id);
+  };
+
+  const closeMobileActionMenu = () => {
+    setMobileActionAnchor(null);
+    setMobileActionRecordId('');
   };
 
   const createShareLinkForRecord = async () => {
@@ -718,9 +846,10 @@ function MemberCenterApp() {
     try {
       await memberCenterApi.deleteMemberRecord(session, deleteRecordId);
       setRecords(prev => prev.filter(record => record.id !== deleteRecordId));
+      setShareLinks(prev => prev.map(link => link.record_id === deleteRecordId ? { ...link, is_active: false } : link));
       setDetailRecordId('');
       setDeleteRecordId('');
-      setSnackbar('记录已删除。');
+      setSnackbar('记录已删除，相关分享链接已停用。');
     } catch (err) {
       setSnackbar(err.message || '删除记录失败');
     }
@@ -976,13 +1105,52 @@ function MemberCenterApp() {
                     <Stack direction="row" spacing={0.5} className="record-action-stack record-mobile-actions">
                       <Button size="small" onClick={() => setDetailRecordId(record.id)}>查看明细</Button>
                       <Button size="small" startIcon={<LinkIcon />} onClick={() => setShareRecordId(record.id)}>分享</Button>
-                      <Button size="small" startIcon={<ImageIcon />} onClick={() => setImageRecordId(record.id)}>保存图片</Button>
-                      <Button size="small" startIcon={<CompareArrowsIcon />} onClick={() => openPairDialog(record)} disabled={records.length < 2}>双人分析</Button>
-                      <Button size="small" color="error" onClick={() => setDeleteRecordId(record.id)}>删除</Button>
+                      <IconButton
+                        size="small"
+                        className="record-mobile-more"
+                        aria-label="更多操作"
+                        onClick={event => openMobileActionMenu(event, record)}
+                      >
+                        <MoreHorizIcon />
+                      </IconButton>
                     </Stack>
                   </Box>
                 ))}
               </Box>
+              <Menu
+                anchorEl={mobileActionAnchor}
+                open={!!mobileActionAnchor}
+                onClose={closeMobileActionMenu}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              >
+                <MenuItem
+                  onClick={() => {
+                    if (mobileActionRecord) setImageRecordId(mobileActionRecord.id);
+                    closeMobileActionMenu();
+                  }}
+                >
+                  保存图片
+                </MenuItem>
+                <MenuItem
+                  disabled={!mobileActionRecord || records.length < 2}
+                  onClick={() => {
+                    if (mobileActionRecord) openPairDialog(mobileActionRecord);
+                    closeMobileActionMenu();
+                  }}
+                >
+                  双人分析
+                </MenuItem>
+                <MenuItem
+                  className="danger-menu-item"
+                  onClick={() => {
+                    if (mobileActionRecord) setDeleteRecordId(mobileActionRecord.id);
+                    closeMobileActionMenu();
+                  }}
+                >
+                  删除记录
+                </MenuItem>
+              </Menu>
             </Paper>
           </Box>
         )}
@@ -1126,7 +1294,7 @@ function MemberCenterApp() {
           {pairBaseRecord ? (
             <Stack spacing={2}>
               <Typography className="muted-text">
-                第一版先支持当前账号内两条记录对比。跨用户邀请选择记录会作为下一步接入。
+                可以先用自己的两条记录快速对比，也可以生成邀请链接，让对方登录后选择自己的记录生成双人报告。
               </Typography>
               <Box className="pair-controls">
                 <TextField
@@ -1154,6 +1322,19 @@ function MemberCenterApp() {
                 </TextField>
               </Box>
               <PairReportPanel report={pairReport} baseRecord={pairBaseRecord} targetRecord={pairTargetRecord} />
+              <Box className="pair-invite-panel">
+                <Box>
+                  <Typography className="pair-invite-title">邀请别人一起分析</Typography>
+                  <Typography className="muted-text">对方需要登录会员中心，并选择自己的测评记录。链接 14 天后失效。</Typography>
+                </Box>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                  <Button onClick={createPairInvite} disabled={pairCreating} startIcon={pairCreating ? <CircularProgress size={16} /> : <LinkIcon />}>
+                    生成邀请链接
+                  </Button>
+                  {pairInviteLink && <Button onClick={copyPairInviteLink} startIcon={<ContentCopyIcon />}>复制链接</Button>}
+                </Stack>
+                {pairInviteLink && <code>{pairInviteLink}</code>}
+              </Box>
             </Stack>
           ) : (
             <Box className="empty-panel">未选择记录。</Box>
@@ -1161,6 +1342,49 @@ function MemberCenterApp() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPairBaseRecordId('')}>关闭</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={!!pairInvitation} onClose={() => setPairInvitation(null)} maxWidth="md" fullWidth>
+        <DialogTitle>接受双人分析邀请</DialogTitle>
+        <DialogContent dividers>
+          {pairInvitation ? (
+            <Stack spacing={2}>
+              <Typography className="muted-text">
+                邀请方记录：{TEST_LABEL[pairInvitation.requester_record?.test_type] || pairInvitation.requester_record?.test_type || '测评记录'} · {formatDateTime(pairInvitation.requester_record?.created_at)}
+              </Typography>
+              <TextField
+                select
+                size="small"
+                label="选择你的测评记录"
+                value={pairAcceptRecordId}
+                onChange={event => setPairAcceptRecordId(event.target.value)}
+              >
+                {records.map(record => (
+                  <MenuItem key={record.id} value={record.id}>{buildRecordTitle(record)}</MenuItem>
+                ))}
+              </TextField>
+              <Typography className="muted-text">
+                生成报告后，双方记录会作为本次双人分析的快照保存，方便之后回看。
+              </Typography>
+            </Stack>
+          ) : (
+            <Box className="empty-panel">未读取到邀请。</Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPairInvitation(null)}>取消</Button>
+          <Button onClick={acceptPairInvitation} disabled={!pairAcceptRecordId || pairAccepting} startIcon={pairAccepting ? <CircularProgress size={16} /> : <CompareArrowsIcon />}>
+            生成双人报告
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={!!externalPairReportData} onClose={() => setExternalPairReportData(null)} maxWidth="lg" fullWidth>
+        <DialogTitle>双人分析报告</DialogTitle>
+        <DialogContent dividers>
+          <PairReportPanel report={externalPairReport} baseRecord={externalPairBaseRecord} targetRecord={externalPairTargetRecord} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setExternalPairReportData(null)}>关闭</Button>
         </DialogActions>
       </Dialog>
       <Dialog open={!!deleteRecordId} onClose={() => setDeleteRecordId('')} maxWidth="xs" fullWidth>

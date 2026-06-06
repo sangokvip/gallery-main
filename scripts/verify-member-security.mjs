@@ -23,9 +23,9 @@ const checks = [
       "supabase.rpc('verify_admin_password'"
     ],
     present: [
-      'get_or_create_member_profile',
       'link_member_identity',
       'get_member_records',
+      'get_member_profile_bundle',
       'delete_member_record',
       'update_member_profile',
       'register_member_device',
@@ -33,10 +33,13 @@ const checks = [
       'create_member_order',
       'create_member_report_unlock',
       'create_member_share_link',
-      'get_member_share_links',
       'deactivate_member_share_link',
       'get_member_public_share',
+      'create_member_pair_request',
+      'get_member_pair_request',
+      'accept_member_pair_request',
       'input_access_code',
+      'input_viewer_key',
       'getIdentitySecret',
       'register_legacy_identity_claim',
       'VITE_MEMBER_CENTER_MOCK',
@@ -194,6 +197,26 @@ const checks = [
     ]
   },
   {
+    file: 'database/member_center_refinements_2026_06_06.sql',
+    present: [
+      'member_share_link_views',
+      'member_pair_requests',
+      'member_pair_reports',
+      'ON DELETE SET NULL',
+      'get_member_profile_bundle',
+      'delete_member_record',
+      'get_member_public_share',
+      'input_viewer_key',
+      'visitor_key_hash',
+      'create_member_pair_request',
+      'get_member_pair_request',
+      'accept_member_pair_request',
+      'REVOKE SELECT, INSERT, UPDATE, DELETE ON member_share_link_views FROM anon, authenticated',
+      'GRANT EXECUTE ON FUNCTION get_member_profile_bundle(TEXT, TEXT, TEXT) TO authenticated',
+      'GRANT EXECUTE ON FUNCTION get_member_public_share(TEXT, TEXT, TEXT) TO anon, authenticated'
+    ]
+  },
+  {
     file: 'database/member_center_deployment_check.sql',
     present: [
       'member_share_links_no_public_select_policy',
@@ -221,6 +244,9 @@ const checks = [
       'member_report_unlocks_no_owner_insert_policy',
       'member_share_links_no_owner_insert_policy',
       'member_share_links_no_owner_update_policy',
+      'member_share_link_views',
+      'member_pair_requests',
+      'member_pair_reports',
       'verify_admin_password_not_executable_by_anon',
       'get_admin_session_not_executable_by_anon',
       'require_admin_not_executable_by_anon',
@@ -284,6 +310,7 @@ const checks = [
       'database/member_center_predeploy_check.sql',
       'database/create_member_center_tables.sql',
       'database/create_admin_member_session.sql',
+      'database/member_center_refinements_2026_06_06.sql',
       'database/member_center_deployment_check.sql',
       'Run database/member_center_e2e_check.sql separately after deployment',
       'member_center_full_deploy.sql',
