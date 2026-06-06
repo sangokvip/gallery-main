@@ -8,9 +8,6 @@ const baseUrl = `http://${host}:${port}`;
 const widths = [320, 375, 390, 430, 768, 1024, 1440];
 const requiredTexts = [
   '已登录：member_preview',
-  '长期云同步',
-  '具体项目变化',
-  '记录可导出',
   '账号与联系方式',
   '评分数量趋势',
   '累计评级分布',

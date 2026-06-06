@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-06-remove-member-toolbar",
+  "date": "2026-06-06",
+  "summary": "移除会员中心测评记录库上方的说明标签、类型筛选和导出数据工具栏。",
+  "trigger": "用户指出该区域对普通用户没有明显价值，会占用页面空间。",
+  "changes": [
+    {
+      "category": "会员中心 UI",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css"
+      ],
+      "details": [
+        "删除会员中心记录库上方的工具栏区域，包括长期云同步、具体项目变化、记录可导出三个标签。",
+        "删除全部类型筛选和导出数据按钮，减少页面干扰。",
+        "清理对应的无用 import、状态、导出函数和 CSS。"
+      ]
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-member-center-authenticated.mjs"
+      ],
+      "details": [
+        "移除验证脚本中对已删除标签文字的断言。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，Vite 成功完成生产构建。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过，在 320、375、390、430、768、1024、1440 宽度验证会员中心 mock 登录页、记录明细、分享、图片保存、双人分析和移动端更多菜单。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，无尾随空白或空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "本轮只移除工具栏，没有重新调整会员中心整体信息架构。"
+  ],
+  "deploymentNotes": [
+    "这是纯前端 UI 调整，推送分支后由 Vercel 预览部署验证即可。"
+  ]
+}

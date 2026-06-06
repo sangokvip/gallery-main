@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Collapse,
   Container,
@@ -16,7 +15,6 @@ import {
   Menu,
   MenuItem,
   Paper,
-  Select,
   Snackbar,
   Stack,
   Table,
@@ -29,7 +27,6 @@ import {
   Typography
 } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
-import SaveAltIcon from '@mui/icons-material/SaveAlt';
 import SyncIcon from '@mui/icons-material/Sync';
 import InsightsIcon from '@mui/icons-material/Insights';
 import LinkIcon from '@mui/icons-material/Link';
@@ -456,27 +453,10 @@ function PairReportPanel({ report, baseRecord, targetRecord }) {
   );
 }
 
-function exportRecords(records) {
-  const payload = {
-    schemaVersion: '1.0',
-    exportType: 'mprofile-member-center',
-    exportedAt: new Date().toISOString(),
-    records
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `mprofile-records-${new Date().toISOString().slice(0, 10)}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 function MemberCenterApp() {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [typeFilter, setTypeFilter] = useState('all');
   const [authMode, setAuthMode] = useState('register');
   const [authForm, setAuthForm] = useState({
     username: '',
@@ -593,10 +573,7 @@ function MemberCenterApp() {
     })();
   }, [pairInviteToken, session?.user?.id, records]);
 
-  const filteredRecords = useMemo(() => {
-    if (typeFilter === 'all') return records;
-    return records.filter(record => record.test_type === typeFilter);
-  }, [records, typeFilter]);
+  const filteredRecords = records;
 
   const latest = records[records.length - 1];
   const first = records[0];
@@ -964,25 +941,6 @@ function MemberCenterApp() {
           <Paper className="member-card stat-card"><span>{typeCount}</span><p>已覆盖类型</p></Paper>
           <Paper className="member-card stat-card"><span>{activeDays}</span><p>观察天数</p></Paper>
         </Box>
-
-        <Paper className="member-card member-toolbar">
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems={{ xs: 'stretch', md: 'center' }} justifyContent="space-between">
-            <Stack direction="row" spacing={1} flexWrap="wrap">
-              <Chip label="长期云同步" color="primary" variant="outlined" />
-              <Chip label="具体项目变化" color="secondary" variant="outlined" />
-              <Chip label="记录可导出" variant="outlined" />
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-              <Select size="small" value={typeFilter} onChange={event => setTypeFilter(event.target.value)}>
-                <MenuItem value="all">全部类型</MenuItem>
-                {Object.entries(TEST_LABEL).map(([value, label]) => <MenuItem key={value} value={value}>{label}</MenuItem>)}
-              </Select>
-              <Button startIcon={<SaveAltIcon />} onClick={() => exportRecords(records)} disabled={records.length === 0}>
-                导出数据
-              </Button>
-            </Stack>
-          </Stack>
-        </Paper>
 
         {loading ? (
           <Box className="member-loading"><CircularProgress /><Typography>正在读取云端记录...</Typography></Box>
