@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-05-29-member-center-branch-push",
+  "date": "2026-05-29",
+  "summary": "准备会员中心分支提交和推送，清理旧调试脚本中的硬编码 Supabase 凭据，并重新执行会员中心上线前完整报告。",
+  "trigger": "用户确认由 Codex 继续操作分支、提交和 Vercel 预览部署准备。",
+  "changes": [
+    {
+      "category": "密钥清理",
+      "files": [
+        "check-ip-correct.js",
+        "check-ip-data-final.js",
+        "check-ip-data.js",
+        "check-new-record-details.js",
+        "fix-ip-display.js"
+      ],
+      "details": [
+        "删除早期调试脚本，避免仓库继续携带硬编码 Supabase URL 和 anon key。",
+        "保留正式会员中心代码中的环境变量读取方式，前端只通过 Vite 环境变量注入公开 anon key。"
+      ]
+    },
+    {
+      "category": "上线验证",
+      "files": [
+        "docs/launch-reports/2026-05-29T04-44-39-member-launch-report.json"
+      ],
+      "details": [
+        "重新运行会员中心发布前报告，覆盖 SQL 打包、安全静态检查、构建、多视口页面验证、会员登录态验证、后台登录态验证、分享页验证、支付回调合约验证、生产验证跳过路径、git diff 空白检查、工作记录 JSON 解析和端口清理检查。",
+        "报告只记录环境变量存在状态，不记录任何密钥值。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run report:member-launch",
+      "result": "通过，生成 docs/launch-reports/2026-05-29T04-44-39-member-launch-report.json。生产 Supabase 远程验证和正式站点验证因为当前 shell 未设置生产 URL/公开 anon key/SITE_URL 而按脚本设计跳过。"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过，由 report:member-launch 内部执行；Vite 只输出 chunk size 建议，不影响构建成功。"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过，由 report:member-launch 内部执行；覆盖会员入口、分享页、后台和基础测评页面的多视口检查。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过，由 report:member-launch 内部执行；覆盖 320、375、390、430、768、1024、1440 宽度的登录后会员中心。"
+    },
+    {
+      "command": "npm run verify:admin-auth",
+      "result": "通过，由 report:member-launch 内部执行；覆盖后台快捷跳转、测评记录页码跳转、108 项计数一致性和会员管理页。"
+    },
+    {
+      "command": "npm run verify:share-report",
+      "result": "通过，由 report:member-launch 内部执行；覆盖私密分享密码、隐藏明细和公开分享图表。"
+    },
+    {
+      "command": "npm run verify:payment-webhook",
+      "result": "通过，由 report:member-launch 内部执行；覆盖支付回调本地合约。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，由 report:member-launch 内部执行；未发现空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "尚未在真实 Supabase 生产库执行 database/member_center_full_deploy.sql。",
+    "尚未配置 Supabase Auth 回调地址和 Edge Function 生产环境变量。",
+    "尚未在 Vercel Preview 或 Production 上执行真实登录、真实数据库读写、真实支付回调和正式域名页面验证。"
+  ],
+  "deploymentNotes": [
+    "当前改动应提交在 codex/member-center 分支，推送后由 Vercel 为该分支创建 Preview 部署。",
+    "Vercel 项目需要配置 VITE_SUPABASE_URL 和 VITE_SUPABASE_ANON_KEY。",
+    "Supabase SQL Editor 需要执行 database/member_center_full_deploy.sql。",
+    "生产验收建议在 Preview URL 上执行真实注册登录、会员中心记录同步、后台记录计数、分享页访问和支付回调探测。"
+  ]
+}

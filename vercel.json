@@ -9,6 +9,18 @@
       }
     }
   ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "Permissions-Policy", "value": "document-domain=()" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vitals.vercel-insights.com; script-src 'self' 'unsafe-inline' https:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';" }
+      ]
+    }
+  ],
   "routes": [
     {
       "src": "/assets/(.*)",
@@ -71,6 +83,22 @@
     {
       "src": "/s.html",
       "dest": "/s.html"
+    },
+    {
+      "src": "/lgbt.html",
+      "dest": "/lgbt.html"
+    },
+    {
+      "src": "/member.html",
+      "dest": "/member.html"
+    },
+    {
+      "src": "/share.html",
+      "dest": "/share.html"
+    },
+    {
+      "src": "/sangok.html",
+      "dest": "/sangok.html"
     },
     {
       "src": "/message.html",

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-06-member-record-mobile-cards",
+  "date": "2026-06-06",
+  "summary": "会员中心测评记录库在移动端改为卡片列表，避免横向滑动表格。",
+  "trigger": "用户反馈移动端下测评记录需要左右滑动才可以看到，对移动端用户不友好。",
+  "changes": [
+    {
+      "category": "移动端记录库",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css"
+      ],
+      "details": "保留桌面端表格；在 640px 及以下隐藏表格，改用移动端记录卡片展示时间、类型、完成项、SSS、SS、综合强度和全部操作按钮。"
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-member-center-authenticated.mjs"
+      ],
+      "details": "认证态会员中心验证脚本新增移动端记录卡片数量检查，继续覆盖 320、375、390、430、768、1024、1440 宽度。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，Vite 生产构建成功。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过，认证态会员中心在 320、375、390、430、768、1024、1440 宽度下无横向溢出，并验证查看明细、分享、保存图片、双人分析弹窗。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，会员中心安全检查脚本通过。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，没有空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "移动端记录卡片展示核心字段；桌面端仍使用完整表格。",
+    "当前未执行真实生产环境浏览器验证。"
+  ],
+  "deploymentNotes": [
+    "当前修改位于 codex/member-center 分支。",
+    "无需数据库 SQL。推送后等待 Vercel 预览部署即可验证 /member.html 移动端。"
+  ]
+}

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { getIdentitySecret } from './userManager'
 
 // 创建Supabase客户端实例
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -45,14 +46,111 @@ if (supabaseUrl && supabaseAnonKey) {
 
   supabase = {
     from: () => createMockBuilder(),
-    rpc: () => Promise.resolve({ data: null, error: new Error('数据库未配置') })
+    rpc: () => Promise.resolve({ data: null, error: new Error('数据库未配置') }),
+    auth: {
+      getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+      signInWithOtp: () => Promise.resolve({ data: null, error: new Error('数据库未配置') }),
+      signUp: () => Promise.resolve({ data: null, error: new Error('数据库未配置') }),
+      signInWithPassword: () => Promise.resolve({ data: null, error: new Error('数据库未配置') }),
+      signOut: () => Promise.resolve({ error: null })
+    },
+    storage: null
   };
 }
 
 export { supabase }
 
+async function sha256Text(value) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function normalizeMemberUsername(username) {
+  return String(username || '').trim().toLowerCase();
+}
+
+function validateMemberUsername(username) {
+  const normalized = normalizeMemberUsername(username);
+  if (!/^[a-z0-9_]{3,24}$/.test(normalized)) {
+    throw new Error('用户名只能使用 3-24 位小写字母、数字或下划线');
+  }
+  return normalized;
+}
+
+function memberUsernameEmail(username) {
+  return `${validateMemberUsername(username)}@members.mprofilelab.com`;
+}
+
+function validateMemberEmail(email) {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanEmail)) {
+    throw new Error('请输入有效邮箱');
+  }
+  return cleanEmail;
+}
+
+function getStableLocalKey(storageKey) {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+  }
+
+  const existing = window.localStorage.getItem(storageKey);
+  if (existing) return existing;
+
+  const nextValue = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`;
+  window.localStorage.setItem(storageKey, nextValue);
+  return nextValue;
+}
+
+function getShareViewerKey(token) {
+  const normalizedToken = String(token || '').slice(0, 80);
+  return getStableLocalKey(`mprofile_share_viewer:${normalizedToken}`);
+}
+
+function randomAdminSessionToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return Array.from(bytes).map(byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+export const adminSessionApi = {
+  async createSession(username, password) {
+    if (!username?.trim() || !password) {
+      throw new Error('请输入管理员用户名和密码');
+    }
+
+    const sessionToken = randomAdminSessionToken();
+    const sessionTokenHash = await sha256Text(sessionToken);
+    const { data, error } = await supabase.rpc('create_admin_session', {
+      input_username: username.trim(),
+      input_password: password,
+      input_session_token_hash: sessionTokenHash
+    });
+
+    if (error || !data?.id) {
+      throw new Error(error?.message || '管理员登录失败');
+    }
+
+    return {
+      id: data.id,
+      username: data.username,
+      role: data.role,
+      sessionToken,
+      expiresAt: data.expires_at
+    };
+  },
+
+  async getTokenHash(sessionToken) {
+    if (!sessionToken) throw new Error('管理员会话无效或已过期');
+    return sha256Text(sessionToken);
+  }
+};
+
 // 消息相关的数据库操作
 export const messagesApi = {
+  async loginAdmin(username, password) {
+    return adminSessionApi.createSession(username, password);
+  },
+
   // 获取所有消息
   async getMessages() {
     console.log('正在获取消息列表...');
@@ -341,9 +439,20 @@ export const messagesApi = {
   },
 
   // 创建新消息
-  async createMessage({ text, userId, originalText }) {
+  async createMessage({ text, userId, originalText, adminSessionToken = null }) {
     console.log('正在创建新消息:', { text, userId });
     try {
+      if (userId === 'admin') {
+        const sessionTokenHash = await adminSessionApi.getTokenHash(adminSessionToken);
+        const { data, error } = await supabase.rpc('admin_create_message', {
+          input_session_token_hash: sessionTokenHash,
+          input_text: text,
+          input_original_text: originalText
+        });
+        if (error) throw error;
+        return data;
+      }
+
       // 首先检查是否存在重复消息
       const isDuplicate = await this.checkDuplicateMessage(text, userId);
       if (isDuplicate) {
@@ -374,9 +483,19 @@ export const messagesApi = {
   },
 
   // 删除消息
-  async deleteMessage(messageId, userId, isAdmin) {
+  async deleteMessage(messageId, userId, isAdmin, adminSessionToken = null) {
     console.log('正在删除消息:', { messageId, userId, isAdmin });
     try {
+      if (isAdmin) {
+        const sessionTokenHash = await adminSessionApi.getTokenHash(adminSessionToken);
+        const { data, error } = await supabase.rpc('admin_delete_message', {
+          input_session_token_hash: sessionTokenHash,
+          input_message_id: messageId
+        });
+        if (error) throw error;
+        return !!data;
+      }
+
       // 首先检查消息是否存在
       const { data: message, error: fetchError } = await supabase
         .from('messages')
@@ -445,9 +564,20 @@ export const messagesApi = {
   },
 
   // 切换消息置顶状态
-  async toggleMessagePin(messageId, isPinned) {
+  async toggleMessagePin(messageId, isPinned, adminSessionToken = null) {
     console.log('正在切换消息置顶状态:', { messageId, isPinned });
     try {
+      if (adminSessionToken) {
+        const sessionTokenHash = await adminSessionApi.getTokenHash(adminSessionToken);
+        const { data, error } = await supabase.rpc('admin_toggle_message_pin', {
+          input_session_token_hash: sessionTokenHash,
+          input_message_id: messageId,
+          input_is_pinned: isPinned
+        });
+        if (error) throw error;
+        return data;
+      }
+
       const { data, error } = await supabase
         .from('messages')
         .update({ is_pinned: isPinned })
@@ -540,9 +670,21 @@ export const messagesApi = {
   },
 
   // 创建新回复
-  async createReply({ messageId, userId, text, originalText }) {
+  async createReply({ messageId, userId, text, originalText, adminSessionToken = null }) {
     console.log('正在创建回复:', { messageId, userId });
     try {
+      if (userId === 'admin') {
+        const sessionTokenHash = await adminSessionApi.getTokenHash(adminSessionToken);
+        const { data, error } = await supabase.rpc('admin_create_reply', {
+          input_session_token_hash: sessionTokenHash,
+          input_message_id: messageId,
+          input_text: text,
+          input_original_text: originalText
+        });
+        if (error) throw error;
+        return data;
+      }
+
       // 检查24小时内的回复数量（仅对非管理员用户）
       if (userId !== 'admin') {
         const replyCount = await this.countUserMessagesAndRepliesInLast24Hours(userId);
@@ -577,9 +719,19 @@ export const messagesApi = {
   },
 
   // 删除回复
-  async deleteReply(replyId, userId, isAdmin) {
+  async deleteReply(replyId, userId, isAdmin, adminSessionToken = null) {
     console.log('正在删除回复:', { replyId, userId, isAdmin });
     try {
+      if (isAdmin) {
+        const sessionTokenHash = await adminSessionApi.getTokenHash(adminSessionToken);
+        const { data, error } = await supabase.rpc('admin_delete_reply', {
+          input_session_token_hash: sessionTokenHash,
+          input_reply_id: replyId
+        });
+        if (error) throw error;
+        return !!data;
+      }
+
       // 首先检查回复是否存在
       const { data: reply, error: fetchError } = await supabase
         .from('message_replies')
@@ -655,32 +807,9 @@ export const messagesApi = {
     }
   },
 
-  // 校验管理员密码（依赖Supabase函数 verify_admin_password）
+  // 旧接口保留为显式失败，管理员登录统一使用 loginAdmin/create_admin_session。
   async verifyAdminPassword(password) {
-    if (!password) {
-      return { success: false, error: '密码不能为空' };
-    }
-
-    console.log('正在验证管理员密码');
-    try {
-      const { data, error } = await supabase.rpc('verify_admin_password', {
-        input_password: password
-      });
-
-      if (error) {
-        console.error('管理员密码验证失败:', error);
-        return { success: false, error: error.message || '验证失败' };
-      }
-
-      const isValid = !!data?.is_valid;
-      return {
-        success: isValid,
-        error: isValid ? null : '密码不正确'
-      };
-    } catch (error) {
-      console.error('调用管理员验证RPC失败:', error);
-      return { success: false, error: error.message || '验证失败' };
-    }
+    return { success: false, error: '管理员登录已迁移，请使用用户名和密码登录' };
   },
 
   // 更新消息的赞踩数量（仅限管理员）
@@ -739,12 +868,24 @@ export const messagesApi = {
   },
 
   // 更新单个反应类型数量的便捷方法（与旧接口兼容）
-  async updateReactionCount(messageId, type, count) {
+  async updateReactionCount(messageId, type, count, adminSessionToken = null) {
     if (typeof count !== 'number' || count < 0) {
       throw new Error('反应数量必须是非负数字');
     }
 
     try {
+      if (adminSessionToken) {
+        const sessionTokenHash = await adminSessionApi.getTokenHash(adminSessionToken);
+        const { data, error } = await supabase.rpc('admin_update_message_reaction_count', {
+          input_session_token_hash: sessionTokenHash,
+          input_message_id: messageId,
+          input_reaction_type: type,
+          input_count: count
+        });
+        if (error) throw error;
+        return !!data;
+      }
+
       const current = await this.getMessageReactions(messageId);
       const likes = type === 'likes' ? count : (current.likes || 0);
       const dislikes = type === 'dislikes' ? count : (current.dislikes || 0);
@@ -806,6 +947,17 @@ export const testRecordsApi = {
       }
 
       // 首先保存或更新用户信息
+      const identitySecret = getIdentitySecret();
+      if (identitySecret) {
+        const { error: claimError } = await supabase.rpc('register_legacy_identity_claim', {
+          input_legacy_user_id_text: userId,
+          input_claim_secret: identitySecret
+        });
+        if (claimError && !String(claimError.message || '').includes('Could not find the function')) {
+          console.warn('登记匿名身份密钥失败:', claimError.message);
+        }
+      }
+
       const { data: userData, error: userError } = await supabase
         .from('users')
         .upsert([{
@@ -863,6 +1015,18 @@ export const testRecordsApi = {
         if (resultsError) {
           console.error('保存测试结果失败:', resultsError);
           throw resultsError;
+        }
+      }
+
+      const { data: authData } = await supabase.auth.getSession();
+      if (authData?.session?.user?.id && identitySecret) {
+        const { error: linkError } = await supabase.rpc('link_member_identity', {
+          input_legacy_user_id_text: userId,
+          input_claim_secret: identitySecret,
+          input_display_label: '当前设备'
+        });
+        if (linkError) {
+          console.warn('记录已保存，但暂未同步到会员账号:', linkError.message || linkError);
         }
       }
 
@@ -1256,6 +1420,693 @@ export const testRecordsApi = {
     }
   }
 };
+
+function isLocalMemberCenterMockEnabled() {
+  if (import.meta.env.VITE_MEMBER_CENTER_MOCK !== '1') return false;
+  if (typeof window === 'undefined') return false;
+  return ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+}
+
+const mockMemberSession = {
+  access_token: 'local-member-center-mock',
+  user: {
+    id: '00000000-0000-4000-8000-000000000001',
+    email: 'member-preview@example.test',
+    user_metadata: {
+      username: 'member_preview',
+      display_name: '本地预览会员'
+    }
+  }
+};
+
+function buildMockMemberDetails(recordId, categories) {
+  const ratings = ['SSS', 'SS', 'S', 'Q', 'N', 'W'];
+  return categories.flatMap((category, categoryIndex) => (
+    Array.from({ length: 18 }, (_, itemIndex) => ({
+      record_id: recordId,
+      category,
+      item: `${category.replace(/^[^\s]+\s*/, '') || category}-${itemIndex + 1}`,
+      rating: ratings[(itemIndex + categoryIndex) % ratings.length]
+    }))
+  ));
+}
+
+function buildMockMemberRecords(userId) {
+  const baseDate = Date.UTC(2026, 4, 18, 8, 0, 0);
+  const records = [
+    {
+      id: 'mock-record-001',
+      user_id_text: userId,
+      test_type: 'female',
+      created_at: new Date(baseDate).toISOString(),
+      updated_at: new Date(baseDate).toISOString(),
+      details: buildMockMemberDetails('mock-record-001', ['SSS 控制', 'SS 感官', 'S 边界'])
+    },
+    {
+      id: 'mock-record-002',
+      user_id_text: userId,
+      test_type: 'female',
+      created_at: new Date(baseDate + 3 * 86400000).toISOString(),
+      updated_at: new Date(baseDate + 3 * 86400000).toISOString(),
+      details: buildMockMemberDetails('mock-record-002', ['SSS 控制', 'SS 感官', 'S 信任', 'Q 情境'])
+    },
+    {
+      id: 'mock-record-003',
+      user_id_text: userId,
+      test_type: 'male',
+      created_at: new Date(baseDate + 7 * 86400000).toISOString(),
+      updated_at: new Date(baseDate + 7 * 86400000).toISOString(),
+      details: buildMockMemberDetails('mock-record-003', ['SSS 主导', 'SS 互动', 'S 约束', 'Q 探索'])
+    }
+  ];
+
+  return records.map(record => ({
+    ...record,
+    report_data: {
+      completedItems: record.details.length,
+      totalItems: record.details.length,
+      ratings: Object.fromEntries(record.details.map(detail => [
+        `${detail.category}-${detail.item}`,
+        detail.rating
+      ]))
+    }
+  }));
+}
+
+const localMemberCenterMockApi = {
+  async getAuthSession() {
+    return mockMemberSession;
+  },
+
+  async registerWithPassword({ username, password, profile }) {
+    const cleanEmail = validateMemberEmail(profile?.email);
+    return {
+      user: {
+        id: mockMemberSession.user.id,
+        email: cleanEmail,
+        user_metadata: {
+          username: validateMemberUsername(username),
+          display_name: username,
+          contact_email: cleanEmail
+        }
+      },
+      session: mockMemberSession
+    };
+  },
+
+  async loginWithPassword({ username }) {
+    return {
+      user: {
+        id: mockMemberSession.user.id,
+        email: validateMemberEmail(`${validateMemberUsername(username)}@example.test`),
+        user_metadata: { username: validateMemberUsername(username) }
+      },
+      session: mockMemberSession
+    };
+  },
+
+  async sendMagicLink() {
+    throw new Error('当前版本已改为用户名密码登录');
+  },
+
+  async signOut() {
+    return true;
+  },
+
+  async getMemberRecords(userId) {
+    return buildMockMemberRecords(userId || 'local-member-user');
+  },
+
+  async deleteMemberRecord(session, recordId) {
+    if (!session?.user?.id) throw new Error('请先登录账号');
+    if (!recordId) throw new Error('请选择要删除的记录');
+    return true;
+  },
+
+  async getMemberProfile(session, legacyUserId, nickname) {
+    return {
+      profile: {
+        account_id: session?.user?.id || mockMemberSession.user.id,
+        legacy_user_id_text: legacyUserId,
+        display_name: nickname || '本地预览会员',
+        qq: '',
+        wechat: '',
+        contact_email: '',
+        phone: '',
+        membership_tier: 'free',
+        privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
+        notification_settings: { monthlySummary: true, trendReminder: true }
+      },
+      subscription: null,
+      unlocks: [],
+      shareLinks: [
+        {
+          id: 'mock-share-001',
+          record_id: 'mock-record-003',
+          title: '本地预览分享',
+          share_token: 'mock-share-token',
+          is_active: true,
+          view_count: 3,
+          expires_at: '2026-12-31T23:59:59.000Z',
+          created_at: '2026-05-25T08:00:00.000Z'
+        }
+      ],
+      orders: [
+        {
+          id: 'mock-order-001',
+          plan_code: 'basic_monthly',
+          status: 'approved',
+          created_at: '2026-05-24T08:00:00.000Z'
+        }
+      ],
+      devices: [
+        {
+          id: 'mock-device-001',
+          device_label: '本地预览设备',
+          last_seen_at: '2026-05-28T08:00:00.000Z'
+        }
+      ],
+      identities: [
+        {
+          account_id: session?.user?.id || mockMemberSession.user.id,
+          legacy_user_id_text: legacyUserId,
+          display_label: '当前设备身份',
+          first_seen_at: '2026-05-18T08:00:00.000Z',
+          last_seen_at: '2026-05-28T08:00:00.000Z'
+        },
+        {
+          account_id: session?.user?.id || mockMemberSession.user.id,
+          legacy_user_id_text: 'mock-previous-device',
+          display_label: '旧设备身份',
+          first_seen_at: '2026-05-10T08:00:00.000Z',
+          last_seen_at: '2026-05-20T08:00:00.000Z'
+        }
+      ],
+      isAuthenticated: true,
+      tablesReady: true
+    };
+  },
+
+  async registerDevice() {
+    return { id: 'mock-device-001' };
+  },
+
+  async unlinkDevice(session, deviceId) {
+    return { id: deviceId, deleted: true };
+  },
+
+  async updateMemberProfile(session, updates) {
+    return {
+      account_id: session?.user?.id || mockMemberSession.user.id,
+      ...updates
+    };
+  },
+
+  async unlockReport(session, legacyUserId, recordId, unlockType = 'advanced_report') {
+    return {
+      id: `mock-unlock-${recordId}`,
+      record_id: recordId,
+      unlock_type: unlockType,
+      created_at: new Date().toISOString()
+    };
+  },
+
+  async createOrder(session, legacyUserId, payload) {
+    return {
+      id: `mock-order-${payload.plan_code}`,
+      plan_code: payload.plan_code,
+      status: 'pending',
+      created_at: new Date().toISOString()
+    };
+  },
+
+  async createShareLink(session, legacyUserId, payload) {
+    return {
+      id: `mock-share-${payload.share_token || Date.now()}`,
+      record_id: payload.record_id,
+      title: payload.title || '我的测评报告',
+      share_token: payload.share_token || 'mock-share-token-new',
+      is_active: true,
+      view_count: 0,
+      expires_at: payload.expires_at || null,
+      created_at: new Date().toISOString()
+    };
+  },
+
+  async deactivateShareLink(session, shareId) {
+    return { id: shareId, is_active: false };
+  },
+
+  async getPublicShare(token, accessCode = null) {
+    const records = buildMockMemberRecords('local-member-user');
+    const sharedRecord = records[2];
+    const openRecord = records[1];
+
+    if (token === 'mock-share-token') {
+      if (accessCode !== 'preview-code') {
+        return {
+          requiresAccessCode: true,
+          link: {
+            title: '本地预览加密分享',
+            hidden_sections: ['items']
+          },
+          record: null
+        };
+      }
+
+      return {
+        requiresAccessCode: false,
+        link: {
+          title: '本地预览加密分享',
+          hidden_sections: ['items']
+        },
+        record: sharedRecord
+      };
+    }
+
+    if (token === 'mock-open-share-token' || token === 'mock-share-token-new') {
+      return {
+        requiresAccessCode: false,
+        link: {
+          title: '本地预览公开分享',
+          hidden_sections: [],
+          view_count: 1
+        },
+        record: openRecord
+      };
+    }
+
+    throw new Error('分享链接不存在或已失效');
+  },
+
+  async createPairRequest(session, legacyUserId, payload) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    return {
+      id: `mock-pair-${Date.now()}`,
+      invite_token: payload.invite_token || 'mock-pair-token',
+      requester_record_id: payload.record_id,
+      relationship_mode: payload.relationship_mode || 'masterSlave',
+      status: 'open',
+      expires_at: '2026-12-31T23:59:59.000Z',
+      created_at: new Date().toISOString()
+    };
+  },
+
+  async getPairRequest(token) {
+    if (!token) throw new Error('双人分析邀请无效');
+    const records = buildMockMemberRecords('local-member-user');
+    return {
+      id: 'mock-pair-request',
+      invite_token: token,
+      relationship_mode: 'masterSlave',
+      expires_at: '2026-12-31T23:59:59.000Z',
+      requester_record: {
+        id: records[0].id,
+        test_type: records[0].test_type,
+        created_at: records[0].created_at
+      }
+    };
+  },
+
+  async acceptPairRequest(session, legacyUserId, token, recordId) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    const records = buildMockMemberRecords(legacyUserId || 'local-member-user');
+    const responder = records.find(record => record.id === recordId) || records[1];
+    return {
+      id: `mock-pair-report-${Date.now()}`,
+      relationship_mode: 'masterSlave',
+      created_at: new Date().toISOString(),
+      requester_record: records[0],
+      responder_record: responder
+    };
+  }
+};
+
+// 会员中心数据读取：只按当前用户ID查询，避免跨用户读取记录
+const realMemberCenterApi = {
+  async getAuthSession() {
+    const { data, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('获取会员登录状态失败:', error);
+      return null;
+    }
+    return data?.session || null;
+  },
+
+  async registerWithPassword({ username, password, profile = {} }) {
+    const cleanUsername = validateMemberUsername(username);
+    const cleanEmail = validateMemberEmail(profile.email);
+    if (!password || password.length < 6) {
+      throw new Error('密码至少 6 位');
+    }
+
+    const reserveResult = await supabase.rpc('reserve_member_login_name', {
+      input_username: cleanUsername,
+      input_auth_email: cleanEmail
+    });
+    if (reserveResult.error) {
+      throw new Error(reserveResult.error.message || '用户名已被占用');
+    }
+
+    const { data, error } = await supabase.auth.signUp({
+      email: cleanEmail,
+      password,
+      options: {
+        data: {
+          username: cleanUsername,
+          userName: cleanUsername,
+          user_name: cleanUsername,
+          loginName: cleanUsername,
+          login_name: cleanUsername,
+          displayName: cleanUsername,
+          full_name: cleanUsername,
+          fullName: cleanUsername,
+          name: cleanUsername,
+          nickname: cleanUsername,
+          display_name: cleanUsername,
+          qq: profile.qq || '',
+          wechat: profile.wechat || '',
+          email: cleanEmail,
+          contactEmail: cleanEmail,
+          contact_email: cleanEmail,
+          phone: profile.phone || ''
+        }
+      }
+    });
+
+    if (error) {
+      console.error('会员注册失败:', error);
+      throw new Error('注册失败: ' + (error.message || '未知错误'));
+    }
+
+    if (data?.session) {
+      return data;
+    }
+
+    const loginResult = await supabase.auth.signInWithPassword({ email: cleanEmail, password });
+    if (loginResult.error) {
+      throw new Error('注册已提交，但当前 Supabase 仍要求邮箱验证。请关闭 Auth 的 Email confirmations 后再试。');
+    }
+    return loginResult.data;
+  },
+
+  async loginWithPassword({ username, password }) {
+    let email = '';
+    const identifier = String(username || '').trim();
+    if (identifier.includes('@')) {
+      email = validateMemberEmail(identifier);
+    } else {
+      const { data, error } = await supabase.rpc('get_member_login_email', {
+        input_username: identifier
+      });
+      if (error || !data) {
+        throw new Error('登录失败：用户名或密码不正确');
+      }
+      email = data;
+    }
+    if (!password) throw new Error('请输入密码');
+
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      console.error('会员登录失败:', error);
+      throw new Error('登录失败：用户名或密码不正确');
+    }
+    return data;
+  },
+
+  async sendMagicLink() {
+    throw new Error('当前版本已改为用户名密码登录');
+  },
+
+  async signOut() {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw new Error('退出登录失败: ' + (error.message || '未知错误'));
+    return true;
+  },
+
+  async getMemberRecords(userId) {
+    if (userId && typeof userId === 'string') {
+      const { error: linkError } = await supabase.rpc('link_member_identity', {
+        input_legacy_user_id_text: userId,
+        input_claim_secret: getIdentitySecret(),
+        input_display_label: '当前设备身份'
+      });
+
+      if (linkError) {
+        console.warn('本设备旧记录暂未同步到会员账号:', linkError.message || linkError);
+      }
+    }
+
+    const { data, error } = await supabase.rpc('get_member_records');
+
+    if (error) {
+      console.error('获取会员测评记录失败:', error);
+      throw new Error('获取会员测评记录失败: ' + (error.message || '未知错误'));
+    }
+
+    return Array.isArray(data) ? data : [];
+  },
+
+  async deleteMemberRecord(session, recordId) {
+    if (!session?.user?.id) throw new Error('请先登录账号');
+    if (!recordId) throw new Error('请选择要删除的记录');
+
+    const { data, error } = await supabase.rpc('delete_member_record', {
+      input_record_id: recordId
+    });
+
+    if (error) throw new Error('删除记录失败: ' + (error.message || '未知错误'));
+    return data;
+  },
+
+  async getMemberProfile(session, legacyUserId, nickname) {
+    if (!session?.user?.id) {
+      return {
+        profile: {
+          account_id: null,
+          legacy_user_id_text: legacyUserId,
+          display_name: nickname || '匿名用户',
+          membership_tier: 'free',
+          privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: false },
+          notification_settings: { monthlySummary: true, trendReminder: false }
+        },
+        subscription: null,
+        unlocks: [],
+        shareLinks: [],
+        orders: [],
+        devices: [],
+        isAuthenticated: false,
+        tablesReady: false
+      };
+    }
+
+    const baseProfile = {
+      account_id: session.user.id,
+      legacy_user_id_text: legacyUserId,
+      display_name: nickname || session.user.user_metadata?.display_name || session.user.user_metadata?.username || '会员用户',
+      qq: session.user.user_metadata?.qq || '',
+      wechat: session.user.user_metadata?.wechat || '',
+      contact_email: session.user.user_metadata?.contact_email || '',
+      phone: session.user.user_metadata?.phone || '',
+      membership_tier: 'free',
+      privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
+      notification_settings: { monthlySummary: true, trendReminder: false }
+    };
+
+    const { data: bundle, error: bundleError } = await supabase.rpc('get_member_profile_bundle', {
+      input_legacy_user_id_text: legacyUserId,
+      input_display_name: nickname || session.user.email || '会员用户',
+      input_claim_secret: getIdentitySecret()
+    });
+
+    if (bundleError) {
+      throw new Error('会员资料读取失败: ' + (bundleError.message || '未知错误'));
+    }
+
+    return {
+      profile: bundle?.profile || baseProfile,
+      subscription: bundle?.subscription || null,
+      unlocks: bundle?.unlocks || [],
+      shareLinks: bundle?.shareLinks || [],
+      orders: bundle?.orders || [],
+      devices: bundle?.devices || [],
+      identities: bundle?.identities || [],
+      isAuthenticated: true,
+      tablesReady: bundle?.tablesReady !== false
+    };
+  },
+
+  async registerDevice(session, legacyUserId, deviceLabel = '当前设备') {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    const userAgentHash = await crypto.subtle
+      .digest('SHA-256', new TextEncoder().encode(navigator.userAgent || 'unknown'))
+      .then(buffer => Array.from(new Uint8Array(buffer)).map(byte => byte.toString(16).padStart(2, '0')).join(''));
+
+    const { data, error } = await supabase.rpc('register_member_device', {
+      input_legacy_user_id_text: legacyUserId,
+      input_claim_secret: getIdentitySecret(),
+      input_device_label: deviceLabel,
+      input_user_agent_hash: userAgentHash
+    });
+
+    if (error) throw new Error('绑定设备失败: ' + (error.message || '未知错误'));
+    return data;
+  },
+
+  async unlinkDevice(session, deviceId) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    if (!deviceId) throw new Error('请选择要解绑的设备');
+
+    const { data, error } = await supabase.rpc('unlink_member_device', {
+      input_device_id: deviceId
+    });
+
+    if (error) throw new Error('解绑设备失败: ' + (error.message || '未知错误'));
+    return data;
+  },
+
+  async updateMemberProfile(session, updates) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+
+    const { data, error } = await supabase.rpc('update_member_profile', {
+      input_display_name: updates.display_name,
+      input_qq: updates.qq || null,
+      input_wechat: updates.wechat || null,
+      input_contact_email: updates.contact_email || null,
+      input_phone: updates.phone || null,
+      input_privacy_settings: updates.privacy_settings || null,
+      input_notification_settings: updates.notification_settings || null
+    });
+
+    if (error) throw new Error('保存会员资料失败: ' + (error.message || '未知错误'));
+    return data;
+  },
+
+  async unlockReport(session, legacyUserId, recordId, unlockType = 'advanced_report') {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    if (!recordId) throw new Error('请选择要解锁的报告');
+
+    const { data, error } = await supabase.rpc('create_member_report_unlock', {
+      input_legacy_user_id_text: legacyUserId,
+      input_record_id: recordId,
+      input_unlock_type: unlockType
+    });
+
+    if (error) throw new Error('解锁报告失败: ' + (error.message || '未知错误'));
+    return data;
+  },
+
+  async createOrder(session, legacyUserId, payload) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    if (!payload.plan_code) throw new Error('请选择会员方案');
+
+    const { data, error } = await supabase.rpc('create_member_order', {
+      input_legacy_user_id_text: legacyUserId,
+      input_plan_code: payload.plan_code,
+      input_contact_email: session.user.email || payload.contact_email || null,
+      input_contact_note: payload.contact_note || null
+    });
+
+    if (error) throw new Error('创建会员开通申请失败: ' + (error.message || '未知错误'));
+    return data;
+  },
+
+  async createShareLink(session, legacyUserId, payload) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    if (!payload.record_id) throw new Error('请选择要分享的记录');
+
+    const { data, error } = await supabase.rpc('create_member_share_link', {
+      input_legacy_user_id_text: legacyUserId,
+      input_record_id: payload.record_id,
+      input_title: payload.title || '我的测评报告',
+      input_access_code: payload.access_code || null,
+      input_hidden_sections: payload.hidden_sections || [],
+      input_expires_at: payload.expires_at || null,
+      input_share_token: payload.share_token || null
+    });
+
+    if (error) throw new Error('创建分享链接失败: ' + (error.message || '未知错误'));
+    return data;
+  },
+
+  async deactivateShareLink(session, shareId) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    if (!shareId) throw new Error('请选择要停用的分享链接');
+
+    const { data, error } = await supabase.rpc('deactivate_member_share_link', {
+      input_share_id: shareId
+    });
+
+    if (error) throw new Error('停用分享链接失败: ' + (error.message || '未知错误'));
+    return data;
+  },
+
+  async getPublicShare(token, accessCode = null) {
+    if (!token || typeof token !== 'string') {
+      throw new Error('分享链接无效');
+    }
+
+    const { data: rpcData, error: rpcError } = await supabase.rpc('get_member_public_share', {
+      input_token: token,
+      input_access_code: accessCode,
+      input_viewer_key: getShareViewerKey(token)
+    });
+
+    if (rpcError) {
+      throw new Error(rpcError.message || '分享链接不存在或已失效');
+    }
+
+    if (!rpcData) {
+      throw new Error('分享链接不存在或已失效');
+    }
+
+    return rpcData;
+  },
+
+  async createPairRequest(session, legacyUserId, payload) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    if (!payload.record_id) throw new Error('请选择要邀请分析的记录');
+
+    const { data, error } = await supabase.rpc('create_member_pair_request', {
+      input_legacy_user_id_text: legacyUserId,
+      input_record_id: payload.record_id,
+      input_relationship_mode: payload.relationship_mode || 'masterSlave',
+      input_expires_at: payload.expires_at || null,
+      input_invite_token: payload.invite_token || null
+    });
+
+    if (error) throw new Error('创建双人分析邀请失败: ' + (error.message || '未知错误'));
+    return data;
+  },
+
+  async getPairRequest(token) {
+    if (!token) throw new Error('双人分析邀请无效');
+
+    const { data, error } = await supabase.rpc('get_member_pair_request', {
+      input_invite_token: token
+    });
+
+    if (error) throw new Error(error.message || '双人分析邀请不存在或已失效');
+    return data;
+  },
+
+  async acceptPairRequest(session, legacyUserId, token, recordId) {
+    if (!session?.user?.id) throw new Error('请先登录会员账号');
+    if (!token) throw new Error('双人分析邀请无效');
+    if (!recordId) throw new Error('请选择自己的测评记录');
+
+    const { data, error } = await supabase.rpc('accept_member_pair_request', {
+      input_invite_token: token,
+      input_legacy_user_id_text: legacyUserId,
+      input_record_id: recordId
+    });
+
+    if (error) throw new Error('生成双人分析失败: ' + (error.message || '未知错误'));
+    return data;
+  }
+};
+
+export const memberCenterApi = isLocalMemberCenterMockEnabled() ? localMemberCenterMockApi : realMemberCenterApi;
 
 // 图库相关的数据库操作
 export const galleryApi = {

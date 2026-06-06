@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-05-29-member-e2e-auth-user-fk",
+  "date": "2026-05-29",
+  "summary": "修复会员中心数据库端到端检查中临时会员账号违反 auth.users 外键约束的问题。",
+  "trigger": "用户截图显示 Supabase SQL Editor 执行完整 SQL 后，member_profiles 插入触发 foreign key constraint 错误。",
+  "changes": [
+    {
+      "category": "数据库端到端检查",
+      "files": [
+        "database/member_center_e2e_check.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "E2E 检查在模拟 auth.uid() 前先插入一条临时 auth.users 测试用户。",
+        "正常路径和异常路径都会删除临时 auth.users 测试用户，避免留下测试账号。",
+        "cleanup 检查增加 auth.users 清理断言，确认临时认证用户已删除。",
+        "重新生成完整部署 SQL，确保 Supabase SQL Editor 执行的是修复后的版本。"
+      ]
+    },
+    {
+      "category": "验证规则",
+      "files": [
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "静态安全检查加入 E2E 临时 auth.users 创建和清理断言，防止以后再次只模拟 JWT 而缺少外键依赖。"
+      ]
+    },
+    {
+      "category": "上线报告",
+      "files": [
+        "docs/launch-reports/2026-05-29T05-00-02-member-launch-report.json"
+      ],
+      "details": [
+        "修复后重新运行完整会员中心上线前报告，并记录新的验证证据。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment",
+      "result": "通过，重新生成 database/member_center_full_deploy.sql。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，确认 E2E 临时 auth.users 创建和清理断言存在。"
+    },
+    {
+      "command": "npm run report:member-launch",
+      "result": "通过，生成 docs/launch-reports/2026-05-29T05-00-02-member-launch-report.json。生产 Supabase 远程验证和正式站点验证因当前 shell 未设置生产环境变量而按脚本设计跳过。"
+    }
+  ],
+  "knownLimitations": [
+    "尚未在 Supabase SQL Editor 重新执行修复后的 database/member_center_full_deploy.sql。",
+    "尚未在 Vercel Preview 或 Production 上执行真实登录、真实数据库读写、真实支付回调和正式域名页面验证。"
+  ],
+  "deploymentNotes": [
+    "需要在 Supabase SQL Editor 重新复制并执行修复后的 database/member_center_full_deploy.sql。",
+    "如果 SQL Editor 仍打开旧标签页，需要删除旧内容后重新粘贴当前新版 SQL。"
+  ]
+}

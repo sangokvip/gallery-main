@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-06-delete-member-record-permission-fix",
+  "date": "2026-06-06",
+  "summary": "修复 delete_member_record RPC 在部署检查中仍可被 anon 执行的问题。",
+  "trigger": "用户在 Supabase deployment check 结果中发现 delete_member_record_not_executable_by_anon 为 false。",
+  "changes": [
+    {
+      "category": "数据库权限",
+      "files": [
+        "database/member_center_refinements_2026_06_06.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "在 member_center_refinements_2026_06_06.sql 中对 delete_member_record(UUID) 增加显式 REVOKE，移除 PUBLIC、anon、authenticated 的默认执行权限。",
+        "随后只向 authenticated 重新授予 delete_member_record(UUID) 执行权限。",
+        "重新生成 member_center_full_deploy.sql，确保完整部署脚本也包含该权限修复。"
+      ]
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "新增对 delete_member_record(UUID) REVOKE/GRANT 文本的检查，避免后续重写 RPC 时漏掉权限重设。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，会员安全检查通过。"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过，Vite 成功完成生产构建。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，无尾随空白或空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "本轮没有直接连接真实 Supabase 项目执行 SQL；需要用户在 SQL Editor 中执行最小修复 SQL 或更新后的部署 SQL 后重新跑 deployment check。"
+  ],
+  "deploymentNotes": [
+    "最快修复方式是在 Supabase SQL Editor 执行 REVOKE EXECUTE ON FUNCTION public.delete_member_record(UUID) FROM PUBLIC, anon, authenticated; GRANT EXECUTE ON FUNCTION public.delete_member_record(UUID) TO authenticated;",
+    "执行后重新运行 database/member_center_deployment_check.sql，delete_member_record_not_executable_by_anon 应为 true。"
+  ]
+}

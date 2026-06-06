@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-01-report-member-signup-prompt",
+  "date": "2026-06-01",
+  "summary": "在用户生成测评报告后增加会员注册提示，说明注册后的云同步、趋势分析和私密分享价值。",
+  "trigger": "用户提出希望在生成报告时弹出 toast，询问是否需要注册并说明注册好处，同时要求分析整体流程体验。",
+  "changes": [
+    {
+      "category": "转化提示组件",
+      "files": [
+        "src/components/MemberSignupPrompt.jsx"
+      ],
+      "details": [
+        "新增 useMemberSignupPrompt hook，生成可复用的会员注册 Snackbar。",
+        "提示文案聚焦三个直接收益：云同步保存记录、查看变化趋势、生成私密分享链接。",
+        "提供“去注册”和“稍后”两个操作，并用 sessionStorage 控制同一浏览器会话只提示一次，避免重复打扰。",
+        "Snackbar 底部偏移，避免和原有保存/导出提示完全重叠。"
+      ]
+    },
+    {
+      "category": "测评页接入",
+      "files": [
+        "src/App.jsx",
+        "src/MaleApp.jsx",
+        "src/SApp.jsx",
+        "src/LgbtApp.jsx"
+      ],
+      "details": [
+        "四个测评页在生成报告成功并打开报告弹窗后延迟 450ms 展示会员注册提示。",
+        "保留原有报告弹窗、自动保存、导出和普通 Snackbar 行为。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，Vite 生产构建成功。"
+    },
+    {
+      "command": "本机 Chrome + Playwright 脚本验证 /female.html、/male.html、/s.html、/lgbt.html 在 390px 和 1440px 下随机选择并生成报告",
+      "result": "通过。四个页面两个视口均能显示会员注册提示，“去注册”可见，且 document 宽度未超过 viewport。"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过，8 组页面验证通过。"
+    }
+  ],
+  "knownLimitations": [
+    "尚未在 Vercel Preview 上重新跑完整人工点击验证，需要等待分支部署完成。",
+    "提示当前按浏览器 session 限制只出现一次；如果后续需要更强转化，可以改为每类报告首次生成时提示一次。"
+  ],
+  "deploymentNotes": [
+    "该改动只影响前端，不需要重新执行 Supabase SQL。",
+    "部署到 Vercel 后，用户生成任意测评报告时会看到会员注册提示。"
+  ]
+}

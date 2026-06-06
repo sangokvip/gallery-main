@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-01-auth-diagnostic-prokind-fix",
+  "date": "2026-06-01",
+  "summary": "修复 auth 注册诊断 SQL 在 Supabase SQL Editor 中扫描 aggregate 函数时报错的问题。",
+  "trigger": "用户执行 database/auth_signup_trigger_diagnostic.sql 后，SQL Editor 返回 ERROR: 42809: \"array_agg\" is an aggregate function。",
+  "changes": [
+    {
+      "category": "诊断 SQL",
+      "files": [
+        "database/auth_signup_trigger_diagnostic.sql"
+      ],
+      "details": [
+        "把函数定义扫描改为先筛选 pg_proc.prokind = 'f' 的普通函数。",
+        "使用 ordinary_functions CTE 保存 pg_get_functiondef() 结果，避免对 aggregate 函数调用 pg_get_functiondef()。",
+        "保留 auth.users 触发器、user_settings 必填列、metadata 相关函数三段输出。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "node 文本断言检查 database/auth_signup_trigger_diagnostic.sql",
+      "result": "通过，确认 SQL 包含 prokind = 'f'、ordinary_functions 和 function_definition ILIKE。"
+    },
+    {
+      "command": "npm run prepare:member-deployment && npm run verify:member-security && npm run build && git diff --check",
+      "result": "通过。完整部署 SQL 重新生成，会员安全验证通过，Vite 生产构建通过，diff 空白检查通过。"
+    }
+  ],
+  "knownLimitations": [
+    "尚未在 Supabase SQL Editor 重新运行修复后的诊断 SQL。",
+    "该改动只修复诊断 SQL 本身，不代表生产注册触发器根因已由诊断 SQL 修复。"
+  ],
+  "deploymentNotes": [
+    "如果注册仍失败，重新执行 database/auth_signup_trigger_diagnostic.sql，重点查看 auth_user_trigger 和 user_settings_required_column 结果。"
+  ]
+}

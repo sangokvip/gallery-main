@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-05-remove-member-tier-gating",
+  "date": "2026-06-05",
+  "summary": "取消会员中心高级/永久会员限制，普通注册会员也可以创建分享链接。",
+  "trigger": "用户反馈创建分享链接失败，错误为“该功能需要高级会员或永久会员”，并要求取消项目中的高级会员和永久会员功能。",
+  "changes": [
+    {
+      "category": "数据库函数",
+      "files": [
+        "database/member_center_full_deploy.sql",
+        "database/create_member_center_tables.sql",
+        "database/create_admin_member_session.sql",
+        "database/remove_member_premium_gating.sql"
+      ],
+      "details": "将 require_premium_member 改为只检查登录账号，不再检查会员等级；移除分享和报告解锁函数里的等级门槛；新增生产库可单独执行的小 SQL 补丁。新部署 SQL 不再提供高级会员和永久会员方案。"
+    },
+    {
+      "category": "后台会员管理",
+      "files": [
+        "src/ModernAdminApp.jsx",
+        "src/adminBrutalApi.js",
+        "scripts/verify-admin-authenticated.mjs"
+      ],
+      "details": "后台会员管理改为普通会员语义，不再展示高级会员、永久会员、有效订阅等文案；mock 数据改为普通会员；后台验证脚本同步更新。"
+    },
+    {
+      "category": "会员中心 mock 和验证",
+      "files": [
+        "src/utils/supabase.js",
+        "scripts/verify-member-production.mjs",
+        "database/member_center_e2e_check.sql"
+      ],
+      "details": "本地会员资料 mock 改为普通会员，生产验证和数据库 E2E 不再使用高级会员方案。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，Vite 生产构建成功。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过，认证态会员中心多视口验证成功，免费会员 mock 下分享入口仍可用。"
+    },
+    {
+      "command": "npm run verify:admin-auth",
+      "result": "通过，后台会员管理新文案和搜索详情流程多视口验证成功。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，安全检查脚本通过。"
+    },
+    {
+      "command": "npm run verify:share-report",
+      "result": "通过，分享页多视口验证成功。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，没有空白错误。"
+    },
+    {
+      "command": "rg -n \"高级会员|永久会员|该功能需要高级|premium_monthly|lifetime|require_premium_member\\\\(current_account\\\\)\" src database scripts",
+      "result": "通过，未找到会继续暴露高级/永久会员或等级门槛的残留。"
+    }
+  ],
+  "knownLimitations": [
+    "生产 Supabase 数据库需要执行 database/remove_member_premium_gating.sql 后，已部署环境里的 create_member_share_link 才会立刻取消等级限制。",
+    "历史订单和历史订阅表仍保留，用于兼容已有数据；前端和后台不再把它们作为会员功能门槛。"
+  ],
+  "deploymentNotes": [
+    "当前修改位于 codex/member-center 分支。",
+    "推送后 Vercel 会更新前端预览；Supabase SQL 补丁需要单独在 SQL Editor 执行。",
+    "无需重新执行完整 member_center_full_deploy.sql。"
+  ]
+}

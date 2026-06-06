@@ -3,11 +3,13 @@ import { v4 as uuidv4 } from 'uuid';
 
 const USER_ID_KEY = 'mprofile_user_id';
 const USER_NICKNAME_KEY = 'mprofile_user_nickname';
+const USER_IDENTITY_SECRET_KEY = 'mprofile_identity_secret';
 
 export class UserManager {
   constructor() {
     this.userId = null;
     this.nickname = null;
+    this.identitySecret = null;
     this.init();
   }
 
@@ -16,11 +18,17 @@ export class UserManager {
     // 尝试从localStorage获取用户ID
     this.userId = localStorage.getItem(USER_ID_KEY);
     this.nickname = localStorage.getItem(USER_NICKNAME_KEY);
+    this.identitySecret = localStorage.getItem(USER_IDENTITY_SECRET_KEY);
 
     // 如果没有用户ID，生成一个新的
     if (!this.userId) {
       this.userId = this.generateUserId();
       localStorage.setItem(USER_ID_KEY, this.userId);
+    }
+
+    if (!this.identitySecret) {
+      this.identitySecret = this.generateIdentitySecret();
+      localStorage.setItem(USER_IDENTITY_SECRET_KEY, this.identitySecret);
     }
 
     // 如果没有昵称，设置默认昵称
@@ -40,6 +48,12 @@ export class UserManager {
     return `user_${timestamp}_${randomStr}_${uuid}`;
   }
 
+  generateIdentitySecret() {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes).map(byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+
   // 获取用户ID
   getUserId() {
     return this.userId;
@@ -48,6 +62,10 @@ export class UserManager {
   // 获取用户昵称
   getNickname() {
     return this.nickname;
+  }
+
+  getIdentitySecret() {
+    return this.identitySecret;
   }
 
   // 设置用户昵称
@@ -65,9 +83,11 @@ export class UserManager {
   // 重置用户信息（生成新的用户ID）
   resetUser() {
     this.userId = this.generateUserId();
+    this.identitySecret = this.generateIdentitySecret();
     this.nickname = '匿名用户';
     
     localStorage.setItem(USER_ID_KEY, this.userId);
+    localStorage.setItem(USER_IDENTITY_SECRET_KEY, this.identitySecret);
     localStorage.setItem(USER_NICKNAME_KEY, this.nickname);
     
     console.log('用户信息已重置:', { userId: this.userId, nickname: this.nickname });
@@ -78,8 +98,10 @@ export class UserManager {
   clearUser() {
     localStorage.removeItem(USER_ID_KEY);
     localStorage.removeItem(USER_NICKNAME_KEY);
+    localStorage.removeItem(USER_IDENTITY_SECRET_KEY);
     this.userId = null;
     this.nickname = null;
+    this.identitySecret = null;
     console.log('用户信息已清除');
   }
 
@@ -87,7 +109,8 @@ export class UserManager {
   getUserInfo() {
     return {
       userId: this.userId,
-      nickname: this.nickname
+      nickname: this.nickname,
+      identitySecret: this.identitySecret
     };
   }
 
@@ -109,6 +132,7 @@ export class UserManager {
     return {
       userId: this.userId,
       nickname: this.nickname,
+      identitySecret: this.identitySecret,
       exportTime: new Date().toISOString()
     };
   }
@@ -118,9 +142,11 @@ export class UserManager {
     if (userData && userData.userId && userData.nickname) {
       this.userId = userData.userId;
       this.nickname = userData.nickname;
+      this.identitySecret = userData.identitySecret || this.generateIdentitySecret();
       
       localStorage.setItem(USER_ID_KEY, this.userId);
       localStorage.setItem(USER_NICKNAME_KEY, this.nickname);
+      localStorage.setItem(USER_IDENTITY_SECRET_KEY, this.identitySecret);
       
       console.log('用户数据导入成功:', { userId: this.userId, nickname: this.nickname });
       return true;
@@ -135,6 +161,7 @@ export const userManager = new UserManager();
 // 导出便捷函数
 export const getUserId = () => userManager.getUserId();
 export const getNickname = () => userManager.getNickname();
+export const getIdentitySecret = () => userManager.getIdentitySecret();
 export const setNickname = (nickname) => userManager.setNickname(nickname);
 export const getUserInfo = () => userManager.getUserInfo();
 export const getDisplayName = () => userManager.getDisplayName();

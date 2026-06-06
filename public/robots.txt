@@ -7,6 +7,8 @@ Allow: /male.html
 Allow: /s.html
 Allow: /lgbt.html
 Allow: /message.html
+Allow: /member.html
+Allow: /share.html
 
 # 允许访问静态资源
 Allow: /assets/

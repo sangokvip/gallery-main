@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-01-member-identity-link-warning",
+  "date": "2026-06-01",
+  "summary": "隐藏会员中心读取记录时的旧匿名身份绑定技术错误，避免向用户展示“匿名身份密钥不匹配”等难懂提示。",
+  "trigger": "用户反馈“绑定会员测评身份失败: 匿名身份密钥不匹配，无法绑定该测评身份”这句话会给用户带来困扰。",
+  "changes": [
+    {
+      "category": "用户提示",
+      "files": [
+        "src/utils/supabase.js"
+      ],
+      "details": "会员中心读取记录前尝试绑定旧设备匿名记录时，如果绑定失败，不再向上抛出错误；改为控制台警告并继续读取会员账号已有云端记录。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 构建成功，仍有既有的大 chunk 警告。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过。320、375、390、430、768、1024、1440 宽度下登录态会员中心验证通过。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过。未发现空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "如果旧匿名记录无法证明属于当前设备，本次改动会跳过绑定旧记录，只显示会员账号已经能读取到的云端记录。",
+    "数据库函数内部仍保留校验和原始错误文案，用于防止仅凭 user_id 绑定他人记录；前端不再展示该技术文案。"
+  ],
+  "deploymentNotes": [
+    "无需执行新的 SQL。",
+    "推送 codex/member-center 分支后，Vercel 会更新预览部署；合并 PR 后才会进入 main。"
+  ]
+}

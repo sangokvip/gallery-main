@@ -97,6 +97,10 @@
 .brutal-table td { padding: 0.8rem 1rem; border-bottom: 1px solid #e5e7eb; font-weight: 500; font-size: 0.9rem; }
 .brutal-table tr:hover td { background: #f8fafc; }
 .records-table td:first-child { max-width: 360px; overflow-wrap: anywhere; }
+.row-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.contact-stack { display: grid; gap: 0.2rem; min-width: 180px; }
+.contact-stack span { font-weight: 750; overflow-wrap: anywhere; }
+.contact-stack small { color: var(--text-light); font-weight: 650; line-height: 1.35; }
 
 /* Badges */
 .badge {
@@ -181,6 +185,60 @@
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 
+/* Member admin */
+.member-admin-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.member-filter-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.4fr) minmax(160px, 0.8fr) minmax(160px, 0.8fr);
+  gap: 1rem;
+}
+.member-admin-help p {
+  color: var(--text-light);
+  font-size: 0.9rem;
+  font-weight: 650;
+  line-height: 1.55;
+}
+.member-detail-modal {
+  max-width: 860px;
+}
+.member-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+.member-detail-field {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0.8rem;
+  display: grid;
+  gap: 0.3rem;
+}
+.member-detail-field small {
+  color: var(--text-light);
+  font-weight: 750;
+}
+.member-detail-field strong {
+  overflow-wrap: anywhere;
+}
+.member-id-list {
+  display: grid;
+  gap: 0.5rem;
+}
+.member-id-list code {
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 0.6rem 0.8rem;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 /* Type distribution */
 .type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-top: 1.5rem; }
 .type-card { text-align: center; padding: 1rem; border-radius: 8px; }
@@ -195,6 +253,8 @@
 @media (max-width: 1024px) {
   .stats-grid, .type-grid { grid-template-columns: repeat(2, 1fr); }
   .settings-grid { grid-template-columns: 1fr; }
+  .member-admin-layout { grid-template-columns: 1fr; }
+  .member-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .site-shortcuts { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 768px) {
@@ -209,6 +269,7 @@
   .brutal-table th, .brutal-table td { padding: 0.5rem; }
   .section-header h2 { font-size: 1.5rem; }
   .form-row { grid-template-columns: 1fr; }
+  .member-filter-grid { grid-template-columns: 1fr; }
   .pagination { align-items: flex-start; flex-direction: column; gap: 0.8rem; }
   .pagination-controls { flex-wrap: wrap; }
 }
@@ -217,6 +278,7 @@
   .shortcut-grid, .site-shortcuts { grid-template-columns: 1fr; }
   .admin-nav-tabs { gap: 0.3rem; }
   .admin-nav-tab { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+  .member-detail-grid { grid-template-columns: 1fr; }
   .page-jump { width: 100%; }
   .page-jump input { flex: 1; min-width: 0; }
 }

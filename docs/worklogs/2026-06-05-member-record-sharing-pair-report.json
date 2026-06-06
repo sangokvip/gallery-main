@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-05-member-record-sharing-pair-report",
+  "date": "2026-06-05",
+  "summary": "给会员中心测评记录库新增单条记录分享、图片保存和双人分析第一版。",
+  "trigger": "用户要求测评历史记录的每一条记录都可以 URL 分享、保存为图片、查看 URL 浏览次数，并开始实施双人分析报告功能。",
+  "changes": [
+    {
+      "category": "会员记录分享",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css",
+        "src/utils/supabase.js"
+      ],
+      "details": "在每条测评记录操作列增加分享入口；分享弹窗可生成分享链接、复制链接、打开分享页、停用链接，并展示现有链接的 view_count 浏览次数。复用已有 create_member_share_link、get_member_share_links、deactivate_member_share_link 和 get_member_public_share RPC，没有新增数据库表。"
+    },
+    {
+      "category": "图片保存",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css"
+      ],
+      "details": "在每条记录增加保存图片入口，弹窗内生成专门排版的单条测评卡片，并复用现有 reportExport 图片导出工具。图片分享不计入 URL 浏览次数。"
+    },
+    {
+      "category": "双人分析",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/styles/member-center.css"
+      ],
+      "details": "新增双人分析弹窗，当前支持同一会员账号内选择两条测评记录，按主奴关系、奴奴关系、主主关系、探索搭档生成契合度、共同高偏好、差异项目、边界冲突和建议。分析基于具体明细项，不只比较维度。"
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-member-center-authenticated.mjs"
+      ],
+      "details": "认证态会员中心多视口脚本新增分享、保存图片预览和双人分析弹窗检查，覆盖 320、375、390、430、768、1024、1440 宽度。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，Vite 生产构建成功。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过，认证态会员中心在 320、375、390、430、768、1024、1440 宽度下无横向溢出，并验证查看明细、分享、保存图片预览、双人分析弹窗。"
+    },
+    {
+      "command": "npm run verify:share-report",
+      "result": "通过，公开分享页和访问密码分享页多视口验证成功。"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过，会员入口、分享错误页、后台、留言页、首页和四个测试页验证成功。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，会员中心安全检查脚本通过。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，没有空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "双人分析当前是同一会员账号内两条记录的前端对比第一版，还没有做跨账号邀请、对方授权选择记录、双方可见权限和匹配报告持久化。",
+    "图片保存是本地生成图片，不会记录浏览次数；只有 URL 分享页被打开时才由数据库 view_count 统计浏览次数。",
+    "未在真实 Supabase 生产数据上重新执行全流程注册和分享，只完成本地 mock 与现有验证脚本。"
+  ],
+  "deploymentNotes": [
+    "当前修改位于 codex/member-center 分支。",
+    "本次功能复用已部署的 member_share_links 和相关 RPC；如果生产数据库已执行 member_center_full_deploy.sql，不需要额外 SQL。",
+    "推送后可在 Vercel 预览部署中打开 /member.html 检查记录库操作列。"
+  ]
+}

@@ -17,13 +17,15 @@ import MessageIcon from '@mui/icons-material/Message'
 import SaveIcon from '@mui/icons-material/Save'
 import HistoryIcon from '@mui/icons-material/History'
 import PersonIcon from '@mui/icons-material/Person'
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import PhotoLibraryIcon from '@mui/icons-material/PhotoLibrary'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import './styles/lgbt-theme.css'
 import { testRecordsApi, testNumberingApi } from './utils/supabase'
-import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
+import { userManager, getUserId, getNickname } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 import AdsterraAd from './components/AdsterraAd'
+import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
 
 
 // GSAP动画系统导入
@@ -147,8 +149,6 @@ function LgbtApp() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [selectedBatchRating, setSelectedBatchRating] = useState('')
   const [openHistory, setOpenHistory] = useState(false)
-  const [openUserSettings, setOpenUserSettings] = useState(false)
-  const [userNickname, setUserNickname] = useState(getNickname())
   const [testRecords, setTestRecords] = useState([])
   const [loading, setLoading] = useState(false)
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true)
@@ -162,6 +162,7 @@ function LgbtApp() {
   const [reportProgress, setReportProgress] = useState(0)
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
+  const { memberStatusLabel, showMemberSignupPrompt, MemberSignupPromptSnackbar } = useMemberSignupPrompt()
 
   // 初始化GSAP和页面动画
   useEffect(() => {
@@ -642,14 +643,6 @@ function LgbtApp() {
     }
   };
 
-  // 更新用户昵称
-  const updateUserNickname = () => {
-    const newNickname = setNickname(userNickname);
-    setSnackbarMessage('昵称更新成功: ' + newNickname);
-    setSnackbarOpen(true);
-    setOpenUserSettings(false);
-  };
-
   // 清空当前测试
   const clearCurrentTest = () => {
     setRatings({});
@@ -747,6 +740,7 @@ function LgbtApp() {
     
     setGeneratingReport(false);
     setOpenReport(true);
+    setTimeout(showMemberSignupPrompt, 450);
   }
 
   // 添加卡片悬停动画
@@ -886,7 +880,7 @@ function LgbtApp() {
                   startIcon={<HomeIcon />}
                   href="/index.html"
                   className="pixel-button-pink"
-                  sx={{ 
+                  sx={{
                     color: '#1E3D59',
                     fontSize: { md: '0.8rem', lg: '0.875rem' },
                     padding: { md: '6px 12px', lg: '8px 16px' },
@@ -904,7 +898,7 @@ function LgbtApp() {
                   startIcon={<ScienceIcon />}
                   href="/s.html"
                   className="pixel-button-pink"
-                  sx={{ 
+                  sx={{
                     color: '#1E3D59',
                     fontSize: { md: '0.8rem', lg: '0.875rem' },
                     padding: { md: '6px 12px', lg: '8px 16px' },
@@ -922,7 +916,7 @@ function LgbtApp() {
                   startIcon={<MaleIcon />}
                   href="/male.html"
                   className="pixel-button-pink"
-                  sx={{ 
+                  sx={{
                     color: '#1E3D59',
                     fontSize: { md: '0.8rem', lg: '0.875rem' },
                     padding: { md: '6px 12px', lg: '8px 16px' },
@@ -955,24 +949,21 @@ function LgbtApp() {
                 </Button>
                 <Button
                   color="inherit"
-                  startIcon={<PersonIcon />}
-                  onClick={() => setOpenUserSettings(true)}
+                  startIcon={<WorkspacePremiumIcon />}
+                  href="/member.html"
                   className="pixel-button-pink"
                   sx={{
                     color: '#1E3D59',
                     fontSize: { md: '0.8rem', lg: '0.875rem' },
-                    padding: { md: '6px 8px', lg: '8px 12px' },
+                    padding: { md: '6px 12px', lg: '8px 16px' },
                     minWidth: 'auto',
-                    maxWidth: { md: '100px', lg: '120px' },
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap'
                   }}
                   onMouseEnter={(e) => handleButtonHover(e, true)}
                   onMouseLeave={(e) => handleButtonHover(e, false)}
                   onClick={handleButtonClick}
                 >
-                  {getNickname()}
+                  我的档案
                 </Button>
               </Box>
 
@@ -1113,9 +1104,11 @@ function LgbtApp() {
                   }} 
                 />
               </ListItem>
-              <ListItem 
-                button 
-                onClick={() => { setOpenUserSettings(true); setMobileMenuOpen(false); }}
+              <ListItem
+                button
+                component="a"
+                href="/member.html"
+                onClick={() => setMobileMenuOpen(false)}
                 sx={{
                   padding: '12px 20px',
                   borderBottom: '1px solid rgba(255, 105, 180, 0.1)',
@@ -1125,20 +1118,18 @@ function LgbtApp() {
                 }}
               >
                 <ListItemIcon sx={{ minWidth: '40px' }}>
-                  <PersonIcon sx={{ color: '#1E3D59' }} />
+                  <WorkspacePremiumIcon sx={{ color: '#1E3D59' }} />
                 </ListItemIcon>
-                <ListItemText 
-                  primary={`用户: ${getNickname()}`}
-                  sx={{ 
+                <ListItemText
+                  primary="我的档案"
+                  sx={{
                     color: '#1E3D59',
                     '& .MuiTypography-root': {
                       fontSize: '1rem',
                       fontWeight: 500,
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap'
                     }
-                  }} 
+                  }}
                 />
               </ListItem>
             </List>
@@ -1225,7 +1216,7 @@ function LgbtApp() {
                   />
                 )}
                 <Chip
-                  label={`用户: ${getDisplayName()}`}
+                  label={memberStatusLabel}
                   color="secondary"
                   variant="outlined"
                   icon={<PersonIcon />}
@@ -1825,65 +1816,6 @@ function LgbtApp() {
             </DialogActions>
           </Dialog>
 
-          {/* 用户设置对话框 */}
-          <Dialog
-            open={openUserSettings}
-            onClose={() => setOpenUserSettings(false)}
-            maxWidth="sm"
-            fullWidth
-          >
-            <DialogTitle sx={{
-              textAlign: 'center',
-              fontWeight: 'bold',
-              borderBottom: '2px dashed #ff69b4',
-              mb: 2
-            }} className="pixel-title-pink">
-              用户设置
-            </DialogTitle>
-            <DialogContent sx={{ px: 3, py: 2 }}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <TextField
-                  label="用户昵称"
-                  value={userNickname}
-                  onChange={(e) => setUserNickname(e.target.value)}
-                  fullWidth
-                  helperText="设置一个好记的昵称，方便识别您的测试记录"
-                  variant="outlined"
-                />
-
-                <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                  <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                    用户信息
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    用户ID: {getUserId()}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    当前昵称: {getNickname()}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    测试记录数: {testRecords.length}
-                  </Typography>
-                </Box>
-              </Box>
-            </DialogContent>
-            <DialogActions sx={{ justifyContent: 'center', pb: 2, gap: 2 }}>
-              <Button
-                onClick={updateUserNickname}
-                variant="contained"
-                className="pixel-button-pink"
-              >
-                保存昵称
-              </Button>
-              <Button
-                onClick={() => setOpenUserSettings(false)}
-                className="pixel-button-pink"
-              >
-                取消
-              </Button>
-            </DialogActions>
-          </Dialog>
-
           {/* 数据库诊断对话框 */}
           <Dialog
             open={openDiagnostic}
@@ -2008,6 +1940,8 @@ function LgbtApp() {
               </Button>
             </DialogActions>
           </Dialog>
+
+          {MemberSignupPromptSnackbar}
 
           <Snackbar
             open={snackbarOpen}

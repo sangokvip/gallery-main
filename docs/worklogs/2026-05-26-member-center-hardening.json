@@ -1,0 +1,120 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-05-26-member-center-hardening",
+  "date": "2026-05-26",
+  "summary": "继续完善会员中心上线前质量检查，清理构建警告，增加可重复执行的会员中心 smoke test，并把会员资料、设备登记/解绑、订单、报告解锁、私密分享创建/停用和分享密码校验收紧到服务端 RPC。",
+  "trigger": "用户要求继续推进会员中心上线准备。",
+  "changes": [
+    {
+      "category": "构建警告清理",
+      "files": [
+        "src/LgbtApp.jsx",
+        "src/MaleApp.jsx",
+        "src/GalleryApp.jsx"
+      ],
+      "details": "合并 LGBT 页用户设置按钮重复 onClick；删除男 M 测评说明对象中的重复 “🔒 贞操锁” key；移除 Gallery 页渐变文字样式中的重复 color 属性。"
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "package.json",
+        "scripts/verify-member-center.mjs",
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": "新增 npm run verify:member-center，自动启动 Vite preview，并用 Playwright 检查会员中心、分享页、后台入口和基础测评页在关键宽度下可打开、无本地资源错误、无页面异常、无横向溢出；新增 npm run verify:member-security，防止私密分享和会员后台重新引入前端绕过 RPC 的读取路径。"
+    },
+    {
+      "category": "安全头配置",
+      "files": [
+        "sangok.html",
+        "public/_headers"
+      ],
+      "details": "删除 sangok.html 中浏览器不接受的 X-Frame-Options meta；真实 X-Frame-Options 继续通过 public/_headers 输出到构建产物。"
+    },
+    {
+      "category": "访问控制加固",
+      "files": [
+        "src/utils/supabase.js",
+        "src/adminBrutalApi.js",
+        "src/ModernAdminApp.jsx",
+        "database/create_member_center_tables.sql",
+        "database/member_center_deployment_check.sql",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": "私密分享页移除前端直读 member_share_links/test_records/test_results 的兼容路径，必须通过 get_member_public_share RPC 返回结果；会员后台移除会员资料、订单、订阅、分享的前端直连 fallback，必须通过 create_admin_session 和 member_admin_* RPC；数据库 SQL 删除 member_share_links 匿名公开读取策略，并在部署自检中加入策略残留检查；后台会员管理页在服务未部署时明确显示错误。"
+    },
+    {
+      "category": "会员业务服务端校验",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/ShareReportApp.jsx",
+        "src/utils/supabase.js",
+        "database/create_member_center_tables.sql",
+        "database/member_center_deployment_check.sql",
+        "scripts/verify-member-security.mjs",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": "新增 create_member_order、create_member_report_unlock、create_member_share_link RPC，订单金额、会员等级、记录归属、分享密码 hash 都在数据库端处理；前端不再生成或提交 access_code_hash；分享访问密码改为由 get_member_public_share 使用 pgcrypto crypt 校验；删除 member_orders/member_report_unlocks/member_share_links 的 owner insert 策略，防止客户端绕过会员等级限制或篡改金额；部署自检增加相关策略和 access_code_hash 列权限检查。"
+    },
+    {
+      "category": "会员资料权限加固",
+      "files": [
+        "src/utils/supabase.js",
+        "database/create_member_center_tables.sql",
+        "database/member_center_deployment_check.sql",
+        "scripts/verify-member-security.mjs",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": "新增 get_or_create_member_profile、update_member_profile、get_member_share_links RPC；会员资料创建和保存不再直接写 member_profiles，用户只能更新显示名、隐私设置、通知设置，不能从客户端修改 membership_tier；移除 member_profiles owner insert/update 策略；分享链接列表通过脱敏 RPC 返回，移除 member_share_links owner read/update 策略并撤销直接表权限，避免 access_code_hash 被读取。"
+    },
+    {
+      "category": "设备登记权限加固",
+      "files": [
+        "src/utils/supabase.js",
+        "database/create_member_center_tables.sql",
+        "database/member_center_deployment_check.sql",
+        "scripts/verify-member-security.mjs",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": "新增 register_member_device 和 unlink_member_device RPC；会员设备登记不再由前端直接 upsert member_devices，设备解绑也不直接 delete 表，数据库使用 auth.uid() 校验当前账号并校验设备指纹格式；移除 member_devices owner insert/update 策略并撤销直接 insert/update/delete 权限；会员中心设备列表新增“解绑”按钮；部署自检和安全验证脚本增加设备策略和 DELETE 权限检查。"
+    },
+    {
+      "category": "分享管理和事件日志加固",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/utils/supabase.js",
+        "database/create_member_center_tables.sql",
+        "database/member_center_deployment_check.sql",
+        "scripts/verify-member-security.mjs",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": "新增 deactivate_member_share_link RPC 和会员中心“停用”按钮，会员可撤销已创建的私密分享链接；分享停用通过服务端校验账号归属后更新 is_active；移除 member_account_events owner insert 策略并撤销客户端 insert 权限，账号事件只能由后台或服务端流程写入，避免客户端伪造事件。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。重复属性和重复 key 警告已清理，仅剩 Vite 大 chunk 提示。"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过。验证 7 组页面：/member.html、/share.html?token=missing、/sangok.html、/index.html、/male.html、/s.html、/lgbt.html；覆盖 320、390、768、1440 等宽度组合；无本地资源错误、无页面异常、无横向溢出。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过。确认分享读取必须走 get_member_public_share RPC；会员后台管理必须走 create_admin_session 和 member_admin_* RPC；会员资料创建/更新、设备登记/解绑、会员订单、报告解锁、私密分享创建/停用必须走服务端 RPC；前端不再生成 access_code_hash；数据库 SQL 不再创建会员资料 insert/update、设备 insert/update、会员订单 insert、报告解锁 insert、分享链接 read/insert/update、账号事件 insert 策略；部署自检包含策略残留、设备 DELETE 权限和 access_code_hash 列权限检查。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过。无空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "真实 Supabase SQL 执行、Auth 回调配置和 Edge Function 部署仍需在生产 Supabase 项目完成后验证；当前前端已按正式上线要求 fail closed，相关 RPC 未部署时不会走不安全 fallback。",
+    "当前构建仍有大 chunk 提示，属于性能优化项，不阻塞功能上线，但后续可通过代码分割处理。"
+  ],
+  "deploymentNotes": [
+    "上线前继续按 docs/member-center-launch-checklist.md 执行 SQL、Auth、后台审核和支付回调检查。",
+    "以后本地回归可先运行 npm run build，再运行 npm run verify:member-center。"
+  ]
+}

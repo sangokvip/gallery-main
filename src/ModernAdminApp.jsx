@@ -7,6 +7,34 @@ const TEST_BADGE = { female: 'badge-female', male: 'badge-male', s: 'badge-s', l
 const TEST_LABEL = { female: '女M测试', male: '男M测试', s: 'S型测试', lgbt: 'LGBT+' };
 const TYPE_ACCENT = { female: 'accent-pink', male: 'accent-blue', s: 'accent-amber', lgbt: 'accent-green' };
 const RATING_COLORS = { SSS: '#dc2626', SS: '#ea580c', S: '#d97706', Q: '#2563eb', N: '#6b7280', W: '#94a3b8' };
+const getMemberTierLabel = () => '会员';
+const getMemberPlanLabel = () => '会员';
+const ORDER_STATUS_LABEL = {
+  pending: '待审核',
+  paid: '已付款',
+  approved: '已开通',
+  rejected: '已拒绝',
+  canceled: '已取消',
+  refunded: '已退款'
+};
+
+function formatDateTime(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('zh-CN');
+}
+
+function formatMoney(cents = 0, currency = 'CNY') {
+  return `${currency} ${(Number(cents || 0) / 100).toFixed(2)}`;
+}
+
+function getAdminRecordCount(record) {
+  if (Number.isFinite(record?.result_count)) return record.result_count;
+  if (Number.isFinite(record?.report_data?.completedItems)) return record.report_data.completedItems;
+  if (record?.report_data?.ratings && typeof record.report_data.ratings === 'object') {
+    return Object.values(record.report_data.ratings).filter(Boolean).length;
+  }
+  return 0;
+}
 
 // ===== Login =====
 function LoginPage({ onLogin }) {
@@ -40,6 +68,7 @@ function LoginPage({ onLogin }) {
 
 const ADMIN_SHORTCUTS = [
   { label: '测评记录', description: '查看、筛选和翻页测评数据', target: 'records', accent: 'accent-blue' },
+  { label: '会员管理', description: '查看会员账号、联系方式和测评记录', target: 'members', accent: 'accent-pink' },
   { label: '安全管理', description: '修改密码和查看当前会话', target: 'security', accent: 'accent-green' },
   { label: '系统设置', description: '站点配置和外部工具入口', target: 'settings', accent: 'accent-amber' },
 ];
@@ -51,6 +80,7 @@ const SITE_SHORTCUTS = [
   { label: 'LGBT+测试', href: '/lgbt.html', accent: 'accent-green' },
   { label: '留言板', href: '/message.html', accent: 'accent-green' },
   { label: '图库', href: '/gallery.html', accent: 'accent-blue' },
+  { label: '会员中心', href: '/member.html', accent: 'accent-pink' },
 ];
 
 // ===== Dashboard =====
@@ -197,6 +227,279 @@ function RecordsView({ records, loading, total, page, rowsPerPage, filters, onPa
   );
 }
 
+// ===== Members =====
+function MembersView({ stats, members, orders, loading, error, actionMessage, onRefresh, onApproveOrder, onRejectOrder, onViewDetail }) {
+  const [query, setQuery] = useState('');
+  const [tierFilter, setTierFilter] = useState('');
+  const [orderFilter, setOrderFilter] = useState('');
+  const [selectedMember, setSelectedMember] = useState(null);
+
+  const pendingOrders = (orders || []).filter(order => order.status === 'pending');
+  const visibleOrders = (orders || []).filter(order => !orderFilter || order.status === orderFilter);
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredMembers = (members || []).filter(member => {
+    const matchesTier = !tierFilter || member.membership_tier === tierFilter;
+    const haystack = [
+      member.display_name,
+      member.contact_email,
+      member.qq,
+      member.wechat,
+      member.phone,
+      member.account_id,
+      member.legacy_user_id_text
+    ].filter(Boolean).join(' ').toLowerCase();
+    const matchesQuery = !normalizedQuery || haystack.includes(normalizedQuery);
+    return matchesTier && matchesQuery;
+  });
+
+  return (
+    <div>
+      <div className="section-header">
+        <div><h2>会员管理</h2><span className="sub">会员账号、联系方式和测评记录</span></div>
+        <button className="btn-brutal" onClick={onRefresh} disabled={loading}>↻ 刷新</button>
+      </div>
+      {loading ? <div className="loading">加载会员数据中...</div> : (
+        <>
+          {error && (
+            <div className="login-error" style={{ marginBottom: '1rem' }}>
+              {error}
+            </div>
+          )}
+          {actionMessage && (
+            <div className="brutal-card no-hover" style={{ marginBottom: '1rem', padding: '0.8rem 1rem', fontWeight: 700 }}>
+              {actionMessage}
+            </div>
+          )}
+          <div className="stats-grid">
+            <div className="brutal-card stat-card accent-pink"><div className="stat-value">{stats?.totalMembers || 0}</div><div className="stat-label">会员账号</div><div className="stat-today">已注册</div></div>
+            <div className="brutal-card stat-card accent-green"><div className="stat-value">{stats?.activeShares || 0}</div><div className="stat-label">分享链接</div><div className="stat-today">已生成</div></div>
+            <div className="brutal-card stat-card accent-amber"><div className="stat-value">{pendingOrders.length}</div><div className="stat-label">历史待处理</div><div className="stat-today">兼容旧订单</div></div>
+            <div className="brutal-card stat-card accent-blue"><div className="stat-value">{filteredMembers.length}</div><div className="stat-label">当前筛选</div><div className="stat-today">列表结果</div></div>
+          </div>
+
+          <div className="member-admin-layout">
+            <div className="brutal-card no-hover">
+              <div className="section-header compact"><h3>会员筛选</h3></div>
+              <div className="member-filter-grid">
+                <div className="form-group">
+                  <label>搜索会员</label>
+                  <input
+                    value={query}
+                    onChange={event => setQuery(event.target.value)}
+                    placeholder="昵称 / 邮箱 / QQ / 微信 / 电话"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>账号类型</label>
+                  <select value={tierFilter} onChange={event => setTierFilter(event.target.value)}>
+                    <option value="">全部会员</option>
+                    <option value="free">普通会员</option>
+                    <option value="basic">普通会员</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>订单状态</label>
+                  <select value={orderFilter} onChange={event => setOrderFilter(event.target.value)}>
+                    <option value="">全部订单</option>
+                    <option value="pending">待审核</option>
+                    <option value="approved">已开通</option>
+                    <option value="rejected">已拒绝</option>
+                    <option value="canceled">已取消</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="brutal-card no-hover member-admin-help">
+              <h3>后台能做什么</h3>
+              <p>查看会员资料、联系方式和测评记录。旧订单数据仅保留兼容查看，不再用于限制会员功能。</p>
+            </div>
+          </div>
+
+          <div className="section-header compact"><h3>会员账号</h3><span className="sub">显示 {filteredMembers.length} / {members?.length || 0} 个</span></div>
+          <div className="brutal-card no-hover" style={{padding:0, overflow:'hidden'}}>
+            <table className="brutal-table records-table member-list-table">
+              <thead><tr><th>昵称</th><th>联系方式</th><th>账号类型</th><th>分享</th><th>历史订单</th><th>创建时间</th><th>操作</th></tr></thead>
+              <tbody>
+                {filteredMembers.length === 0 ? (
+                  <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem', color:'#888'}}>暂无会员账号</td></tr>
+                ) : filteredMembers.map(member => (
+                  <tr key={member.account_id}>
+                    <td>{member.display_name || '会员用户'}</td>
+                    <td>
+                      <div className="contact-stack">
+                        <span>{member.contact_email || '-'}</span>
+                        <small>{[member.qq && `QQ ${member.qq}`, member.wechat && `微信 ${member.wechat}`, member.phone && `电话 ${member.phone}`].filter(Boolean).join(' · ') || '未填写其他联系方式'}</small>
+                      </div>
+                    </td>
+                    <td><span className="badge badge-female">{getMemberTierLabel(member.membership_tier)}</span></td>
+                    <td>{member.share_links?.length || member.shares?.length || 0}</td>
+                    <td>{member.orders?.length || 0}</td>
+                    <td>{formatDateTime(member.created_at)}</td>
+                    <td><button className="btn-brutal" onClick={() => setSelectedMember(member)}>详情</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="section-header compact" style={{marginTop:'1.5rem'}}><h3>历史订单</h3><span className="sub">仅兼容旧数据</span></div>
+          <div className="brutal-card no-hover" style={{padding:0, overflow:'hidden'}}>
+            <table className="brutal-table member-order-table">
+              <thead><tr><th>方案</th><th>金额</th><th>状态</th><th>会员</th><th>备注</th><th>时间</th><th>操作</th></tr></thead>
+              <tbody>
+                {visibleOrders.length === 0 ? (
+                  <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem', color:'#888'}}>暂无订单</td></tr>
+                ) : visibleOrders.map(order => {
+                  const member = (members || []).find(item => item.account_id === order.account_id);
+                  return (
+                    <tr key={order.id}>
+                      <td><strong>{getMemberPlanLabel(order.plan_code)}</strong></td>
+                      <td>{formatMoney(order.amount_cents, order.currency)}</td>
+                      <td><span className={`badge ${order.status === 'pending' ? 'badge-s' : order.status === 'approved' ? 'badge-lgbt' : 'badge-male'}`}>{ORDER_STATUS_LABEL[order.status] || order.status}</span></td>
+                      <td>{member?.display_name || order.account_id?.slice(0, 8) || '-'}</td>
+                      <td>{order.contact_note || order.admin_note || '-'}</td>
+                      <td>{formatDateTime(order.created_at)}</td>
+                      <td>
+                        <div className="row-actions">
+                          <button className="btn-brutal" disabled={order.status !== 'pending'} onClick={() => onApproveOrder(order)}>通过</button>
+                          <button className="btn-brutal danger" disabled={order.status !== 'pending'} onClick={() => onRejectOrder(order)}>拒绝</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {selectedMember && (
+            <MemberDetailModal
+              member={selectedMember}
+              orders={(orders || []).filter(order => order.account_id === selectedMember.account_id)}
+              onViewRecord={onViewDetail}
+              onClose={() => setSelectedMember(null)}
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function MemberDetailModal({ member, orders, onViewRecord, onClose }) {
+  const [memberRecords, setMemberRecords] = useState([]);
+  const [recordsLoading, setRecordsLoading] = useState(false);
+  const [recordsError, setRecordsError] = useState('');
+
+  useEffect(() => {
+    if (!member) return;
+    let cancelled = false;
+    setRecordsLoading(true);
+    setRecordsError('');
+    adminApi.getMemberRecords(member)
+      .then(records => {
+        if (!cancelled) setMemberRecords(records);
+      })
+      .catch(error => {
+        if (!cancelled) {
+          setMemberRecords([]);
+          setRecordsError(error.message || '会员测评记录读取失败');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRecordsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [member]);
+
+  if (!member) return null;
+  const contactRows = [
+    ['邮箱', member.contact_email || '-'],
+    ['QQ', member.qq || '-'],
+    ['微信', member.wechat || '-'],
+    ['电话', member.phone || '-'],
+    ['账号类型', '会员'],
+    ['历史订阅', member.subscription?.status || '无'],
+    ['注册时间', formatDateTime(member.created_at)],
+    ['更新时间', formatDateTime(member.updated_at)]
+  ];
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content member-detail-modal" onClick={event => event.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{member.display_name || '会员用户'}</h3>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <div className="member-detail-grid">
+            {contactRows.map(([label, value]) => (
+              <div key={label} className="member-detail-field">
+                <small>{label}</small>
+                <strong>{value}</strong>
+              </div>
+            ))}
+          </div>
+
+          <div className="section-header compact" style={{marginTop:'1.5rem'}}>
+            <h3>账号标识</h3>
+          </div>
+          <div className="member-id-list">
+            <code>account_id: {member.account_id}</code>
+            {member.legacy_user_id_text && <code>legacy_user_id: {member.legacy_user_id_text}</code>}
+          </div>
+
+          <div className="section-header compact" style={{marginTop:'1.5rem'}}>
+            <h3>会员测评记录</h3>
+            <span className="sub">{recordsLoading ? '读取中' : `${memberRecords.length} 条`}</span>
+          </div>
+          <table className="brutal-table member-record-table">
+            <thead><tr><th>记录ID</th><th>类型</th><th>完成项</th><th>用户</th><th>时间</th><th>操作</th></tr></thead>
+            <tbody>
+              {recordsLoading ? (
+                <tr><td colSpan={6} style={{textAlign:'center', padding:'1.2rem', color:'#888'}}>正在读取测评记录...</td></tr>
+              ) : recordsError ? (
+                <tr><td colSpan={6} style={{textAlign:'center', padding:'1.2rem', color:'#dc2626'}}>{recordsError}</td></tr>
+              ) : memberRecords.length === 0 ? (
+                <tr><td colSpan={6} style={{textAlign:'center', padding:'1.2rem', color:'#888'}}>暂无测评记录</td></tr>
+              ) : memberRecords.map(record => (
+                <tr key={record.id}>
+                  <td><code>{record.id}</code></td>
+                  <td><span className={`badge ${TEST_BADGE[record.test_type] || ''}`}>{TEST_LABEL[record.test_type] || record.test_type}</span></td>
+                  <td>{getAdminRecordCount(record)} 项</td>
+                  <td>{record.nickname || record.user_id_text || '匿名用户'}</td>
+                  <td>{formatDateTime(record.created_at)}</td>
+                  <td><button className="btn-brutal" onClick={() => onViewRecord(record)}>测评详情</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          <div className="section-header compact" style={{marginTop:'1.5rem'}}>
+            <h3>订单记录</h3>
+          </div>
+          <table className="brutal-table">
+            <thead><tr><th>方案</th><th>状态</th><th>金额</th><th>时间</th></tr></thead>
+            <tbody>
+              {orders.length === 0 ? (
+                <tr><td colSpan={4} style={{textAlign:'center', padding:'1.2rem', color:'#888'}}>暂无订单</td></tr>
+              ) : orders.map(order => (
+                <tr key={order.id}>
+                  <td>{getMemberPlanLabel(order.plan_code)}</td>
+                  <td>{ORDER_STATUS_LABEL[order.status] || order.status}</td>
+                  <td>{formatMoney(order.amount_cents, order.currency)}</td>
+                  <td>{formatDateTime(order.created_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ===== Security =====
 function SecurityView() {
   const [sessions] = useState(() => {
@@ -211,7 +514,7 @@ function SecurityView() {
   const changePw = async (e) => {
     e.preventDefault(); setPwMsg('');
     if (!pwForm.current) { setPwMsg('❌ 请输入当前密码'); return; }
-    if (pwForm.newPw.length < 6) { setPwMsg('❌ 新密码至少6位'); return; }
+    if (pwForm.newPw.length < 8) { setPwMsg('❌ 新密码至少8位'); return; }
     if (pwForm.newPw !== pwForm.confirm) { setPwMsg('❌ 两次密码不一致'); return; }
     setPwLoading(true);
     try {
@@ -408,6 +711,12 @@ function ModernAdminApp() {
   const [statsLoading, setStatsLoading] = useState(false);
   const [records, setRecords] = useState([]);
   const [recentRecords, setRecentRecords] = useState([]);
+  const [memberStats, setMemberStats] = useState(null);
+  const [members, setMembers] = useState([]);
+  const [memberOrders, setMemberOrders] = useState([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [membersError, setMembersError] = useState('');
+  const [memberActionMessage, setMemberActionMessage] = useState('');
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
@@ -427,6 +736,7 @@ function ModernAdminApp() {
     if (!admin) return;
     if (tab === 'dashboard') loadDashboard();
     if (tab === 'records') loadRecords();
+    if (tab === 'members') loadMembers();
   }, [admin, tab]);
 
   const loadDashboard = async () => {
@@ -445,6 +755,50 @@ function ModernAdminApp() {
       setRecords(res.results); setTotal(res.total);
     } catch (e) { console.error(e); setRecords([]); setTotal(0); }
     setRecordsLoading(false);
+  };
+
+  const loadMembers = async () => {
+    setMembersLoading(true);
+    setMembersError('');
+    try {
+      const [statsData, membersData, ordersData] = await Promise.all([
+        adminApi.getMemberStats(),
+        adminApi.getMembers(50, 0),
+        adminApi.getMemberOrders(50)
+      ]);
+      setMemberStats(statsData);
+      setMembers(membersData.members);
+      setMemberOrders(ordersData);
+    } catch (e) {
+      console.error(e);
+      setMembersError(e.message || '会员管理服务不可用');
+      setMemberStats(null);
+      setMembers([]);
+      setMemberOrders([]);
+    }
+    setMembersLoading(false);
+  };
+
+  const approveOrder = async (order) => {
+    setMemberActionMessage('');
+    try {
+      await adminApi.approveMemberOrder(order);
+      setMemberActionMessage('订单已审核通过');
+      await loadMembers();
+    } catch (e) {
+      setMemberActionMessage(e.message || '订单审核失败');
+    }
+  };
+
+  const rejectOrder = async (order) => {
+    setMemberActionMessage('');
+    try {
+      await adminApi.rejectMemberOrder(order.id);
+      setMemberActionMessage('订单已拒绝');
+      await loadMembers();
+    } catch (e) {
+      setMemberActionMessage(e.message || '订单拒绝失败');
+    }
   };
 
   const viewDetail = async (record) => {
@@ -466,8 +820,15 @@ function ModernAdminApp() {
       <nav className="admin-nav">
         <span className="admin-nav-logo">M-Profile Lab</span>
         <div className="admin-nav-tabs">
-          {[{id:'dashboard',label:'仪表板'},{id:'records',label:'测评记录'},{id:'security',label:'安全管理'},{id:'settings',label:'系统设置'}].map(t => (
-            <button key={t.id} className={`admin-nav-tab ${tab===t.id?'active':''}`} onClick={() => setTab(t.id)}>{t.label}</button>
+          {[{id:'dashboard',label:'仪表板'},{id:'records',label:'测评记录'},{id:'members',label:'会员管理'},{id:'security',label:'安全管理'},{id:'settings',label:'系统设置'}].map(t => (
+            <button
+              key={t.id}
+              className={`admin-nav-tab ${tab===t.id?'active':''}`}
+              data-admin-tab={t.id}
+              onClick={() => setTab(t.id)}
+            >
+              {t.label}
+            </button>
           ))}
         </div>
         <div className="admin-nav-right">
@@ -478,6 +839,7 @@ function ModernAdminApp() {
       <div className="admin-content">
         {tab === 'dashboard' && <DashboardView stats={stats} loading={statsLoading} recentRecords={recentRecords} onViewDetail={viewDetail} onNavigate={setTab} />}
         {tab === 'records' && <RecordsView records={records} loading={recordsLoading} total={total} page={page} rowsPerPage={rpp} filters={filters} onPageChange={onPageChange} onRppChange={onRppChange} onFilterChange={onFilterChange} onRefresh={() => loadRecords(filters, page, rpp)} onViewDetail={viewDetail} />}
+        {tab === 'members' && <MembersView stats={memberStats} members={members} orders={memberOrders} loading={membersLoading} error={membersError} actionMessage={memberActionMessage} onRefresh={loadMembers} onApproveOrder={approveOrder} onRejectOrder={rejectOrder} onViewDetail={viewDetail} />}
         {tab === 'security' && <SecurityView />}
         {tab === 'settings' && <SettingsView />}
       </div>

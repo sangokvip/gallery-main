@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "worklogId": "2026-06-03-admin-member-detail-records",
+  "date": "2026-06-03",
+  "summary": "管理员后台会员详情增加详细测评记录列表，并可直接打开每条测评的详情弹窗。",
+  "trigger": "用户反馈会员详情里需要有详细的测评记录。",
+  "changes": [
+    {
+      "category": "admin-ui",
+      "files": [
+        "src/ModernAdminApp.jsx"
+      ],
+      "details": [
+        "会员详情弹窗新增“会员测评记录”区域，显示记录ID、类型、完成项、用户、时间和测评详情操作。",
+        "会员详情里的测评详情按钮复用后台现有测评详情弹窗，可查看具体测评项。",
+        "后台导航按钮增加 data-admin-tab 标识，提升自动验证和后续维护的稳定性。"
+      ]
+    },
+    {
+      "category": "admin-api",
+      "files": [
+        "src/adminBrutalApi.js"
+      ],
+      "details": [
+        "本地 mock 后台 API 增加 getMemberRecords，用会员 legacy_user_id_text 读取对应测评记录。",
+        "真实 Supabase 后台 API 增加 getMemberRecords，从 test_records 读取会员测评记录，并从 test_results 统计完成项数量。"
+      ]
+    },
+    {
+      "category": "verification",
+      "files": [
+        "scripts/verify-admin-authenticated.mjs"
+      ],
+      "details": [
+        "后台认证验证增加会员详情测评记录断言。",
+        "验证会员详情中的测评详情按钮能打开 108 项详情。",
+        "后台 tab 切换改用 data-admin-tab，避免移动端同名按钮误点。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 生产构建成功，仅保留既有大 chunk 警告。"
+    },
+    {
+      "command": "npm run verify:admin-auth",
+      "result": "通过。覆盖 320、375、390、430、768、1024、1440 宽度；验证后台登录、测评记录、分页跳转、会员管理、会员详情测评记录和测评详情弹窗。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，无空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "真实生产 Supabase 数据读取依赖会员账号已有 legacy_user_id_text；如果某个会员没有绑定旧测评身份，会员详情会显示暂无测评记录。",
+    "本次未直接连接生产数据库验证真实会员记录，只在 mock 后台数据和构建环境完成验证。"
+  ],
+  "deploymentNotes": [
+    "当前改动位于 codex/member-center 分支，推送后可由 Vercel 生成预览部署。",
+    "不需要新增 SQL。后台读取现有 test_records 和 test_results 数据。"
+  ]
+}

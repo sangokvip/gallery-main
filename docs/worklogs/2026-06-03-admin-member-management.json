@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-03-admin-member-management",
+  "date": "2026-06-03",
+  "summary": "增强管理员后台会员管理页，补充会员搜索、等级筛选、联系方式查看、会员详情弹窗和订单审核展示。",
+  "trigger": "用户提出已有会员中心后，管理员后台也应增加会员管理相关功能。",
+  "changes": [
+    {
+      "category": "后台会员管理",
+      "files": [
+        "src/ModernAdminApp.jsx"
+      ],
+      "details": "会员管理页新增搜索框、会员等级筛选、订单状态筛选、联系方式列、会员详情弹窗、账号标识和订单记录查看。"
+    },
+    {
+      "category": "后台样式",
+      "files": [
+        "src/admin-brutal.css"
+      ],
+      "details": "新增会员管理布局、筛选区、详情弹窗字段和联系方式展示样式，并补充响应式适配。"
+    },
+    {
+      "category": "本地预览数据",
+      "files": [
+        "src/adminBrutalApi.js"
+      ],
+      "details": "为本地管理员 mock 会员补充 QQ、微信、邮箱、电话数据，便于验证会员搜索和详情展示。"
+    },
+    {
+      "category": "验证脚本",
+      "files": [
+        "scripts/verify-admin-authenticated.mjs"
+      ],
+      "details": "后台登录态验证新增会员管理搜索、会员详情弹窗和联系方式内容检查。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 构建成功，仍有既有的大 chunk 警告。"
+    },
+    {
+      "command": "npm run verify:admin-auth",
+      "result": "通过。320、375、390、430、768、1024、1440 宽度下后台登录态、测评记录、会员管理和详情弹窗验证通过。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过。未发现空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "本次使用已有 member_admin_overview、member_admin_members、member_admin_orders、member_admin_approve_order、member_admin_reject_order RPC，没有新增 SQL。",
+    "前台会员中心当前已隐藏付费入口，因此后台订单审核主要用于历史订单或后续重新启用人工订单时使用。",
+    "会员搜索和筛选在当前拉取的会员数据范围内执行；后续会员量很大时可扩展为数据库端搜索和分页。"
+  ],
+  "deploymentNotes": [
+    "无需执行新的 SQL。",
+    "推送 codex/member-center 分支后，Vercel 会更新预览部署；合并 PR 后才会进入 main。"
+  ]
+}

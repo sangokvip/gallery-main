@@ -750,7 +750,9 @@ function MessageApp() {
   const [newReactionCount, setNewReactionCount] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [adminLoginDialogOpen, setAdminLoginDialogOpen] = useState(false);
+  const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [adminSession, setAdminSession] = useState(null);
   const [adminLoginLoading, setAdminLoginLoading] = useState(false);
 
   // 在组件挂载时设置状态
@@ -1003,7 +1005,8 @@ function MessageApp() {
       const messageData = {
         text: filteredMessage,
         userId: isAdmin ? 'admin' : userId,
-        originalText: newMessage.trim()
+        originalText: newMessage.trim(),
+        adminSessionToken: isAdmin ? adminSession?.sessionToken : null
       };
 
       try {
@@ -1032,30 +1035,28 @@ function MessageApp() {
 
   // 添加双击标题处理函数
   const handleTitleDoubleClick = () => {
+    setAdminUsername('');
     setAdminPassword('');
     setAdminLoginDialogOpen(true);
   };
 
   const handleAdminLogin = async () => {
-    if (!adminPassword) {
-      setSnackbarMessage('请输入管理员密码');
+    if (!adminUsername.trim() || !adminPassword) {
+      setSnackbarMessage('请输入管理员用户名和密码');
       setSnackbarOpen(true);
       return;
     }
 
     setAdminLoginLoading(true);
     try {
-      const { success, error: loginError } = await messagesApi.verifyAdminPassword(adminPassword);
-      if (success) {
-        setIsAdmin(true);
-        setSnackbarMessage('管理员登录成功！');
-        setSnackbarOpen(true);
-        setAdminLoginDialogOpen(false);
-        setAdminPassword('');
-      } else {
-        setSnackbarMessage(loginError || '密码验证失败');
-        setSnackbarOpen(true);
-      }
+      const session = await messagesApi.loginAdmin(adminUsername, adminPassword);
+      setAdminSession(session);
+      setIsAdmin(true);
+      setSnackbarMessage('管理员登录成功！');
+      setSnackbarOpen(true);
+      setAdminLoginDialogOpen(false);
+      setAdminUsername('');
+      setAdminPassword('');
     } catch (error) {
       console.error('管理员登录失败:', error);
       setSnackbarMessage(error.message || '管理员登录失败');
@@ -1114,7 +1115,7 @@ function MessageApp() {
   // 处理置顶切换
   const handleTogglePin = async (messageId, isPinned) => {
     try {
-      await messagesApi.toggleMessagePin(messageId, isPinned);
+      await messagesApi.toggleMessagePin(messageId, isPinned, adminSession?.sessionToken);
       await fetchMessages(); // 只在置顶操作成功后刷新
       setSnackbarMessage(isPinned ? '消息已置顶' : '消息已取消置顶');
       setSnackbarOpen(true);
@@ -1132,7 +1133,8 @@ function MessageApp() {
         messageId,
         userId: isAdmin ? 'admin' : userId,
         text: filteredText,
-        originalText: text
+        originalText: text,
+        adminSessionToken: isAdmin ? adminSession?.sessionToken : null
       });
       await fetchMessageReplies(messageId); // 只刷新当前消息的回复
       setSnackbarMessage('回复成功！');
@@ -1146,7 +1148,7 @@ function MessageApp() {
   // 删除回复
   const handleDeleteReply = async (replyId) => {
     try {
-      await messagesApi.deleteReply(replyId, userId, isAdmin);
+      await messagesApi.deleteReply(replyId, userId, isAdmin, adminSession?.sessionToken);
       // 重新获取所有消息的回复
       await fetchMessageReplies(messages.map(message => message.id));
       setSnackbarMessage('回复删除成功！');
@@ -1164,7 +1166,7 @@ function MessageApp() {
       setSnackbarMessage('正在删除...');
       setSnackbarOpen(true);
 
-      const success = await messagesApi.deleteMessage(messageId, userId, isAdmin);
+      const success = await messagesApi.deleteMessage(messageId, userId, isAdmin, adminSession?.sessionToken);
       console.log('Message deleted, success:', success);
       
       if (success) {
@@ -1181,6 +1183,8 @@ function MessageApp() {
 
   const handleLogout = () => {
     setIsAdmin(false);
+    setAdminSession(null);
+    setAdminUsername('');
     setAdminPassword('');
     setAdminLoginDialogOpen(false);
     setSnackbarMessage('已退出管理员模式！');
@@ -1205,7 +1209,8 @@ function MessageApp() {
       const success = await messagesApi.updateReactionCount(
         editReactionDialog.messageId,
         editReactionDialog.type,
-        newReactionCount
+        newReactionCount,
+        adminSession?.sessionToken
       );
       
       if (success) {
@@ -1746,6 +1751,7 @@ function MessageApp() {
             onClose={() => {
               if (!adminLoginLoading) {
                 setAdminLoginDialogOpen(false);
+                setAdminUsername('');
                 setAdminPassword('');
               }
             }}
@@ -1755,10 +1761,31 @@ function MessageApp() {
             </DialogTitle>
             <DialogContent>
               <Typography variant="body2" sx={{ mb: 2, color: '#666' }}>
-                请输入管理员密码继续。
+                请输入管理员用户名和密码继续。
               </Typography>
               <TextField
                 autoFocus
+                margin="dense"
+                label="管理员用户名"
+                fullWidth
+                value={adminUsername}
+                onChange={(e) => setAdminUsername(e.target.value)}
+                disabled={adminLoginLoading}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: '#ff69b4',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: '#ff69b4',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#ff69b4',
+                    },
+                  },
+                }}
+              />
+              <TextField
                 margin="dense"
                 label="管理员密码"
                 type="password"
@@ -1791,6 +1818,7 @@ function MessageApp() {
               <Button
                 onClick={() => {
                   setAdminLoginDialogOpen(false);
+                  setAdminUsername('');
                   setAdminPassword('');
                 }}
                 disabled={adminLoginLoading}

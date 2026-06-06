@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "worklogId": "2026-06-03-remove-member-nickname-input",
+  "date": "2026-06-03",
+  "summary": "移除会员注册和会员资料中的昵称输入，会员显示名自动使用用户名。",
+  "trigger": "用户反馈注册页面不需要用户填写昵称。",
+  "changes": [
+    {
+      "category": "member-ui",
+      "files": [
+        "src/MemberCenterApp.jsx"
+      ],
+      "details": [
+        "注册表单移除“昵称（选填）”输入框。",
+        "会员资料区域移除“显示昵称”输入框。",
+        "注册成功后保存会员资料时，display_name 自动使用用户名，不再读取昵称输入。"
+      ]
+    },
+    {
+      "category": "member-auth",
+      "files": [
+        "src/utils/supabase.js"
+      ],
+      "details": [
+        "本地 mock 注册 metadata 的 display_name 改为用户名。",
+        "真实 Supabase 注册 metadata 中 displayName、name、nickname、display_name 等展示字段统一使用用户名。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 生产构建成功，仅保留既有大 chunk 警告。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过。覆盖 320、375、390、430、768、1024、1440 宽度的登录态会员中心。"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过。覆盖 member、share、sangok、message、index、male、s、lgbt 共 8 组页面。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，无空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "数据库表仍保留 display_name 字段，用于系统内部展示；用户侧不再提供昵称输入。",
+    "后台会员列表仍显示 display_name，目前其值会自动来自用户名。"
+  ],
+  "deploymentNotes": [
+    "当前改动位于 codex/member-center 分支。",
+    "不需要新增 SQL。"
+  ]
+}

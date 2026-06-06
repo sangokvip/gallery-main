@@ -1,0 +1,310 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-05-28-member-center-predeploy-check",
+  "date": "2026-05-28",
+  "summary": "补充会员中心生产部署前预检 SQL、完整部署 SQL 生成脚本，以及登录后会员中心本地 mock 验证，用于提前发现数据库部署风险和登录态 UI 回归。",
+  "trigger": "继续推进会员中心达到上线可用状态，补齐生产部署前可自动验证的数据库风险。",
+  "changes": [
+    {
+      "category": "数据库预检",
+      "files": [
+        "database/member_center_predeploy_check.sql"
+      ],
+      "details": [
+        "新增部署前预检 SQL，只创建当前 SQL 会话内的临时结果表，不修改持久 schema。",
+        "检查 users、test_records、test_results、messages、admins 等基础表是否存在。",
+        "检查 pgcrypto 是否可用。",
+        "检查 member_subscriptions 和 member_orders 中 provider + provider_ref 是否已有重复数据，避免唯一索引创建失败。",
+        "检查 member_share_links.share_token 是否已有重复值。"
+      ]
+    },
+    {
+      "category": "校验接入",
+      "files": [
+        "scripts/verify-member-security.mjs",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": [
+        "静态安全脚本加入 member_center_predeploy_check.sql 的关键文本检查。",
+        "上线清单把 member_center_predeploy_check.sql 放到正式建表和 RPC SQL 之前执行，并说明 ok=false 项必须先处理。"
+      ]
+    },
+    {
+      "category": "部署工具化",
+      "files": [
+        "scripts/prepare-member-deployment.mjs",
+        "database/member_center_full_deploy.sql",
+        "database/member_center_e2e_check.sql",
+        "scripts/verify-member-production.mjs",
+        "scripts/verify-site-production.mjs",
+        "scripts/verify-member-predeploy.mjs",
+        "package.json",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": [
+        "新增 prepare:member-deployment 命令，把预检 SQL、会员表/RPC SQL、后台会话 SQL、部署后检查 SQL 和数据库端到端演练 SQL 按顺序打包。",
+        "生成的 member_center_full_deploy.sql 会给每段 SQL 写入 sha256，方便部署前核对来源。",
+        "新增 member_center_e2e_check.sql，部署后可在 Supabase SQL Editor 里用临时数据演练会员资料、设备、订单、订单开通、订阅、高级报告解锁、私密分享、访问密码、停用分享和清理。",
+        "完整部署 SQL 现在按 5 段打包：预检、会员表/RPC、后台会话/RPC、部署结构检查、数据库端到端演练。",
+        "增强 verify:member-production 生产远程探测，检查会员核心表、后台会话表、公开 RPC、会员 authenticated-only RPC、后台 session-guarded RPC 和禁止 anon 调用的敏感函数。",
+        "新增 verify:member-predeploy 一键上线前总检查，串联 SQL 打包、SQL hash 校验、安全静态检查、构建、多视口 UI 验证、生产探测跳过路径、git diff --check、工作记录 JSON 解析和端口清理检查。",
+        "新增 verify:site-production，部署后可用 SITE_URL 或 PRODUCTION_SITE_URL 远程检查正式站点关键页面、响应头、robots.txt、sitemap.xml 和分享页 noindex。",
+        "部署清单加入完整 SQL 生成命令，同时保留分段执行顺序。"
+      ]
+    },
+    {
+      "category": "支付回调验证",
+      "files": [
+        "supabase/functions/member-payment-webhook/index.ts",
+        "supabase/functions/member-payment-webhook/contract.mjs",
+        "scripts/verify-payment-webhook-contract.mjs",
+        "scripts/verify-member-predeploy.mjs",
+        "scripts/verify-member-security.mjs",
+        "package.json",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": [
+        "把 Edge Function 的请求合约拆到 contract.mjs，Deno 入口和本地测试脚本复用同一份验签、JSON、订单引用、金额、币种、订单查找和审批调用逻辑。",
+        "新增 verify:payment-webhook，覆盖 OPTIONS、非 POST、服务端配置缺失、错误签名、非法 JSON、缺少订单引用、失败状态忽略、订单不存在、金额不匹配、币种不匹配、成功审批、provider_ref 回退和审批失败。",
+        "verify:member-predeploy 已纳入支付回调合约验证。"
+      ]
+    },
+    {
+      "category": "上线证据报告",
+      "files": [
+        "scripts/generate-member-launch-report.mjs",
+        "scripts/verify-member-security.mjs",
+        "package.json",
+        "docs/member-center-launch-checklist.md",
+        "docs/launch-reports/2026-05-28T08-04-56-member-launch-report.json",
+        "docs/launch-reports/2026-05-28T08-18-19-member-launch-report.json",
+        "docs/launch-reports/2026-05-28T12-59-07-member-launch-report.json",
+        "docs/launch-reports/2026-05-28T13-15-53-member-launch-report.json",
+        "docs/launch-reports/2026-05-28T13-22-14-member-launch-report.json"
+      ],
+      "details": [
+        "新增 report:member-launch 命令，一次性运行 verify:member-predeploy 并把结果写入 JSON 报告。",
+        "报告只记录环境变量是否存在，不记录 Supabase URL、anon key 或任何 secret 值。",
+        "安全静态检查加入上线报告脚本存在性检查，避免部署前缺少证据生成命令。",
+        "上线清单加入 npm run report:member-launch，用于每次发布前留下可追溯验证报告。",
+        "上线报告现在记录 MEMBER_WEBHOOK_SECRET 和 SUPABASE_SERVICE_ROLE_KEY 是否显式存在，但不记录密钥值。",
+        "删除中间失败报告，避免把失败验证结果误当作上线通过证据；最新通过报告为 2026-05-28T13-22-14-member-launch-report.json。"
+      ]
+    },
+    {
+      "category": "生产回调探测",
+      "files": [
+        "scripts/verify-member-production.mjs",
+        "scripts/generate-member-launch-report.mjs",
+        "scripts/verify-member-security.mjs",
+        "docs/member-center-launch-checklist.md",
+        "supabase/functions/member-payment-webhook/README.md"
+      ],
+      "details": [
+        "verify:member-production 增加 MEMBER_WEBHOOK_SECRET 可选签名探测，发送签名正确但不存在的测试订单，预期返回 order_not_found。",
+        "新增 --require-webhook-secret 参数，生产验收时可强制要求远程签名探测执行，避免只用 OPTIONS 判断 Edge Function 可用。",
+        "上线清单和 Edge Function README 补充远程签名探测命令。",
+        "修复上线清单中一处多余 Markdown 代码块闭合符，避免后半段文档渲染错误。"
+      ]
+    },
+    {
+      "category": "分享页验证稳定性",
+      "files": [
+        "scripts/verify-share-report.mjs"
+      ],
+      "details": [
+        "私密分享输入正确访问码后明确等待 Recharts 图表挂载完成，再读取图表数量，避免在 390px 视口下过早读取导致误报。",
+        "公开分享也新增至少 2 张图表的断言，避免只检查文字不检查图表渲染。"
+      ]
+    },
+    {
+      "category": "会员账号云同步",
+      "files": [
+        "database/create_member_center_tables.sql",
+        "database/member_center_deployment_check.sql",
+        "database/member_center_e2e_check.sql",
+        "database/member_center_full_deploy.sql",
+        "src/utils/supabase.js",
+        "src/utils/userManager.js",
+        "src/MemberCenterApp.jsx",
+        "scripts/verify-member-center.mjs",
+        "scripts/verify-member-production.mjs",
+        "scripts/verify-member-security.mjs",
+        "scripts/verify-member-center-authenticated.mjs",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": [
+        "新增 member_identity_links 表，用会员账号绑定多个匿名测评身份，解决同一邮箱换设备后只能看到新设备本地匿名 ID 记录的问题。",
+        "新增 member_identity_claims 表，只保存匿名身份本地密钥的 sha256 hash；会员绑定身份必须提交本地身份密钥，不能只靠 userId 绑定他人记录。",
+        "新增 register_legacy_identity_claim、link_member_identity 和 get_member_records RPC；会员中心读取记录改为按登录账号读取所有已绑定身份下的 test_records/test_results。",
+        "userManager 为每个匿名身份生成 identitySecret，身份备份 JSON 会包含该密钥；导入旧身份时必须带 identitySecret。",
+        "测评保存时会登记匿名身份密钥 hash；会员中心、设备登记和跨设备绑定均使用该密钥证明当前用户拥有该匿名测评身份。",
+        "完整部署 SQL 会显式删除旧版 link_member_identity(TEXT, TEXT)、get_or_create_member_profile(TEXT, TEXT)、register_member_device(TEXT, TEXT, TEXT) 签名，防止生产库保留不需要 identitySecret 的旧 RPC。",
+        "部署检查新增旧签名移除检查，确认旧身份绑定入口不会继续对生产 API 暴露。",
+        "get_or_create_member_profile 不再用新设备匿名 ID 覆盖已有 legacy_user_id_text，而是保留主身份并追加身份绑定。",
+        "设备登记会自动绑定当前匿名测评身份；高级报告解锁和私密分享的记录归属校验改为检查 member_identity_links。",
+        "会员中心 UI 展示已绑定测评身份数量和最近同步时间，并说明换设备登录同一邮箱会读取已绑定身份下的云端记录。",
+        "数据库端到端检查新增跨身份记录读取演练，并验证错误身份密钥不能绑定测评身份。",
+        "生产远程探测、安全静态检查和登录态 UI 验证均加入会员身份绑定与账号级记录读取检查。",
+        "基础页面验证脚本改为等待导航 commit，并忽略第三方广告质量接口 CORS 噪声，只把本地 4xx/5xx、页面错误、横向溢出和缺失关键文案作为阻断。"
+      ]
+    },
+    {
+      "category": "登录态前端验证",
+      "files": [
+        "src/utils/supabase.js",
+        "src/adminBrutalApi.js",
+        "scripts/verify-member-center-authenticated.mjs",
+        "scripts/verify-admin-authenticated.mjs",
+        "scripts/verify-share-report.mjs",
+        "scripts/verify-member-center.mjs",
+        "package.json",
+        "docs/member-center-launch-checklist.md"
+      ],
+      "details": [
+        "新增只在 VITE_MEMBER_CENTER_MOCK=1 且 host 为 localhost、127.0.0.1 或 ::1 时启用的会员中心 mock API。",
+        "mock 登录态覆盖 premium 会员、云端记录、会员表连接状态、订单、设备、分享链接和高级报告解锁状态。",
+        "新增 verify:member-auth，本地启动 Vite dev server 后用 Playwright 覆盖 320、375、390、430、768、1024、1440 宽度的登录后会员中心。",
+        "新增只在 VITE_ADMIN_MOCK=1 且 host 为 localhost、127.0.0.1 或 ::1 时启用的后台 mock API。",
+        "新增 verify:admin-auth，本地 mock 管理员登录后验证仪表板快捷跳转、测评记录页码跳转、列表 108 项计数、详情 108 项计数和会员管理页。",
+        "会员中心 mock 增加带访问密码并隐藏明细的分享 token，以及无需密码并显示明细的分享 token。",
+        "新增 verify:share-report，本地验证私密分享错误密码不能查看、正确密码可查看、隐藏明细不泄露、公开分享可显示明细。",
+        "原有 verify:member-center 加入页面级超时和进度输出，避免外部资源等待导致验证长时间无输出。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment",
+      "result": "通过，生成 database/member_center_full_deploy.sql。"
+    },
+    {
+      "command": "rg member_center_predeploy_check/create_member_center_tables/create_admin_member_session/member_center_deployment_check database/member_center_full_deploy.sql",
+      "result": "通过，完整部署 SQL 包含四段 SQL，顺序正确，并包含 sha256 注释。"
+    },
+    {
+      "command": "node --check scripts/verify-member-security.mjs && node --check scripts/verify-member-production.mjs && node --check scripts/verify-member-center.mjs",
+      "result": "通过，所有验证脚本语法正常。"
+    },
+    {
+      "command": "node --check scripts/verify-member-center-authenticated.mjs",
+      "result": "通过，登录态会员中心验证脚本语法正常。"
+    },
+    {
+      "command": "node --check src/utils/userManager.js && node --check src/utils/supabase.js && node --check scripts/verify-member-production.mjs && node --check scripts/verify-member-center-authenticated.mjs",
+      "result": "通过，身份密钥、Supabase API 和相关验证脚本语法正常。"
+    },
+    {
+      "command": "node --check scripts/verify-admin-authenticated.mjs",
+      "result": "通过，登录态后台验证脚本语法正常。"
+    },
+    {
+      "command": "node --check scripts/verify-share-report.mjs",
+      "result": "通过，私密分享验证脚本语法正常。"
+    },
+    {
+      "command": "node --check scripts/verify-member-predeploy.mjs",
+      "result": "通过，上线前总检查脚本语法正常。"
+    },
+    {
+      "command": "node --check scripts/verify-payment-webhook-contract.mjs",
+      "result": "通过，支付回调合约验证脚本语法正常。"
+    },
+    {
+      "command": "node --check scripts/verify-site-production.mjs",
+      "result": "通过，生产站点远程验证脚本语法正常。"
+    },
+    {
+      "command": "node --check scripts/generate-member-launch-report.mjs",
+      "result": "通过，上线报告脚本语法正常。"
+    },
+    {
+      "command": "node --check scripts/verify-share-report.mjs",
+      "result": "通过，分享页验证脚本语法正常。"
+    },
+    {
+      "command": "node --check scripts/verify-member-center-authenticated.mjs",
+      "result": "通过，登录态会员中心验证脚本语法正常。"
+    },
+    {
+      "command": "SQL 括号平衡检查",
+      "result": "通过，create_member_center_tables.sql、member_center_deployment_check.sql、member_center_e2e_check.sql、member_center_full_deploy.sql 括号计数均为 0。"
+    },
+    {
+      "command": "Markdown fence count docs/member-center-launch-checklist.md",
+      "result": "通过，代码块围栏数量为偶数，清单不会因未闭合代码块导致后续内容渲染错误。"
+    },
+    {
+      "command": "SQL 括号平衡检查",
+      "result": "通过，member_center_e2e_check.sql、member_center_deployment_check.sql、create_member_center_tables.sql、create_admin_member_session.sql 括号计数均为 0。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过，输出 member security verification passed，已覆盖预检 SQL 关键内容、会员中心本地 mock 启用保护、后台本地 mock 启用保护、会员身份绑定 RPC、账号级记录读取 RPC、identitySecret hash 和旧 RPC 签名删除。"
+    },
+    {
+      "command": "SQL 括号平衡检查",
+      "result": "通过，member_center_predeploy_check.sql、create_admin_member_session.sql、member_center_deployment_check.sql、create_member_center_tables.sql、member_center_full_deploy.sql 括号计数均为 0。"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过，Vite 构建成功；仍有既有大 chunk 体积提示。"
+    },
+    {
+      "command": "npm run verify:member-production",
+      "result": "通过跳过路径；本机进程未设置显式 Supabase 环境变量，脚本未读取 .env。当前脚本已扩展生产远程探测覆盖表存在、RPC 暴露、anon 权限边界、后台 session 拦截和可选支付回调签名探测。"
+    },
+    {
+      "command": "npm run verify:site-production",
+      "result": "通过跳过路径；本机进程未设置 SITE_URL 或 PRODUCTION_SITE_URL，脚本未读取 .env。部署后可用显式站点 URL 检查关键页面、响应头、robots.txt、sitemap.xml 和分享页 noindex。"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过，覆盖 member、share、sangok、message、index、male、s、lgbt 共 8 组页面和关键视口；验证脚本已避免第三方广告 CORS 噪声误杀。"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过，使用本地 mock 登录 premium 会员，覆盖 320、375、390、430、768、1024、1440 宽度，检查会员账号、权益、订单、设备、绑定测评身份、换设备同步说明、图表、高级报告和测评记录库。"
+    },
+    {
+      "command": "npm run verify:admin-auth",
+      "result": "通过，使用本地 mock 登录管理员，覆盖 320、375、390、430、768、1024、1440 宽度，检查后台快捷跳转、测评记录翻页跳转、108 项结果计数、108 项详情和会员管理页。"
+    },
+    {
+      "command": "npm run verify:share-report",
+      "result": "通过，使用本地 mock 验证私密分享，覆盖 320、375、390、430、768、1024、1440 宽度；错误密码不能查看，正确密码可查看，隐藏明细未泄露，私密分享和公开分享都渲染至少 2 张图表。"
+    },
+    {
+      "command": "npm run verify:payment-webhook",
+      "result": "通过，复用 Edge Function 合约逻辑验证验签、JSON、订单引用、失败状态忽略、订单不存在、金额、币种、审批参数和审批失败路径。"
+    },
+    {
+      "command": "npm run verify:member-predeploy",
+      "result": "通过，重新生成包含 5 段 SQL 的完整 SQL 包并校验 sha256，串联通过安全检查、构建、基础页面验证、会员登录态验证、后台登录态验证、分享页验证、支付回调合约验证、Supabase 生产探测跳过路径、站点生产探测跳过路径、git diff --check、工作记录 JSON 解析和端口清理检查。"
+    },
+    {
+      "command": "npm run report:member-launch",
+      "result": "通过，最新生成 docs/launch-reports/2026-05-28T13-22-14-member-launch-report.json；报告记录 verify:member-predeploy 成功、显式生产环境变量未设置、生产 Supabase、支付回调签名和正式站点探测处于跳过状态。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过，没有空白错误。"
+    },
+    {
+      "command": "JSON.parse docs/worklogs/*.json",
+      "result": "通过，所有工作记录 JSON 均可解析。"
+    }
+  ],
+  "knownLimitations": [
+    "预检 SQL 尚未在生产 Supabase SQL Editor 执行，无法确认生产库是否已有 provider_ref 或 share_token 重复数据。",
+    "member_identity_links、member_identity_claims、身份密钥绑定、旧 RPC 签名删除和账号级 get_member_records RPC 已在 SQL 与本地 mock 中验证，但尚未在生产 Supabase 执行后用真实账号跨设备验证。",
+    "生产 SQL、Auth Redirect、Edge Function 和真实账号全流程仍未执行和验证。",
+    "本机未读取 .env；生产探测需要部署后显式传入 SUPABASE_URL、SUPABASE_ANON_KEY 和 MEMBER_WEBHOOK_SECRET。"
+  ],
+  "deploymentNotes": [
+    "生产执行顺序更新为：member_center_predeploy_check.sql、create_member_center_tables.sql、create_admin_member_session.sql、member_center_deployment_check.sql。",
+    "如果 member_center_predeploy_check.sql 返回 ok=false，先处理该项再继续执行后续 SQL。",
+    "每次上线前运行 npm run report:member-launch，保留 docs/launch-reports 下的 JSON 验证报告。",
+    "部署后继续运行 npm run verify:member-production -- --require-env --require-webhook-secret，并做真实会员登录、订单审核、私密分享和支付回调验证。"
+  ]
+}

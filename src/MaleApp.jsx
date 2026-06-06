@@ -17,14 +17,16 @@ import FavoriteIcon from '@mui/icons-material/Favorite'
 import SaveIcon from '@mui/icons-material/Save'
 import HistoryIcon from '@mui/icons-material/History'
 import PersonIcon from '@mui/icons-material/Person'
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
 import TelegramIcon from '@mui/icons-material/Telegram'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import Footer from './components/Footer'
 import MessageIcon from '@mui/icons-material/Message'
 import { testRecordsApi, testNumberingApi } from './utils/supabase'
-import { userManager, getUserId, getNickname, setNickname, getDisplayName } from './utils/userManager'
+import { userManager, getUserId, getNickname } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 import AdsterraAd from './components/AdsterraAd'
+import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
 
 
 // 使用黑白像素风格的Footer
@@ -137,7 +139,6 @@ const ITEM_EXPLANATIONS = {
   '🏛️ 公共场合玩弄': '在公共场所进行性行为或调教。',
   '⛓️ 公共场合捆绑': '在公共场所使用绳索等捆绑。',
   '🔧 公共场合器具': '在公共场所使用性工具。',
-  '🔒 贞操锁': '在户外佩戴贞操装置，强调控制。',
   '👥 露阳(熟人)': '在熟人面前暴露阴茎，需谨慎。',
   '👀 露阳(生人)': '在陌生人面前暴露阴茎，需注意法律。',
   '🐕 野外遛狗': '在户外以狗奴形式被牵引。',
@@ -297,8 +298,6 @@ function App() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [selectedBatchRating, setSelectedBatchRating] = useState('')
   const [openHistory, setOpenHistory] = useState(false)
-  const [openUserSettings, setOpenUserSettings] = useState(false)
-  const [userNickname, setUserNickname] = useState(getNickname())
   const [testRecords, setTestRecords] = useState([])
   const [loading, setLoading] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -313,6 +312,7 @@ function App() {
   const [reportProgress, setReportProgress] = useState(0)
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
+  const { memberStatusLabel, showMemberSignupPrompt, MemberSignupPromptSnackbar } = useMemberSignupPrompt()
 
   // 页面加载时初始化数据
   useEffect(() => {
@@ -497,14 +497,6 @@ function App() {
     }
   };
 
-  // 更新用户昵称
-  const updateUserNickname = () => {
-    const newNickname = setNickname(userNickname);
-    setSnackbarMessage('昵称更新成功: ' + newNickname);
-    setSnackbarOpen(true);
-    setOpenUserSettings(false);
-  };
-
   // 清空当前测试
   const clearCurrentTest = () => {
     setRatings({});
@@ -599,9 +591,10 @@ function App() {
     }
     setReportProgress(100);
     await new Promise(resolve => setTimeout(resolve, 120));
-    
+
     setGeneratingReport(false);
     setOpenReport(true);
+    setTimeout(showMemberSignupPrompt, 450);
   };
 
   const handleRatingChange = (category, item, value) => {
@@ -956,19 +949,7 @@ function App() {
               <Button color="inherit" href="/female.html" startIcon={<FemaleIcon />}>女版</Button>
               <Button color="inherit" href="/lgbt.html" startIcon={<FavoriteIcon />}>🏳️‍🌈 LGBT+</Button>
               <Button color="inherit" href="/message.html" startIcon={<MessageIcon />}>留言</Button>
-              <Button
-                color="inherit"
-                startIcon={<PersonIcon />}
-                onClick={() => setOpenUserSettings(true)}
-                sx={{
-                  maxWidth: '100px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {getNickname().length > 6 ? getNickname().substring(0, 6) + '...' : getNickname()}
-              </Button>
+              <Button color="inherit" href="/member.html" startIcon={<WorkspacePremiumIcon />}>我的档案</Button>
             </Box>
 
             <IconButton
@@ -1018,9 +999,9 @@ function App() {
               <ListItemIcon><MessageIcon sx={{ color: '#6200ea' }} /></ListItemIcon>
               <ListItemText primary="留言板" sx={{ color: '#6200ea' }} />
             </ListItem>
-            <ListItem button onClick={() => { setOpenUserSettings(true); setMobileMenuOpen(false); }}>
-              <ListItemIcon><PersonIcon sx={{ color: '#6200ea' }} /></ListItemIcon>
-              <ListItemText primary="用户设置" sx={{ color: '#6200ea' }} />
+            <ListItem button component="a" href="/member.html" onClick={() => setMobileMenuOpen(false)}>
+              <ListItemIcon><WorkspacePremiumIcon sx={{ color: '#6200ea' }} /></ListItemIcon>
+              <ListItemText primary="我的档案" sx={{ color: '#6200ea' }} />
             </ListItem>
           </List>
         </Box>
@@ -1106,7 +1087,7 @@ function App() {
                 />
               )}
               <Chip
-                label={`用户: ${getDisplayName()}`}
+                label={memberStatusLabel}
                 color="secondary"
                 variant="outlined"
                 icon={<PersonIcon />}
@@ -1794,63 +1775,6 @@ function App() {
           </DialogActions>
         </Dialog>
 
-        {/* 用户设置对话框 */}
-        <Dialog
-          open={openUserSettings}
-          onClose={() => setOpenUserSettings(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle sx={{
-            textAlign: 'center',
-            fontWeight: 'bold',
-            borderBottom: '2px dashed #6200ea',
-            mb: 2
-          }}>
-            用户设置
-          </DialogTitle>
-          <DialogContent sx={{ px: 3, py: 2 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <TextField
-                label="用户昵称"
-                value={userNickname}
-                onChange={(e) => setUserNickname(e.target.value)}
-                fullWidth
-                helperText="设置一个好记的昵称，方便识别您的测试记录"
-                variant="outlined"
-              />
-
-              <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 'bold' }}>
-                  用户信息
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  用户ID: {getUserId()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  当前昵称: {getNickname()}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  测试记录数: {testRecords.length}
-                </Typography>
-              </Box>
-            </Box>
-          </DialogContent>
-          <DialogActions sx={{ justifyContent: 'center', pb: 2, gap: 2 }}>
-            <Button
-              onClick={updateUserNickname}
-              variant="contained"
-            >
-              保存昵称
-            </Button>
-            <Button
-              onClick={() => setOpenUserSettings(false)}
-            >
-              取消
-            </Button>
-          </DialogActions>
-        </Dialog>
-
         {/* 数据库诊断对话框 */}
         <Dialog
           open={openDiagnostic}
@@ -1950,6 +1874,8 @@ function App() {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {MemberSignupPromptSnackbar}
 
         <Snackbar
           open={snackbarOpen}
