@@ -491,12 +491,14 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION member_record_snapshot(UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_member_profile_bundle(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION delete_member_record(UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_member_public_share(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION create_member_pair_request(TEXT, UUID, TEXT, TIMESTAMP WITH TIME ZONE, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_member_pair_request(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION accept_member_pair_request(TEXT, TEXT, UUID) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION get_member_profile_bundle(TEXT, TEXT, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION delete_member_record(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_member_public_share(TEXT, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION create_member_pair_request(TEXT, UUID, TEXT, TIMESTAMP WITH TIME ZONE, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_member_pair_request(TEXT) TO anon, authenticated;

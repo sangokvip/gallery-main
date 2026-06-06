@@ -212,7 +212,9 @@ const checks = [
       'get_member_pair_request',
       'accept_member_pair_request',
       'REVOKE SELECT, INSERT, UPDATE, DELETE ON member_share_link_views FROM anon, authenticated',
+      'REVOKE EXECUTE ON FUNCTION delete_member_record(UUID) FROM PUBLIC, anon, authenticated',
       'GRANT EXECUTE ON FUNCTION get_member_profile_bundle(TEXT, TEXT, TEXT) TO authenticated',
+      'GRANT EXECUTE ON FUNCTION delete_member_record(UUID) TO authenticated',
       'GRANT EXECUTE ON FUNCTION get_member_public_share(TEXT, TEXT, TEXT) TO anon, authenticated'
     ]
   },
