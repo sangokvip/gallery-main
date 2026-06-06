@@ -953,6 +953,36 @@ function MemberCenterApp() {
                   </TableBody>
                 </Table>
               </TableContainer>
+              <Box className="record-mobile-list">
+                {filteredRecords.length === 0 ? (
+                  <Box className="empty-panel">暂无记录。完成测评并点击“保存测试”后，这里会自动出现云端档案。</Box>
+                ) : filteredRecords.slice().reverse().map(record => (
+                  <Box key={record.id} className="record-mobile-card">
+                    <Box className="record-mobile-card-header">
+                      <Box>
+                        <Typography className="record-mobile-type">{TEST_LABEL[record.test_type] || record.test_type}</Typography>
+                        <Typography className="record-mobile-time">{formatDateTime(record.created_at)}</Typography>
+                      </Box>
+                      <Box className="record-mobile-score">
+                        <strong>{record.averageScore.toFixed(2)}</strong>
+                        <span>综合强度</span>
+                      </Box>
+                    </Box>
+                    <Box className="record-mobile-metrics">
+                      <div><span>完成项</span><strong>{record.completedItems}/{record.totalItems || record.completedItems}</strong></div>
+                      <div><span>SSS</span><strong>{record.counts.SSS}</strong></div>
+                      <div><span>SS</span><strong>{record.counts.SS}</strong></div>
+                    </Box>
+                    <Stack direction="row" spacing={0.5} className="record-action-stack record-mobile-actions">
+                      <Button size="small" onClick={() => setDetailRecordId(record.id)}>查看明细</Button>
+                      <Button size="small" startIcon={<LinkIcon />} onClick={() => setShareRecordId(record.id)}>分享</Button>
+                      <Button size="small" startIcon={<ImageIcon />} onClick={() => setImageRecordId(record.id)}>保存图片</Button>
+                      <Button size="small" startIcon={<CompareArrowsIcon />} onClick={() => openPairDialog(record)} disabled={records.length < 2}>双人分析</Button>
+                      <Button size="small" color="error" onClick={() => setDeleteRecordId(record.id)}>删除</Button>
+                    </Stack>
+                  </Box>
+                ))}
+              </Box>
             </Paper>
           </Box>
         )}

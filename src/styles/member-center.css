@@ -700,6 +700,97 @@ body {
   white-space: nowrap;
 }
 
+.record-mobile-list {
+  display: none;
+}
+
+.record-mobile-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.record-mobile-card-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.record-mobile-type {
+  font-size: 1rem !important;
+  font-weight: 950 !important;
+  color: #0f172a;
+}
+
+.record-mobile-time {
+  margin-top: 4px !important;
+  color: var(--member-muted);
+  font-size: 0.86rem !important;
+  font-weight: 800 !important;
+}
+
+.record-mobile-score {
+  min-width: 72px;
+  border: 2px solid #0f172a;
+  border-radius: 8px;
+  background: #eff6ff;
+  padding: 8px;
+  text-align: center;
+}
+
+.record-mobile-score strong,
+.record-mobile-score span {
+  display: block;
+}
+
+.record-mobile-score strong {
+  font-size: 1.25rem;
+  line-height: 1;
+  font-weight: 950;
+}
+
+.record-mobile-score span {
+  margin-top: 4px;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.record-mobile-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.record-mobile-metrics div {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.record-mobile-metrics span {
+  color: var(--member-muted);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.record-mobile-metrics strong {
+  color: #0f172a;
+  font-size: 0.98rem;
+  font-weight: 950;
+}
+
+.record-mobile-actions {
+  padding-top: 2px;
+}
+
 @media (max-width: 1024px) {
   .member-hero,
   .account-grid,
@@ -753,6 +844,20 @@ body {
 
   .member-card {
     padding: 16px;
+  }
+
+  .record-library-card .MuiTableContainer-root {
+    display: none;
+  }
+
+  .record-mobile-list {
+    display: grid;
+    gap: 12px;
+  }
+
+  .record-mobile-actions .MuiButton-root {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
   }
 
   .share-create-panel,

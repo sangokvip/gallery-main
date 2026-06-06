@@ -83,7 +83,8 @@ async function assertAuthenticatedMemberCenter(browser, width) {
     clientWidth: document.documentElement.clientWidth,
     bodyText: document.body.textContent || '',
     charts: document.querySelectorAll('.recharts-wrapper').length,
-    rows: document.querySelectorAll('.member-table tbody tr').length
+    rows: document.querySelectorAll('.member-table tbody tr').length,
+    mobileCards: document.querySelectorAll('.record-mobile-card').length
   }));
 
   if (metrics.scrollWidth > metrics.clientWidth + 1) {
@@ -96,6 +97,10 @@ async function assertAuthenticatedMemberCenter(browser, width) {
 
   if (metrics.rows < 3) {
     throw new Error(`/member.html expected mock record rows at ${width}px, got ${metrics.rows}`);
+  }
+
+  if (width <= 640 && metrics.mobileCards < 3) {
+    throw new Error(`/member.html expected mobile record cards at ${width}px, got ${metrics.mobileCards}`);
   }
 
   await page.getByRole('button', { name: '查看明细' }).first().click();
