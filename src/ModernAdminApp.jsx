@@ -233,6 +233,71 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
   const [tierFilter, setTierFilter] = useState('');
   const [orderFilter, setOrderFilter] = useState('');
   const [selectedMember, setSelectedMember] = useState(null);
+  const [memberAction, setMemberAction] = useState(null);
+  const [memberActionForm, setMemberActionForm] = useState({ password: '', confirmPassword: '', reason: '' });
+  const [memberActionLoading, setMemberActionLoading] = useState(false);
+  const [localActionMessage, setLocalActionMessage] = useState('');
+
+  const openMemberAction = (type, member) => {
+    setMemberAction({ type, member });
+    setMemberActionForm({ password: '', confirmPassword: '', reason: '' });
+    setLocalActionMessage('');
+  };
+
+  const closeMemberAction = () => {
+    if (memberActionLoading) return;
+    setMemberAction(null);
+    setMemberActionForm({ password: '', confirmPassword: '', reason: '' });
+  };
+
+  const submitMemberAction = async (event) => {
+    event.preventDefault();
+    if (!memberAction?.member?.account_id) return;
+    setLocalActionMessage('');
+
+    const { type, member } = memberAction;
+    if (type === 'password') {
+      if (memberActionForm.password.length < 6) {
+        setLocalActionMessage('会员新密码至少 6 位');
+        return;
+      }
+      if (memberActionForm.password !== memberActionForm.confirmPassword) {
+        setLocalActionMessage('两次输入的密码不一致');
+        return;
+      }
+    }
+    if (type === 'delete' && memberActionForm.reason.trim().length < 2) {
+      setLocalActionMessage('删除会员前请填写原因，方便后台记录');
+      return;
+    }
+
+    setMemberActionLoading(true);
+    try {
+      if (type === 'password') {
+        await adminApi.resetMemberPassword(member.account_id, memberActionForm.password);
+        setLocalActionMessage('会员密码已修改');
+      } else if (type === 'ban') {
+        await adminApi.setMemberBan(member.account_id, true, memberActionForm.reason);
+        setSelectedMember(prev => prev?.account_id === member.account_id ? { ...prev, is_banned: true, banned_reason: memberActionForm.reason } : prev);
+        setLocalActionMessage('会员已封禁');
+      } else if (type === 'unban') {
+        await adminApi.setMemberBan(member.account_id, false, '');
+        setSelectedMember(prev => prev?.account_id === member.account_id ? { ...prev, is_banned: false, banned_reason: null, banned_at: null } : prev);
+        setLocalActionMessage('会员已解封');
+      } else if (type === 'delete') {
+        await adminApi.deleteMemberAccount(member.account_id, memberActionForm.reason);
+        setSelectedMember(null);
+        setLocalActionMessage('会员已删除');
+      }
+      setMemberAction(null);
+      setMemberActionForm({ password: '', confirmPassword: '', reason: '' });
+      await onRefresh();
+    } catch (err) {
+      setLocalActionMessage(err.message || '会员操作失败');
+    } finally {
+      setMemberActionLoading(false);
+    }
+  };
 
   const pendingOrders = (orders || []).filter(order => order.status === 'pending');
   const visibleOrders = (orders || []).filter(order => !orderFilter || order.status === orderFilter);
@@ -265,9 +330,9 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
               {error}
             </div>
           )}
-          {actionMessage && (
+          {(actionMessage || localActionMessage) && (
             <div className="brutal-card no-hover" style={{ marginBottom: '1rem', padding: '0.8rem 1rem', fontWeight: 700 }}>
-              {actionMessage}
+              {localActionMessage || actionMessage}
             </div>
           )}
           <div className="stats-grid">
@@ -319,24 +384,40 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
           <div className="section-header compact"><h3>会员账号</h3><span className="sub">显示 {filteredMembers.length} / {members?.length || 0} 个</span></div>
           <div className="brutal-card no-hover" style={{padding:0, overflow:'hidden'}}>
             <table className="brutal-table records-table member-list-table">
-              <thead><tr><th>昵称</th><th>联系方式</th><th>账号类型</th><th>分享</th><th>历史订单</th><th>创建时间</th><th>操作</th></tr></thead>
+              <thead><tr><th>会员</th><th>联系方式</th><th>状态</th><th>分享</th><th>历史订单</th><th>创建时间</th><th>操作</th></tr></thead>
               <tbody>
                 {filteredMembers.length === 0 ? (
                   <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem', color:'#888'}}>暂无会员账号</td></tr>
                 ) : filteredMembers.map(member => (
                   <tr key={member.account_id}>
-                    <td>{member.display_name || '会员用户'}</td>
+                    <td>
+                      <div className="contact-stack">
+                        <strong>{member.login_name || member.display_name || '会员用户'}</strong>
+                        <small>{member.account_id?.slice(0, 8) || '-'}</small>
+                      </div>
+                    </td>
                     <td>
                       <div className="contact-stack">
                         <span>{member.contact_email || '-'}</span>
                         <small>{[member.qq && `QQ ${member.qq}`, member.wechat && `微信 ${member.wechat}`, member.phone && `电话 ${member.phone}`].filter(Boolean).join(' · ') || '未填写其他联系方式'}</small>
                       </div>
                     </td>
-                    <td><span className="badge badge-female">{getMemberTierLabel(member.membership_tier)}</span></td>
+                    <td>
+                      <div className="contact-stack">
+                        <span className={`badge ${member.is_banned ? 'badge-male' : 'badge-female'}`}>{member.is_banned ? '已封禁' : getMemberTierLabel(member.membership_tier)}</span>
+                        {member.is_banned && <small>{member.banned_reason || '未填写原因'}</small>}
+                      </div>
+                    </td>
                     <td>{member.share_links?.length || member.shares?.length || 0}</td>
                     <td>{member.orders?.length || 0}</td>
                     <td>{formatDateTime(member.created_at)}</td>
-                    <td><button className="btn-brutal" onClick={() => setSelectedMember(member)}>详情</button></td>
+                    <td>
+                      <div className="row-actions">
+                        <button className="btn-brutal" onClick={() => setSelectedMember(member)}>详情</button>
+                        <button className="btn-brutal" onClick={() => openMemberAction('password', member)}>改密码</button>
+                        <button className={`btn-brutal ${member.is_banned ? '' : 'danger'}`} onClick={() => openMemberAction(member.is_banned ? 'unban' : 'ban', member)}>{member.is_banned ? '解封' : '封禁'}</button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -378,7 +459,19 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
               member={selectedMember}
               orders={(orders || []).filter(order => order.account_id === selectedMember.account_id)}
               onViewRecord={onViewDetail}
+              onMemberAction={openMemberAction}
               onClose={() => setSelectedMember(null)}
+            />
+          )}
+          {memberAction && (
+            <MemberActionDialog
+              action={memberAction}
+              form={memberActionForm}
+              loading={memberActionLoading}
+              error={localActionMessage}
+              onChange={setMemberActionForm}
+              onSubmit={submitMemberAction}
+              onClose={closeMemberAction}
             />
           )}
         </>
@@ -387,7 +480,61 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
   );
 }
 
-function MemberDetailModal({ member, orders, onViewRecord, onClose }) {
+function MemberActionDialog({ action, form, loading, error, onChange, onSubmit, onClose }) {
+  const { type, member } = action;
+  const title = {
+    password: '修改会员密码',
+    ban: '封禁会员',
+    unban: '解封会员',
+    delete: '删除会员'
+  }[type] || '会员操作';
+  const submitLabel = {
+    password: '确认修改',
+    ban: '确认封禁',
+    unban: '确认解封',
+    delete: '确认删除'
+  }[type] || '确认';
+  const isDanger = type === 'ban' || type === 'delete';
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content member-action-modal" onClick={event => event.stopPropagation()}>
+        <div className="modal-header">
+          <h3>{title}</h3>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <form className="modal-body member-action-form" onSubmit={onSubmit}>
+          <div className="member-action-target">
+            <strong>{member.login_name || member.display_name || member.contact_email || '会员用户'}</strong>
+            <code>{member.account_id}</code>
+          </div>
+          {type === 'password' && (
+            <>
+              <div className="form-group"><label>新密码</label><input type="password" value={form.password} onChange={event => onChange(prev => ({ ...prev, password: event.target.value }))} autoFocus /></div>
+              <div className="form-group"><label>确认新密码</label><input type="password" value={form.confirmPassword} onChange={event => onChange(prev => ({ ...prev, confirmPassword: event.target.value }))} /></div>
+            </>
+          )}
+          {(type === 'ban' || type === 'delete') && (
+            <div className="form-group">
+              <label>{type === 'delete' ? '删除原因' : '封禁原因'}</label>
+              <textarea value={form.reason} onChange={event => onChange(prev => ({ ...prev, reason: event.target.value }))} placeholder="仅后台记录，用户不会看到" autoFocus />
+            </div>
+          )}
+          {type === 'delete' && (
+            <div className="login-error">删除会员会删除登录账号和会员资料，并停用相关分享链接。该操作不可恢复。</div>
+          )}
+          {error && <div className="login-error">{error}</div>}
+          <div className="row-actions member-action-buttons">
+            <button type="button" className="btn-brutal" onClick={onClose} disabled={loading}>取消</button>
+            <button type="submit" className={`btn-brutal ${isDanger ? 'danger' : 'primary'}`} disabled={loading}>{loading ? '处理中...' : submitLabel}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function MemberDetailModal({ member, orders, onViewRecord, onMemberAction, onClose }) {
   const [memberRecords, setMemberRecords] = useState([]);
   const [recordsLoading, setRecordsLoading] = useState(false);
   const [recordsError, setRecordsError] = useState('');
@@ -433,6 +580,11 @@ function MemberDetailModal({ member, orders, onViewRecord, onClose }) {
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         <div className="modal-body">
+          <div className="member-detail-actions">
+            <button className="btn-brutal" onClick={() => onMemberAction('password', member)}>修改密码</button>
+            <button className={`btn-brutal ${member.is_banned ? '' : 'danger'}`} onClick={() => onMemberAction(member.is_banned ? 'unban' : 'ban', member)}>{member.is_banned ? '解除封禁' : '封禁会员'}</button>
+            <button className="btn-brutal danger" onClick={() => onMemberAction('delete', member)}>删除会员</button>
+          </div>
           <div className="member-detail-grid">
             {contactRows.map(([label, value]) => (
               <div key={label} className="member-detail-field">

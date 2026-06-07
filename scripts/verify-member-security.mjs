@@ -95,7 +95,10 @@ const checks = [
       'member_admin_members',
       'member_admin_orders',
       'member_admin_approve_order',
-      'member_admin_reject_order'
+      'member_admin_reject_order',
+      'member_admin_set_member_password',
+      'member_admin_set_member_ban',
+      'member_admin_delete_member'
     ]
   },
   {
@@ -112,6 +115,9 @@ const checks = [
       'REVOKE EXECUTE ON FUNCTION verify_admin_password(TEXT) FROM PUBLIC, anon, authenticated',
       'REVOKE EXECUTE ON FUNCTION get_admin_session(TEXT) FROM PUBLIC, anon, authenticated',
       'REVOKE EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated',
+      'REVOKE EXECUTE ON FUNCTION member_admin_set_member_password(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated',
+      'REVOKE EXECUTE ON FUNCTION member_admin_set_member_ban(TEXT, UUID, BOOLEAN, TEXT) FROM PUBLIC, anon, authenticated',
+      'REVOKE EXECUTE ON FUNCTION member_admin_delete_member(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated',
       'ALTER TABLE message_replies',
       'GRANT EXECUTE ON FUNCTION change_admin_password(TEXT, TEXT, TEXT) TO anon, authenticated',
       'GRANT EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) TO service_role',
@@ -374,6 +380,9 @@ const checks = [
       'get_or_create_member_profile',
       'create_member_share_link',
       'member_admin_overview',
+      'member_admin_set_member_password',
+      'member_admin_set_member_ban',
+      'member_admin_delete_member',
       'admin_update_message_reaction_count',
       'authenticated_only',
       'session_guarded',

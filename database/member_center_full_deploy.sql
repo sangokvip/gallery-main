@@ -215,7 +215,7 @@ ORDER BY check_type, name;
 
 -- ============================================================================
 -- 2. database/create_member_center_tables.sql
--- sha256: 830ce0b8503df17a27217694ab034b90145d819a06f481a8ef3fc8bb0c144df9
+-- sha256: 57e1132494f153a95ba5869bce1fcf89550df430ff59564960e37771c6d9338a
 -- ============================================================================
 
 -- M-profile Lab member center tables
@@ -234,6 +234,9 @@ CREATE TABLE IF NOT EXISTS member_profiles (
   membership_tier TEXT NOT NULL DEFAULT 'free' CHECK (membership_tier IN ('free', 'basic')),
   privacy_settings JSONB NOT NULL DEFAULT '{"hideUserId": true, "hideSensitiveItems": true, "allowPrivateShare": true}'::jsonb,
   notification_settings JSONB NOT NULL DEFAULT '{"monthlySummary": true, "trendReminder": false}'::jsonb,
+  is_banned BOOLEAN NOT NULL DEFAULT false,
+  banned_at TIMESTAMP WITH TIME ZONE,
+  banned_reason TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
@@ -242,6 +245,9 @@ ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS qq TEXT;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS wechat TEXT;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS contact_email TEXT;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS banned_reason TEXT;
 
 CREATE TABLE IF NOT EXISTS member_login_names (
   username TEXT PRIMARY KEY CHECK (username ~ '^[a-z0-9_]{3,24}$'),
@@ -372,6 +378,7 @@ DROP INDEX IF EXISTS idx_member_share_links_user;
 CREATE INDEX IF NOT EXISTS idx_member_share_links_account ON member_share_links(account_id);
 CREATE INDEX IF NOT EXISTS idx_member_share_links_token ON member_share_links(share_token);
 CREATE INDEX IF NOT EXISTS idx_member_share_links_active ON member_share_links(is_active);
+CREATE INDEX IF NOT EXISTS idx_member_profiles_banned ON member_profiles(is_banned);
 
 CREATE OR REPLACE FUNCTION update_member_center_timestamp()
 RETURNS TRIGGER AS $$
@@ -908,6 +915,15 @@ BEGIN
     RAISE EXCEPTION '请先登录会员账号';
   END IF;
 
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法修改会员资料';
+  END IF;
+
   UPDATE member_profiles
   SET display_name = COALESCE(NULLIF(left(trim(input_display_name), 80), ''), display_name),
       qq = NULLIF(left(trim(COALESCE(input_qq, '')), 40), ''),
@@ -953,6 +969,15 @@ DECLARE
 BEGIN
   IF current_account IS NULL THEN
     RAISE EXCEPTION '请先登录会员账号';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法注册设备';
   END IF;
 
   IF clean_hash IS NOT NULL AND clean_hash !~ '^[a-f0-9]{64}$' THEN
@@ -1034,6 +1059,15 @@ SECURITY DEFINER
 SET search_path = public, extensions
 AS $$
 BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = input_account_id
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法使用会员功能';
+  END IF;
+
   IF input_legacy_user_id_text IS NULL OR input_legacy_user_id_text = '' THEN
     RAISE EXCEPTION '请先绑定当前匿名身份';
   END IF;
@@ -1069,6 +1103,15 @@ DECLARE
 BEGIN
   IF current_account IS NULL THEN
     RAISE EXCEPTION '请先登录会员账号';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法读取会员记录';
   END IF;
 
   RETURN COALESCE((
@@ -1121,6 +1164,15 @@ BEGIN
     RAISE EXCEPTION '请先登录账号';
   END IF;
 
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法删除记录';
+  END IF;
+
   DELETE FROM test_records r
   WHERE r.id = input_record_id
     AND EXISTS (
@@ -1158,6 +1210,15 @@ DECLARE
 BEGIN
   IF current_account IS NULL THEN
     RAISE EXCEPTION '请先登录会员账号';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法创建订单';
   END IF;
 
   amount_value := CASE input_plan_code
@@ -1489,7 +1550,7 @@ COMMENT ON TABLE member_share_links IS '私密报告分享链接';
 
 -- ============================================================================
 -- 3. database/create_admin_member_session.sql
--- sha256: e6b414ab13f80696c9b89656416ea567e1098adbcb41e66a339d95220638d74b
+-- sha256: a89a01f74a4a7faa7ce3bb8f0a62f3e512741ac6bbdb630a8af4686be157c91a
 -- ============================================================================
 
 -- Admin session and member management RPCs
@@ -1745,6 +1806,18 @@ BEGIN
       SELECT jsonb_agg(
         to_jsonb(p) ||
         jsonb_build_object(
+          'auth_email', (
+            SELECT au.email
+            FROM auth.users au
+            WHERE au.id = p.account_id
+            LIMIT 1
+          ),
+          'login_name', (
+            SELECT au.raw_user_meta_data->>'username'
+            FROM auth.users au
+            WHERE au.id = p.account_id
+            LIMIT 1
+          ),
           'subscription', (
             SELECT to_jsonb(s)
             FROM member_subscriptions s
@@ -1768,6 +1841,179 @@ BEGIN
       ) p
     ), '[]'::jsonb)
   );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION member_admin_set_member_password(
+  input_session_token_hash TEXT,
+  input_account_id UUID,
+  input_new_password TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  ignored UUID;
+  updated_count INTEGER;
+BEGIN
+  ignored := require_admin(input_session_token_hash);
+
+  IF input_account_id IS NULL THEN
+    RAISE EXCEPTION '请选择会员账号';
+  END IF;
+
+  IF input_new_password IS NULL OR length(input_new_password) < 6 OR length(input_new_password) > 128 THEN
+    RAISE EXCEPTION '新密码需要 6-128 位';
+  END IF;
+
+  UPDATE auth.users
+  SET encrypted_password = crypt(input_new_password, gen_salt('bf')),
+      email_confirmed_at = COALESCE(email_confirmed_at, timezone('utc'::text, now())),
+      updated_at = timezone('utc'::text, now())
+  WHERE id = input_account_id;
+
+  GET DIAGNOSTICS updated_count = ROW_COUNT;
+  IF updated_count = 0 THEN
+    RAISE EXCEPTION '会员账号不存在';
+  END IF;
+
+  INSERT INTO member_account_events (account_id, event_type, event_payload)
+  VALUES (
+    input_account_id,
+    'admin_member_password_reset',
+    jsonb_build_object('reset_at', timezone('utc'::text, now()))
+  );
+
+  RETURN true;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION member_admin_set_member_ban(
+  input_session_token_hash TEXT,
+  input_account_id UUID,
+  input_is_banned BOOLEAN,
+  input_reason TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  ignored UUID;
+  clean_reason TEXT := NULLIF(left(trim(COALESCE(input_reason, '')), 500), '');
+  ban_until TIMESTAMP WITH TIME ZONE;
+  updated_count INTEGER;
+BEGIN
+  ignored := require_admin(input_session_token_hash);
+
+  IF input_account_id IS NULL THEN
+    RAISE EXCEPTION '请选择会员账号';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM member_profiles WHERE account_id = input_account_id) THEN
+    RAISE EXCEPTION '会员资料不存在';
+  END IF;
+
+  UPDATE member_profiles
+  SET is_banned = COALESCE(input_is_banned, false),
+      banned_at = CASE WHEN COALESCE(input_is_banned, false) THEN timezone('utc'::text, now()) ELSE NULL END,
+      banned_reason = CASE WHEN COALESCE(input_is_banned, false) THEN clean_reason ELSE NULL END,
+      updated_at = timezone('utc'::text, now())
+  WHERE account_id = input_account_id;
+
+  GET DIAGNOSTICS updated_count = ROW_COUNT;
+  IF updated_count = 0 THEN
+    RAISE EXCEPTION '会员资料不存在';
+  END IF;
+
+  ban_until := CASE
+    WHEN COALESCE(input_is_banned, false) THEN '9999-12-31 23:59:59+00'::TIMESTAMP WITH TIME ZONE
+    ELSE NULL
+  END;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'auth'
+      AND table_name = 'users'
+      AND column_name = 'banned_until'
+  ) THEN
+    EXECUTE 'UPDATE auth.users SET banned_until = $1, updated_at = timezone(''utc''::text, now()) WHERE id = $2'
+    USING ban_until, input_account_id;
+  END IF;
+
+  INSERT INTO member_account_events (account_id, event_type, event_payload)
+  VALUES (
+    input_account_id,
+    CASE WHEN COALESCE(input_is_banned, false) THEN 'admin_member_banned' ELSE 'admin_member_unbanned' END,
+    jsonb_build_object('reason', clean_reason, 'changed_at', timezone('utc'::text, now()))
+  );
+
+  RETURN true;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION member_admin_delete_member(
+  input_session_token_hash TEXT,
+  input_account_id UUID,
+  input_reason TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  ignored UUID;
+  target_email TEXT;
+  target_username TEXT;
+  clean_reason TEXT := NULLIF(left(trim(COALESCE(input_reason, '')), 500), '');
+  deleted_count INTEGER;
+BEGIN
+  ignored := require_admin(input_session_token_hash);
+
+  IF input_account_id IS NULL THEN
+    RAISE EXCEPTION '请选择会员账号';
+  END IF;
+
+  SELECT email, raw_user_meta_data->>'username'
+  INTO target_email, target_username
+  FROM auth.users
+  WHERE id = input_account_id
+  LIMIT 1;
+
+  IF target_email IS NULL AND target_username IS NULL THEN
+    RAISE EXCEPTION '会员账号不存在';
+  END IF;
+
+  UPDATE member_share_links
+  SET is_active = false,
+      updated_at = timezone('utc'::text, now())
+  WHERE account_id = input_account_id
+    AND is_active = true;
+
+  DELETE FROM member_login_names
+  WHERE auth_email = target_email
+     OR username = target_username;
+
+  INSERT INTO member_account_events (account_id, event_type, event_payload)
+  VALUES (
+    input_account_id,
+    'admin_member_deleted',
+    jsonb_build_object('reason', clean_reason, 'deleted_at', timezone('utc'::text, now()))
+  );
+
+  DELETE FROM auth.users WHERE id = input_account_id;
+
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  IF deleted_count = 0 THEN
+    RAISE EXCEPTION '会员账号删除失败';
+  END IF;
+
+  RETURN true;
 END;
 $$;
 
@@ -2086,6 +2332,9 @@ REVOKE EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) FROM PUB
 REVOKE EXECUTE ON FUNCTION member_admin_orders(TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_approve_order(TEXT, UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_reject_order(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_set_member_password(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_set_member_ban(TEXT, UUID, BOOLEAN, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_delete_member(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION admin_create_message(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION admin_create_reply(TEXT, UUID, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION admin_delete_message(TEXT, UUID) FROM PUBLIC, anon, authenticated;
@@ -2101,6 +2350,9 @@ GRANT EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) TO anon, 
 GRANT EXECUTE ON FUNCTION member_admin_orders(TEXT, INTEGER) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_approve_order(TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_reject_order(TEXT, UUID, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION member_admin_set_member_password(TEXT, UUID, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION member_admin_set_member_ban(TEXT, UUID, BOOLEAN, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION member_admin_delete_member(TEXT, UUID, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_create_message(TEXT, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_create_reply(TEXT, UUID, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_delete_message(TEXT, UUID) TO anon, authenticated;
@@ -2114,7 +2366,7 @@ COMMENT ON TABLE admin_login_attempts IS '后台登录失败计数，用于数�
 
 -- ============================================================================
 -- 4. database/member_center_refinements_2026_06_06.sql
--- sha256: ff71d0cc23ce2012aa8c343adb4797ad955d21c78907857104f16b8828c10229
+-- sha256: 0d9564324868a66e4e248440ef0d993d0b0c2efc1e8de73ba7b38c6c623b6223
 -- ============================================================================
 
 -- Member center refinements: share accuracy, safer deletes, profile bundle, pair invites.
@@ -2249,6 +2501,22 @@ BEGIN
 
   profile_row := get_or_create_member_profile(NULL, input_display_name, NULL);
 
+  IF profile_row.is_banned = true THEN
+    RETURN jsonb_build_object(
+      'profile', to_jsonb(profile_row),
+      'identityLinkError', NULL,
+      'subscription', NULL,
+      'unlocks', '[]'::jsonb,
+      'shareLinks', '[]'::jsonb,
+      'orders', '[]'::jsonb,
+      'devices', '[]'::jsonb,
+      'identities', '[]'::jsonb,
+      'isAuthenticated', true,
+      'isBanned', true,
+      'tablesReady', true
+    );
+  END IF;
+
   IF NULLIF(trim(COALESCE(input_legacy_user_id_text, '')), '') IS NOT NULL THEN
     BEGIN
       PERFORM link_member_identity(input_legacy_user_id_text, input_claim_secret, '当前身份');
@@ -2313,6 +2581,15 @@ DECLARE
 BEGIN
   IF current_account IS NULL THEN
     RAISE EXCEPTION '请先登录账号';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法删除记录';
   END IF;
 
   SELECT r.user_id_text INTO record_owner
@@ -2646,7 +2923,7 @@ COMMENT ON TABLE member_pair_reports IS '双人分析报告快照';
 
 -- ============================================================================
 -- 5. database/member_center_deployment_check.sql
--- sha256: 261540d5b699282462ada21ed07ec4be45e56e01191a6702084143426ea8b15c
+-- sha256: 5f9e9044bd2bedd02d52df1eaa32f8ee50d5146dfceb74748248483c2082f202
 -- ============================================================================
 
 -- Member center deployment check
@@ -2705,6 +2982,9 @@ required_functions(name) AS (
     ('member_admin_orders'),
     ('member_admin_approve_order'),
     ('member_admin_reject_order'),
+    ('member_admin_set_member_password'),
+    ('member_admin_set_member_ban'),
+    ('member_admin_delete_member'),
     ('admin_create_message'),
     ('admin_create_reply'),
     ('admin_delete_message'),
@@ -2885,6 +3165,16 @@ security_policy_check AS (
     ) AS ok
   UNION ALL
   SELECT
+    'member_profiles_has_ban_fields' AS name,
+    EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'member_profiles'
+        AND column_name = 'is_banned'
+    ) AS ok
+  UNION ALL
+  SELECT
     'member_share_links_no_public_select_policy' AS name,
     NOT EXISTS (
       SELECT 1
@@ -3005,6 +3295,18 @@ security_policy_check AS (
   SELECT
     'apply_member_order_approval_not_executable_by_anon' AS name,
     NOT has_function_privilege('anon', 'apply_member_order_approval(uuid, text, text, text, text)', 'EXECUTE') AS ok
+  UNION ALL
+  SELECT
+    'member_admin_set_member_password_guarded_by_session' AS name,
+    has_function_privilege('anon', 'member_admin_set_member_password(text, uuid, text)', 'EXECUTE') AS ok
+  UNION ALL
+  SELECT
+    'member_admin_set_member_ban_guarded_by_session' AS name,
+    has_function_privilege('anon', 'member_admin_set_member_ban(text, uuid, boolean, text)', 'EXECUTE') AS ok
+  UNION ALL
+  SELECT
+    'member_admin_delete_member_guarded_by_session' AS name,
+    has_function_privilege('anon', 'member_admin_delete_member(text, uuid, text)', 'EXECUTE') AS ok
   UNION ALL
   SELECT
     'admin_message_delete_rpc_exists' AS name,

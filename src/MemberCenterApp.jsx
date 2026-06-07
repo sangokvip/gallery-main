@@ -527,10 +527,12 @@ function MemberCenterApp() {
       setShareLinks(data.shareLinks || []);
       if (data.profileError) {
         setSnackbar(`会员资料读取失败，已显示账号基本资料：${data.profileError}`);
+      } else if (data.isBanned || data.profile?.is_banned) {
+        setSnackbar(`账号已被封禁，无法使用会员中心功能${data.profile?.banned_reason ? `：${data.profile.banned_reason}` : ''}`);
       } else if (data.identityLinkError) {
         setSnackbar(`当前设备记录未能绑定：${data.identityLinkError}`);
       }
-      if (data.tablesReady) {
+      if (data.tablesReady && !data.isBanned && !data.profile?.is_banned) {
         memberCenterApi.registerDevice(nextSession, userInfo.userId).catch(() => {});
       }
     } catch (err) {
@@ -543,6 +545,9 @@ function MemberCenterApp() {
         contact_email: nextSession?.user?.email || '',
         phone: '',
         membership_tier: 'free',
+        is_banned: false,
+        banned_at: null,
+        banned_reason: null,
         privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
         notification_settings: { monthlySummary: true, trendReminder: false }
       });
@@ -1142,13 +1147,18 @@ function MemberCenterApp() {
           <Divider sx={{ my: 2 }} />
           {profileDraft ? (
             <Stack spacing={1.5} className="member-profile-form">
+              {profileDraft.is_banned && (
+                <Box className="empty-panel">
+                  账号已被封禁，无法使用会员中心功能{profileDraft.banned_reason ? `：${profileDraft.banned_reason}` : ''}
+                </Box>
+              )}
               <Box className="optional-contact-grid">
-                <TextField size="small" label="QQ" value={profileDraft.qq || ''} onChange={event => setProfileDraft(prev => ({ ...prev, qq: event.target.value }))} disabled={!session} />
-                <TextField size="small" label="微信" value={profileDraft.wechat || ''} onChange={event => setProfileDraft(prev => ({ ...prev, wechat: event.target.value }))} disabled={!session} />
-                <TextField size="small" type="email" label="邮箱" value={profileDraft.contact_email || ''} onChange={event => setProfileDraft(prev => ({ ...prev, contact_email: event.target.value }))} disabled={!session} />
-                <TextField size="small" label="电话" value={profileDraft.phone || ''} onChange={event => setProfileDraft(prev => ({ ...prev, phone: event.target.value }))} disabled={!session} />
+                <TextField size="small" label="QQ" value={profileDraft.qq || ''} onChange={event => setProfileDraft(prev => ({ ...prev, qq: event.target.value }))} disabled={!session || profileDraft.is_banned} />
+                <TextField size="small" label="微信" value={profileDraft.wechat || ''} onChange={event => setProfileDraft(prev => ({ ...prev, wechat: event.target.value }))} disabled={!session || profileDraft.is_banned} />
+                <TextField size="small" type="email" label="邮箱" value={profileDraft.contact_email || ''} onChange={event => setProfileDraft(prev => ({ ...prev, contact_email: event.target.value }))} disabled={!session || profileDraft.is_banned} />
+                <TextField size="small" label="电话" value={profileDraft.phone || ''} onChange={event => setProfileDraft(prev => ({ ...prev, phone: event.target.value }))} disabled={!session || profileDraft.is_banned} />
               </Box>
-              <Button onClick={saveProfile} disabled={!session || memberLoading}>保存联系方式</Button>
+              <Button onClick={saveProfile} disabled={!session || memberLoading || profileDraft.is_banned}>保存联系方式</Button>
             </Stack>
           ) : (
             <Box className="empty-panel">正在读取账号资料...</Box>

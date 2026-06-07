@@ -94,7 +94,7 @@ async function assertMembers(page, width) {
   await page.locator('[data-admin-tab="members"]').click();
   await page.waitForFunction(() => document.body?.textContent?.includes('会员筛选'), { timeout: 10000 });
   let bodyText = await assertNoOverflow(page, 'admin members', width);
-  for (const text of ['会员账号', '分享链接', '历史待处理', '会员筛选', '联系方式', '历史订单', '本地预览待审核订单', '本地会员 A']) {
+  for (const text of ['会员账号', '分享链接', '历史待处理', '会员筛选', '联系方式', '历史订单', '本地预览待审核订单', '本地会员 A', '改密码', '封禁']) {
     if (!bodyText.includes(text)) {
       throw new Error(`admin members missing "${text}" at ${width}px`);
     }
@@ -111,7 +111,7 @@ async function assertMembers(page, width) {
   await page.locator('.member-list-table').getByRole('button', { name: '详情' }).first().click();
   await page.waitForFunction(() => document.body?.textContent?.includes('账号标识'), { timeout: 10000 });
   bodyText = await assertNoOverflow(page, 'admin member detail', width);
-  for (const text of ['账号标识', '会员测评记录', '订单记录', 'member_preview_a', 'mock-record-001', '108 项']) {
+  for (const text of ['账号标识', '会员测评记录', '订单记录', '修改密码', '封禁会员', '删除会员', 'member_preview_a', 'mock-record-001', '108 项']) {
     if (!bodyText.includes(text)) {
       throw new Error(`admin member detail missing "${text}" at ${width}px`);
     }

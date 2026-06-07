@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-06-admin-member-account-controls",
+  "date": "2026-06-06",
+  "summary": "为后台会员管理补充修改密码、封禁/解封、删除会员功能，并同步数据库权限、会员端封禁状态和部署校验。",
+  "trigger": "用户反馈后台会员管理缺少基本的修改密码、删除会员、封禁会员等功能。",
+  "changes": [
+    {
+      "category": "database",
+      "files": [
+        "database/create_member_center_tables.sql",
+        "database/create_admin_member_session.sql",
+        "database/member_center_refinements_2026_06_06.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "member_profiles 增加 is_banned、banned_at、banned_reason 字段和索引。",
+        "新增 member_admin_set_member_password、member_admin_set_member_ban、member_admin_delete_member 管理员 RPC，全部通过 require_admin 会话校验。",
+        "封禁会员后，会员端记录读取、资料修改、设备注册、订单创建、记录删除、分享创建等操作会被数据库拒绝。",
+        "删除会员前会停用相关分享链接，并删除对应 auth.users 账户及登录名占用记录。"
+      ]
+    },
+    {
+      "category": "admin-ui",
+      "files": [
+        "src/ModernAdminApp.jsx",
+        "src/admin-brutal.css",
+        "src/adminBrutalApi.js"
+      ],
+      "details": [
+        "会员列表显示正常/已封禁状态。",
+        "会员列表和详情弹窗增加改密码、封禁/解封、删除会员入口。",
+        "危险操作使用确认弹窗，删除会员要求填写原因，新密码要求二次确认。",
+        "操作成功后自动刷新会员列表。"
+      ]
+    },
+    {
+      "category": "member-ui",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/utils/supabase.js"
+      ],
+      "details": [
+        "会员资料读取返回并识别封禁状态。",
+        "被封禁账号会显示封禁提示，并禁用联系方式保存。"
+      ]
+    },
+    {
+      "category": "validation-scripts",
+      "files": [
+        "database/member_center_deployment_check.sql",
+        "scripts/verify-admin-authenticated.mjs",
+        "scripts/verify-member-predeploy.mjs",
+        "scripts/verify-member-production.mjs",
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "部署检查加入新管理员 RPC 和封禁字段检查。",
+        "后台浏览器校验加入改密码、封禁、删除会员入口检查。",
+        "预部署校验同步完整 SQL 的 5 段结构。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过"
+    },
+    {
+      "command": "npm run verify:admin-auth",
+      "result": "通过，覆盖 320、375、390、430、768、1024、1440 宽度"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过，覆盖 320、375、390、430、768、1024、1440 宽度"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过，检查 9 组页面"
+    },
+    {
+      "command": "npm run verify:share-report",
+      "result": "通过，覆盖 320、375、390、430、768、1024、1440 宽度"
+    },
+    {
+      "command": "npm run verify:payment-webhook",
+      "result": "通过"
+    },
+    {
+      "command": "npm run verify:member-predeploy",
+      "result": "通过；生产探测因本地未设置 SUPABASE_URL/SUPABASE_ANON_KEY、SITE_URL 被脚本跳过"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过"
+    }
+  ],
+  "knownLimitations": [
+    "生产 Supabase 仍需要执行更新后的 database/member_center_full_deploy.sql，新增 RPC 和字段才会生效。",
+    "生产站点探测未在本地完成，因为当前环境没有设置生产探测所需的 URL 和 anon key 环境变量。",
+    "修改会员密码通过数据库 RPC 更新 Supabase Auth 的 encrypted_password，部署后建议用一个测试会员账号做一次登录验证。"
+  ],
+  "deploymentNotes": [
+    "执行最新 database/member_center_full_deploy.sql 后，确认 member_center_deployment_check.sql 结果全部 ok=true。",
+    "部署到 Vercel 后，在后台会员管理测试：修改测试会员密码、封禁、解封、删除测试会员。",
+    "删除真实会员前需要确认该操作会删除登录账号和会员资料，无法从后台恢复。"
+  ]
+}

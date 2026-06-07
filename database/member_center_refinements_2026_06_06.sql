@@ -130,6 +130,22 @@ BEGIN
 
   profile_row := get_or_create_member_profile(NULL, input_display_name, NULL);
 
+  IF profile_row.is_banned = true THEN
+    RETURN jsonb_build_object(
+      'profile', to_jsonb(profile_row),
+      'identityLinkError', NULL,
+      'subscription', NULL,
+      'unlocks', '[]'::jsonb,
+      'shareLinks', '[]'::jsonb,
+      'orders', '[]'::jsonb,
+      'devices', '[]'::jsonb,
+      'identities', '[]'::jsonb,
+      'isAuthenticated', true,
+      'isBanned', true,
+      'tablesReady', true
+    );
+  END IF;
+
   IF NULLIF(trim(COALESCE(input_legacy_user_id_text, '')), '') IS NOT NULL THEN
     BEGIN
       PERFORM link_member_identity(input_legacy_user_id_text, input_claim_secret, '当前身份');
@@ -194,6 +210,15 @@ DECLARE
 BEGIN
   IF current_account IS NULL THEN
     RAISE EXCEPTION '请先登录账号';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法删除记录';
   END IF;
 
   SELECT r.user_id_text INTO record_owner

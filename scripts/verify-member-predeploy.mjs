@@ -6,6 +6,7 @@ const sqlFiles = [
   'database/member_center_predeploy_check.sql',
   'database/create_member_center_tables.sql',
   'database/create_admin_member_session.sql',
+  'database/member_center_refinements_2026_06_06.sql',
   'database/member_center_deployment_check.sql'
 ];
 

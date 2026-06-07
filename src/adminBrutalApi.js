@@ -144,6 +144,9 @@ const localAdminApi = {
           contact_email: 'member-a@example.com',
           phone: '13800000001',
           membership_tier: 'free',
+          is_banned: false,
+          banned_at: null,
+          banned_reason: null,
           subscription: null,
           legacy_user_id_text: 'mock-user-01',
           orders: [{ id: 'mock-order-001' }],
@@ -157,6 +160,9 @@ const localAdminApi = {
           contact_email: 'member-b@example.com',
           phone: '',
           membership_tier: 'free',
+          is_banned: true,
+          banned_at: '2026-05-27T08:00:00.000Z',
+          banned_reason: '本地预览封禁状态',
           subscription: null,
           legacy_user_id_text: 'mock-user-02',
           orders: [],
@@ -170,6 +176,9 @@ const localAdminApi = {
           contact_email: 'free@example.com',
           phone: '',
           membership_tier: 'free',
+          is_banned: false,
+          banned_at: null,
+          banned_reason: null,
           subscription: null,
           legacy_user_id_text: 'mock-user-03',
           orders: [],
@@ -209,6 +218,18 @@ const localAdminApi = {
   },
 
   async rejectMemberOrder() {
+    return true;
+  },
+
+  async resetMemberPassword() {
+    return true;
+  },
+
+  async setMemberBan() {
+    return true;
+  },
+
+  async deleteMemberAccount() {
     return true;
   },
 
@@ -407,6 +428,43 @@ const realAdminApi = {
     }
 
     throw new Error('管理员会话无效或已过期，请重新登录');
+  },
+
+  async resetMemberPassword(accountId, newPassword) {
+    const sessionTokenHash = await this.getSessionTokenHash();
+    if (!sessionTokenHash) throw new Error('管理员会话无效或已过期，请重新登录');
+    const { error } = await supabase.rpc('member_admin_set_member_password', {
+      input_session_token_hash: sessionTokenHash,
+      input_account_id: accountId,
+      input_new_password: newPassword
+    });
+    if (error) throw new Error(error?.message || '会员密码修改失败');
+    return true;
+  },
+
+  async setMemberBan(accountId, isBanned, reason = '') {
+    const sessionTokenHash = await this.getSessionTokenHash();
+    if (!sessionTokenHash) throw new Error('管理员会话无效或已过期，请重新登录');
+    const { error } = await supabase.rpc('member_admin_set_member_ban', {
+      input_session_token_hash: sessionTokenHash,
+      input_account_id: accountId,
+      input_is_banned: isBanned,
+      input_reason: reason
+    });
+    if (error) throw new Error(error?.message || '会员封禁状态修改失败');
+    return true;
+  },
+
+  async deleteMemberAccount(accountId, reason = '') {
+    const sessionTokenHash = await this.getSessionTokenHash();
+    if (!sessionTokenHash) throw new Error('管理员会话无效或已过期，请重新登录');
+    const { error } = await supabase.rpc('member_admin_delete_member', {
+      input_session_token_hash: sessionTokenHash,
+      input_account_id: accountId,
+      input_reason: reason
+    });
+    if (error) throw new Error(error?.message || '会员删除失败');
+    return true;
   },
 
   async getRecords(filters = {}, limit = 20, offset = 0) {

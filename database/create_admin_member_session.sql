@@ -251,6 +251,18 @@ BEGIN
       SELECT jsonb_agg(
         to_jsonb(p) ||
         jsonb_build_object(
+          'auth_email', (
+            SELECT au.email
+            FROM auth.users au
+            WHERE au.id = p.account_id
+            LIMIT 1
+          ),
+          'login_name', (
+            SELECT au.raw_user_meta_data->>'username'
+            FROM auth.users au
+            WHERE au.id = p.account_id
+            LIMIT 1
+          ),
           'subscription', (
             SELECT to_jsonb(s)
             FROM member_subscriptions s
@@ -274,6 +286,179 @@ BEGIN
       ) p
     ), '[]'::jsonb)
   );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION member_admin_set_member_password(
+  input_session_token_hash TEXT,
+  input_account_id UUID,
+  input_new_password TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  ignored UUID;
+  updated_count INTEGER;
+BEGIN
+  ignored := require_admin(input_session_token_hash);
+
+  IF input_account_id IS NULL THEN
+    RAISE EXCEPTION '请选择会员账号';
+  END IF;
+
+  IF input_new_password IS NULL OR length(input_new_password) < 6 OR length(input_new_password) > 128 THEN
+    RAISE EXCEPTION '新密码需要 6-128 位';
+  END IF;
+
+  UPDATE auth.users
+  SET encrypted_password = crypt(input_new_password, gen_salt('bf')),
+      email_confirmed_at = COALESCE(email_confirmed_at, timezone('utc'::text, now())),
+      updated_at = timezone('utc'::text, now())
+  WHERE id = input_account_id;
+
+  GET DIAGNOSTICS updated_count = ROW_COUNT;
+  IF updated_count = 0 THEN
+    RAISE EXCEPTION '会员账号不存在';
+  END IF;
+
+  INSERT INTO member_account_events (account_id, event_type, event_payload)
+  VALUES (
+    input_account_id,
+    'admin_member_password_reset',
+    jsonb_build_object('reset_at', timezone('utc'::text, now()))
+  );
+
+  RETURN true;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION member_admin_set_member_ban(
+  input_session_token_hash TEXT,
+  input_account_id UUID,
+  input_is_banned BOOLEAN,
+  input_reason TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  ignored UUID;
+  clean_reason TEXT := NULLIF(left(trim(COALESCE(input_reason, '')), 500), '');
+  ban_until TIMESTAMP WITH TIME ZONE;
+  updated_count INTEGER;
+BEGIN
+  ignored := require_admin(input_session_token_hash);
+
+  IF input_account_id IS NULL THEN
+    RAISE EXCEPTION '请选择会员账号';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM member_profiles WHERE account_id = input_account_id) THEN
+    RAISE EXCEPTION '会员资料不存在';
+  END IF;
+
+  UPDATE member_profiles
+  SET is_banned = COALESCE(input_is_banned, false),
+      banned_at = CASE WHEN COALESCE(input_is_banned, false) THEN timezone('utc'::text, now()) ELSE NULL END,
+      banned_reason = CASE WHEN COALESCE(input_is_banned, false) THEN clean_reason ELSE NULL END,
+      updated_at = timezone('utc'::text, now())
+  WHERE account_id = input_account_id;
+
+  GET DIAGNOSTICS updated_count = ROW_COUNT;
+  IF updated_count = 0 THEN
+    RAISE EXCEPTION '会员资料不存在';
+  END IF;
+
+  ban_until := CASE
+    WHEN COALESCE(input_is_banned, false) THEN '9999-12-31 23:59:59+00'::TIMESTAMP WITH TIME ZONE
+    ELSE NULL
+  END;
+
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'auth'
+      AND table_name = 'users'
+      AND column_name = 'banned_until'
+  ) THEN
+    EXECUTE 'UPDATE auth.users SET banned_until = $1, updated_at = timezone(''utc''::text, now()) WHERE id = $2'
+    USING ban_until, input_account_id;
+  END IF;
+
+  INSERT INTO member_account_events (account_id, event_type, event_payload)
+  VALUES (
+    input_account_id,
+    CASE WHEN COALESCE(input_is_banned, false) THEN 'admin_member_banned' ELSE 'admin_member_unbanned' END,
+    jsonb_build_object('reason', clean_reason, 'changed_at', timezone('utc'::text, now()))
+  );
+
+  RETURN true;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION member_admin_delete_member(
+  input_session_token_hash TEXT,
+  input_account_id UUID,
+  input_reason TEXT DEFAULT NULL
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  ignored UUID;
+  target_email TEXT;
+  target_username TEXT;
+  clean_reason TEXT := NULLIF(left(trim(COALESCE(input_reason, '')), 500), '');
+  deleted_count INTEGER;
+BEGIN
+  ignored := require_admin(input_session_token_hash);
+
+  IF input_account_id IS NULL THEN
+    RAISE EXCEPTION '请选择会员账号';
+  END IF;
+
+  SELECT email, raw_user_meta_data->>'username'
+  INTO target_email, target_username
+  FROM auth.users
+  WHERE id = input_account_id
+  LIMIT 1;
+
+  IF target_email IS NULL AND target_username IS NULL THEN
+    RAISE EXCEPTION '会员账号不存在';
+  END IF;
+
+  UPDATE member_share_links
+  SET is_active = false,
+      updated_at = timezone('utc'::text, now())
+  WHERE account_id = input_account_id
+    AND is_active = true;
+
+  DELETE FROM member_login_names
+  WHERE auth_email = target_email
+     OR username = target_username;
+
+  INSERT INTO member_account_events (account_id, event_type, event_payload)
+  VALUES (
+    input_account_id,
+    'admin_member_deleted',
+    jsonb_build_object('reason', clean_reason, 'deleted_at', timezone('utc'::text, now()))
+  );
+
+  DELETE FROM auth.users WHERE id = input_account_id;
+
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  IF deleted_count = 0 THEN
+    RAISE EXCEPTION '会员账号删除失败';
+  END IF;
+
+  RETURN true;
 END;
 $$;
 
@@ -592,6 +777,9 @@ REVOKE EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) FROM PUB
 REVOKE EXECUTE ON FUNCTION member_admin_orders(TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_approve_order(TEXT, UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_reject_order(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_set_member_password(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_set_member_ban(TEXT, UUID, BOOLEAN, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_delete_member(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION admin_create_message(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION admin_create_reply(TEXT, UUID, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION admin_delete_message(TEXT, UUID) FROM PUBLIC, anon, authenticated;
@@ -607,6 +795,9 @@ GRANT EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) TO anon, 
 GRANT EXECUTE ON FUNCTION member_admin_orders(TEXT, INTEGER) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_approve_order(TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_reject_order(TEXT, UUID, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION member_admin_set_member_password(TEXT, UUID, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION member_admin_set_member_ban(TEXT, UUID, BOOLEAN, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION member_admin_delete_member(TEXT, UUID, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_create_message(TEXT, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_create_reply(TEXT, UUID, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_delete_message(TEXT, UUID) TO anon, authenticated;

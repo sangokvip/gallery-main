@@ -128,6 +128,31 @@ const adminTokenRpc = [
     }
   },
   {
+    name: 'member_admin_set_member_password',
+    body: {
+      input_session_token_hash: '0'.repeat(64),
+      input_account_id: '00000000-0000-0000-0000-000000000000',
+      input_new_password: 'codex-production-check'
+    }
+  },
+  {
+    name: 'member_admin_set_member_ban',
+    body: {
+      input_session_token_hash: '0'.repeat(64),
+      input_account_id: '00000000-0000-0000-0000-000000000000',
+      input_is_banned: true,
+      input_reason: 'production check'
+    }
+  },
+  {
+    name: 'member_admin_delete_member',
+    body: {
+      input_session_token_hash: '0'.repeat(64),
+      input_account_id: '00000000-0000-0000-0000-000000000000',
+      input_reason: 'production check'
+    }
+  },
+  {
     name: 'admin_create_message',
     body: {
       input_session_token_hash: '0'.repeat(64),

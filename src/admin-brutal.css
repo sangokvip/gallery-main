@@ -178,10 +178,11 @@
 /* Settings / Security form */
 .form-group { margin-bottom: 1.2rem; }
 .form-group label { display: block; font-weight: 700; font-size: 0.9rem; margin-bottom: 0.4rem; }
-.form-group input, .form-group select {
+.form-group input, .form-group select, .form-group textarea {
   width: 100%; padding: 0.7rem 1rem; border: 2px solid #000; border-radius: 6px;
   font-size: 0.95rem; font-weight: 600; font-family: inherit;
 }
+.form-group textarea { min-height: 96px; resize: vertical; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
 
@@ -205,6 +206,30 @@
 }
 .member-detail-modal {
   max-width: 860px;
+}
+.member-action-modal {
+  max-width: 560px;
+}
+.member-action-target {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 1rem;
+  background: #f8fafc;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+}
+.member-action-target code {
+  overflow-wrap: anywhere;
+}
+.member-action-buttons {
+  justify-content: flex-end;
+  margin-top: 1rem;
+}
+.member-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
 }
 .member-detail-grid {
   display: grid;

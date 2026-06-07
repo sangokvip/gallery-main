@@ -1909,6 +1909,9 @@ const realMemberCenterApi = {
       contact_email: session.user.user_metadata?.contact_email || '',
       phone: session.user.user_metadata?.phone || '',
       membership_tier: 'free',
+      is_banned: false,
+      banned_at: null,
+      banned_reason: null,
       privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
       notification_settings: { monthlySummary: true, trendReminder: false }
     };
@@ -1930,12 +1933,14 @@ const realMemberCenterApi = {
         identities: [],
         isAuthenticated: true,
         tablesReady: false,
-        profileError: bundleError.message || '未知错误'
+        profileError: bundleError.message || '未知错误',
+        isBanned: false
       };
     }
 
+    const resolvedProfile = bundle?.profile || baseProfile;
     return {
-      profile: bundle?.profile || baseProfile,
+      profile: resolvedProfile,
       subscription: bundle?.subscription || null,
       unlocks: bundle?.unlocks || [],
       shareLinks: bundle?.shareLinks || [],
@@ -1944,7 +1949,8 @@ const realMemberCenterApi = {
       identities: bundle?.identities || [],
       isAuthenticated: true,
       tablesReady: bundle?.tablesReady !== false,
-      identityLinkError: bundle?.identityLinkError || null
+      identityLinkError: bundle?.identityLinkError || null,
+      isBanned: Boolean(bundle?.isBanned || resolvedProfile?.is_banned)
     };
   },
 

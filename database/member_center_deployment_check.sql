@@ -54,6 +54,9 @@ required_functions(name) AS (
     ('member_admin_orders'),
     ('member_admin_approve_order'),
     ('member_admin_reject_order'),
+    ('member_admin_set_member_password'),
+    ('member_admin_set_member_ban'),
+    ('member_admin_delete_member'),
     ('admin_create_message'),
     ('admin_create_reply'),
     ('admin_delete_message'),
@@ -234,6 +237,16 @@ security_policy_check AS (
     ) AS ok
   UNION ALL
   SELECT
+    'member_profiles_has_ban_fields' AS name,
+    EXISTS (
+      SELECT 1
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'member_profiles'
+        AND column_name = 'is_banned'
+    ) AS ok
+  UNION ALL
+  SELECT
     'member_share_links_no_public_select_policy' AS name,
     NOT EXISTS (
       SELECT 1
@@ -354,6 +367,18 @@ security_policy_check AS (
   SELECT
     'apply_member_order_approval_not_executable_by_anon' AS name,
     NOT has_function_privilege('anon', 'apply_member_order_approval(uuid, text, text, text, text)', 'EXECUTE') AS ok
+  UNION ALL
+  SELECT
+    'member_admin_set_member_password_guarded_by_session' AS name,
+    has_function_privilege('anon', 'member_admin_set_member_password(text, uuid, text)', 'EXECUTE') AS ok
+  UNION ALL
+  SELECT
+    'member_admin_set_member_ban_guarded_by_session' AS name,
+    has_function_privilege('anon', 'member_admin_set_member_ban(text, uuid, boolean, text)', 'EXECUTE') AS ok
+  UNION ALL
+  SELECT
+    'member_admin_delete_member_guarded_by_session' AS name,
+    has_function_privilege('anon', 'member_admin_delete_member(text, uuid, text)', 'EXECUTE') AS ok
   UNION ALL
   SELECT
     'admin_message_delete_rpc_exists' AS name,

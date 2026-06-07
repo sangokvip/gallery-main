@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS member_profiles (
   membership_tier TEXT NOT NULL DEFAULT 'free' CHECK (membership_tier IN ('free', 'basic')),
   privacy_settings JSONB NOT NULL DEFAULT '{"hideUserId": true, "hideSensitiveItems": true, "allowPrivateShare": true}'::jsonb,
   notification_settings JSONB NOT NULL DEFAULT '{"monthlySummary": true, "trendReminder": false}'::jsonb,
+  is_banned BOOLEAN NOT NULL DEFAULT false,
+  banned_at TIMESTAMP WITH TIME ZONE,
+  banned_reason TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
@@ -22,6 +25,9 @@ ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS qq TEXT;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS wechat TEXT;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS contact_email TEXT;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS banned_reason TEXT;
 
 CREATE TABLE IF NOT EXISTS member_login_names (
   username TEXT PRIMARY KEY CHECK (username ~ '^[a-z0-9_]{3,24}$'),
@@ -152,6 +158,7 @@ DROP INDEX IF EXISTS idx_member_share_links_user;
 CREATE INDEX IF NOT EXISTS idx_member_share_links_account ON member_share_links(account_id);
 CREATE INDEX IF NOT EXISTS idx_member_share_links_token ON member_share_links(share_token);
 CREATE INDEX IF NOT EXISTS idx_member_share_links_active ON member_share_links(is_active);
+CREATE INDEX IF NOT EXISTS idx_member_profiles_banned ON member_profiles(is_banned);
 
 CREATE OR REPLACE FUNCTION update_member_center_timestamp()
 RETURNS TRIGGER AS $$
@@ -688,6 +695,15 @@ BEGIN
     RAISE EXCEPTION '请先登录会员账号';
   END IF;
 
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法修改会员资料';
+  END IF;
+
   UPDATE member_profiles
   SET display_name = COALESCE(NULLIF(left(trim(input_display_name), 80), ''), display_name),
       qq = NULLIF(left(trim(COALESCE(input_qq, '')), 40), ''),
@@ -733,6 +749,15 @@ DECLARE
 BEGIN
   IF current_account IS NULL THEN
     RAISE EXCEPTION '请先登录会员账号';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法注册设备';
   END IF;
 
   IF clean_hash IS NOT NULL AND clean_hash !~ '^[a-f0-9]{64}$' THEN
@@ -814,6 +839,15 @@ SECURITY DEFINER
 SET search_path = public, extensions
 AS $$
 BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = input_account_id
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法使用会员功能';
+  END IF;
+
   IF input_legacy_user_id_text IS NULL OR input_legacy_user_id_text = '' THEN
     RAISE EXCEPTION '请先绑定当前匿名身份';
   END IF;
@@ -849,6 +883,15 @@ DECLARE
 BEGIN
   IF current_account IS NULL THEN
     RAISE EXCEPTION '请先登录会员账号';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法读取会员记录';
   END IF;
 
   RETURN COALESCE((
@@ -901,6 +944,15 @@ BEGIN
     RAISE EXCEPTION '请先登录账号';
   END IF;
 
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法删除记录';
+  END IF;
+
   DELETE FROM test_records r
   WHERE r.id = input_record_id
     AND EXISTS (
@@ -938,6 +990,15 @@ DECLARE
 BEGIN
   IF current_account IS NULL THEN
     RAISE EXCEPTION '请先登录会员账号';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM member_profiles
+    WHERE account_id = current_account
+      AND is_banned = true
+  ) THEN
+    RAISE EXCEPTION '账号已被封禁，无法创建订单';
   END IF;
 
   amount_value := CASE input_plan_code
