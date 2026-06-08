@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-08-member-auth-copy-layout",
+  "date": "2026-06-08",
+  "summary": "优化会员注册页标题和利益点卡片排版，减少桌面端中文硬换行。",
+  "trigger": "用户反馈会员注册页存在自动换行，视觉体验差。",
+  "changes": [
+    {
+      "category": "frontend-style",
+      "files": [
+        "src/styles/member-center.css"
+      ],
+      "details": [
+        "会员注册卡片最大宽度从 640px 调整为 760px，给标题和利益点更多横向空间。",
+        "注册页大标题使用更稳的响应式字号，桌面端保持一行，小屏按容器自然分行。",
+        "利益点卡片增加最小宽度保护、收紧字号和内边距，避免短中文被拆得过碎。",
+        "移动端保留单列卡片布局，避免横向滚动。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过，检查 9 组页面"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过"
+    },
+    {
+      "command": "Playwright layout measurement",
+      "result": "确认 1440px 标题为一行；320、375、390、430 宽度无横向滚动"
+    }
+  ],
+  "knownLimitations": [
+    "极窄移动端仍会把大标题分成两行，这是受屏幕宽度限制的正常表现。",
+    "没有连接真实生产环境验证，只完成本地构建和浏览器布局检查。"
+  ],
+  "deploymentNotes": [
+    "这是纯前端样式调整，不需要执行 Supabase SQL。"
+  ]
+}
