@@ -1507,7 +1507,9 @@ const localMemberCenterMockApi = {
         user_metadata: {
           username: validateMemberUsername(username),
           display_name: username,
-          contact_email: cleanEmail
+          contact_email: cleanEmail,
+          gender_identity: profile?.gender_identity || 'undisclosed',
+          bdsm_orientation: profile?.bdsm_orientation || 'exploring'
         }
       },
       session: mockMemberSession
@@ -1553,6 +1555,8 @@ const localMemberCenterMockApi = {
         wechat: '',
         contact_email: '',
         phone: '',
+        gender_identity: 'undisclosed',
+        bdsm_orientation: 'exploring',
         membership_tier: 'free',
         privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
         notification_settings: { monthlySummary: true, trendReminder: true }
@@ -1789,7 +1793,9 @@ const realMemberCenterApi = {
           email: cleanEmail,
           contactEmail: cleanEmail,
           contact_email: cleanEmail,
-          phone: profile.phone || ''
+          phone: profile.phone || '',
+          gender_identity: profile.gender_identity || 'undisclosed',
+          bdsm_orientation: profile.bdsm_orientation || 'exploring'
         }
       }
     });
@@ -1887,6 +1893,8 @@ const realMemberCenterApi = {
           legacy_user_id_text: legacyUserId,
           display_name: nickname || '匿名用户',
           membership_tier: 'free',
+          gender_identity: 'undisclosed',
+          bdsm_orientation: 'exploring',
           privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: false },
           notification_settings: { monthlySummary: true, trendReminder: false }
         },
@@ -1908,6 +1916,8 @@ const realMemberCenterApi = {
       wechat: session.user.user_metadata?.wechat || '',
       contact_email: session.user.user_metadata?.contact_email || '',
       phone: session.user.user_metadata?.phone || '',
+      gender_identity: session.user.user_metadata?.gender_identity || 'undisclosed',
+      bdsm_orientation: session.user.user_metadata?.bdsm_orientation || 'exploring',
       membership_tier: 'free',
       is_banned: false,
       banned_at: null,
@@ -1992,6 +2002,8 @@ const realMemberCenterApi = {
       input_wechat: updates.wechat || null,
       input_contact_email: updates.contact_email || null,
       input_phone: updates.phone || null,
+      input_gender_identity: updates.gender_identity || null,
+      input_bdsm_orientation: updates.bdsm_orientation || null,
       input_privacy_settings: updates.privacy_settings || null,
       input_notification_settings: updates.notification_settings || null
     });

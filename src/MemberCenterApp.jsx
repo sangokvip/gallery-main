@@ -59,6 +59,22 @@ const TEST_LABEL = {
   lgbt: 'LGBT+探索'
 };
 
+const GENDER_OPTIONS = [
+  { value: 'male', label: '男生' },
+  { value: 'female', label: '女生' },
+  { value: 'non_binary', label: '非二元' },
+  { value: 'other', label: '其他' },
+  { value: 'undisclosed', label: '不想透露' }
+];
+
+const BDSM_ORIENTATION_OPTIONS = [
+  { value: 'sub', label: 'M / sub 倾向' },
+  { value: 'dom', label: 'S / Dom 倾向' },
+  { value: 'switch', label: 'Switch / 双向' },
+  { value: 'exploring', label: '探索中' },
+  { value: 'undisclosed', label: '不想透露' }
+];
+
 const RATING_ORDER = ['SSS', 'SS', 'S', 'Q', 'N', 'W'];
 const RATING_WEIGHT = { SSS: 6, SS: 5, S: 4, Q: 3, N: 2, W: 1 };
 const RATING_COLORS = {
@@ -465,7 +481,9 @@ function MemberCenterApp() {
     qq: '',
     wechat: '',
     email: '',
-    phone: ''
+    phone: '',
+    gender_identity: 'undisclosed',
+    bdsm_orientation: 'exploring'
   });
   const [session, setSession] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
@@ -544,6 +562,8 @@ function MemberCenterApp() {
         wechat: '',
         contact_email: nextSession?.user?.email || '',
         phone: '',
+        gender_identity: 'undisclosed',
+        bdsm_orientation: 'exploring',
         membership_tier: 'free',
         is_banned: false,
         banned_at: null,
@@ -789,7 +809,9 @@ function MemberCenterApp() {
           qq: authForm.qq,
           wechat: authForm.wechat,
           email: authForm.email,
-          phone: authForm.phone
+          phone: authForm.phone,
+          gender_identity: authForm.gender_identity,
+          bdsm_orientation: authForm.bdsm_orientation
         }
       };
       const data = authMode === 'register'
@@ -806,6 +828,8 @@ function MemberCenterApp() {
             wechat: authForm.wechat,
             contact_email: authForm.email,
             phone: authForm.phone,
+            gender_identity: authForm.gender_identity,
+            bdsm_orientation: authForm.bdsm_orientation,
             privacy_settings: { hideUserId: true, hideSensitiveItems: true, allowPrivateShare: true },
             notification_settings: { monthlySummary: true, trendReminder: false }
           });
@@ -835,7 +859,7 @@ function MemberCenterApp() {
     try {
       const saved = await memberCenterApi.updateMemberProfile(session, profileDraft);
       setProfileDraft(saved);
-      setSnackbar('联系方式已保存。');
+      setSnackbar('会员资料已保存。');
     } catch (err) {
       setSnackbar(err.message || '保存失败');
     }
@@ -915,11 +939,31 @@ function MemberCenterApp() {
                       value={authForm.email}
                       onChange={event => setAuthForm(prev => ({ ...prev, email: event.target.value }))}
                       required
-                      helperText="用于账号联系，不会公开"
+                      helperText="请务必使用真实邮箱，用于账号找回和重要通知，不会公开"
                       fullWidth
                     />
+                    <Box className="optional-contact-grid">
+                      <TextField
+                        size="small"
+                        select
+                        label="性别"
+                        value={authForm.gender_identity}
+                        onChange={event => setAuthForm(prev => ({ ...prev, gender_identity: event.target.value }))}
+                      >
+                        {GENDER_OPTIONS.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+                      </TextField>
+                      <TextField
+                        size="small"
+                        select
+                        label="BDSM 倾向"
+                        value={authForm.bdsm_orientation}
+                        onChange={event => setAuthForm(prev => ({ ...prev, bdsm_orientation: event.target.value }))}
+                      >
+                        {BDSM_ORIENTATION_OPTIONS.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+                      </TextField>
+                    </Box>
                     <Button onClick={() => setShowOptionalContacts(value => !value)} size="small">
-                      {showOptionalContacts ? '收起选填联系方式' : '填写更多联系方式（选填）'}
+                      {showOptionalContacts ? '收起选填联系方式' : '填写 QQ / 微信，方便后续参与群聊（选填）'}
                     </Button>
                     <Collapse in={showOptionalContacts}>
                       <Box className="optional-contact-grid">
@@ -1157,8 +1201,14 @@ function MemberCenterApp() {
                 <TextField size="small" label="微信" value={profileDraft.wechat || ''} onChange={event => setProfileDraft(prev => ({ ...prev, wechat: event.target.value }))} disabled={!session || profileDraft.is_banned} />
                 <TextField size="small" type="email" label="邮箱" value={profileDraft.contact_email || ''} onChange={event => setProfileDraft(prev => ({ ...prev, contact_email: event.target.value }))} disabled={!session || profileDraft.is_banned} />
                 <TextField size="small" label="电话" value={profileDraft.phone || ''} onChange={event => setProfileDraft(prev => ({ ...prev, phone: event.target.value }))} disabled={!session || profileDraft.is_banned} />
+                <TextField size="small" select label="性别" value={profileDraft.gender_identity || 'undisclosed'} onChange={event => setProfileDraft(prev => ({ ...prev, gender_identity: event.target.value }))} disabled={!session || profileDraft.is_banned}>
+                  {GENDER_OPTIONS.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+                </TextField>
+                <TextField size="small" select label="BDSM 倾向" value={profileDraft.bdsm_orientation || 'exploring'} onChange={event => setProfileDraft(prev => ({ ...prev, bdsm_orientation: event.target.value }))} disabled={!session || profileDraft.is_banned}>
+                  {BDSM_ORIENTATION_OPTIONS.map(option => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+                </TextField>
               </Box>
-              <Button onClick={saveProfile} disabled={!session || memberLoading || profileDraft.is_banned}>保存联系方式</Button>
+              <Button onClick={saveProfile} disabled={!session || memberLoading || profileDraft.is_banned}>保存资料</Button>
             </Stack>
           ) : (
             <Box className="empty-panel">正在读取账号资料...</Box>

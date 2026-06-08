@@ -37,7 +37,13 @@ const authenticatedOnlyRpc = [
   },
   {
     name: 'update_member_profile',
-    body: { input_display_name: 'Codex Production Check', input_privacy_settings: {}, input_notification_settings: {} }
+    body: {
+      input_display_name: 'Codex Production Check',
+      input_gender_identity: 'undisclosed',
+      input_bdsm_orientation: 'exploring',
+      input_privacy_settings: {},
+      input_notification_settings: {}
+    }
   },
   {
     name: 'register_member_device',

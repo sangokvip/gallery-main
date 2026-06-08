@@ -9,6 +9,8 @@ const TYPE_ACCENT = { female: 'accent-pink', male: 'accent-blue', s: 'accent-amb
 const RATING_COLORS = { SSS: '#dc2626', SS: '#ea580c', S: '#d97706', Q: '#2563eb', N: '#6b7280', W: '#94a3b8' };
 const getMemberTierLabel = () => '会员';
 const getMemberPlanLabel = () => '会员';
+const GENDER_LABELS = { male: '男生', female: '女生', non_binary: '非二元', other: '其他', undisclosed: '不想透露' };
+const BDSM_ORIENTATION_LABELS = { sub: 'M / sub 倾向', dom: 'S / Dom 倾向', switch: 'Switch / 双向', exploring: '探索中', undisclosed: '不想透露' };
 const ORDER_STATUS_LABEL = {
   pending: '待审核',
   paid: '已付款',
@@ -566,6 +568,8 @@ function MemberDetailModal({ member, orders, onViewRecord, onMemberAction, onClo
     ['QQ', member.qq || '-'],
     ['微信', member.wechat || '-'],
     ['电话', member.phone || '-'],
+    ['性别', GENDER_LABELS[member.gender_identity] || '不想透露'],
+    ['BDSM 倾向', BDSM_ORIENTATION_LABELS[member.bdsm_orientation] || '探索中'],
     ['账号类型', '会员'],
     ['历史订阅', member.subscription?.status || '无'],
     ['注册时间', formatDateTime(member.created_at)],

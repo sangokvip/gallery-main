@@ -247,6 +247,16 @@ security_policy_check AS (
     ) AS ok
   UNION ALL
   SELECT
+    'member_profiles_has_profile_classification_fields' AS name,
+    (
+      SELECT count(*)
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'member_profiles'
+        AND column_name IN ('gender_identity', 'bdsm_orientation')
+    ) = 2 AS ok
+  UNION ALL
+  SELECT
     'member_share_links_no_public_select_policy' AS name,
     NOT EXISTS (
       SELECT 1

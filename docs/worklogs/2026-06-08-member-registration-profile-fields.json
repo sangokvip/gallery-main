@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-08-member-registration-profile-fields",
+  "date": "2026-06-08",
+  "summary": "会员注册增加性别和 BDSM 倾向字段，并优化邮箱与 QQ/微信联系方式提示。",
+  "trigger": "用户要求注册时选择性别和个人属性，并提示使用真实邮箱、推荐填写微信 QQ 便于后期参与群聊。",
+  "changes": [
+    {
+      "category": "database",
+      "files": [
+        "database/create_member_center_tables.sql",
+        "database/member_center_deployment_check.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "member_profiles 增加 gender_identity 和 bdsm_orientation 字段。",
+        "字段使用固定枚举值：性别支持 male、female、non_binary、other、undisclosed；BDSM 倾向支持 sub、dom、switch、exploring、undisclosed。",
+        "update_member_profile RPC 增加两个资料字段，方便注册后在会员中心修改。",
+        "部署检查增加新字段存在性校验。"
+      ]
+    },
+    {
+      "category": "frontend",
+      "files": [
+        "src/MemberCenterApp.jsx",
+        "src/utils/supabase.js"
+      ],
+      "details": [
+        "注册页新增性别和 BDSM 倾向两个下拉选择，默认分别为不想透露和探索中。",
+        "邮箱提示改为请务必使用真实邮箱，用于账号找回和重要通知。",
+        "选填联系方式按钮改为推荐填写 QQ / 微信，方便后续参与群聊。",
+        "会员资料页也支持修改性别和 BDSM 倾向。"
+      ]
+    },
+    {
+      "category": "admin",
+      "files": [
+        "src/ModernAdminApp.jsx",
+        "src/adminBrutalApi.js"
+      ],
+      "details": [
+        "后台会员详情展示性别和 BDSM 倾向。",
+        "本地后台 mock 会员数据补充新字段。"
+      ]
+    },
+    {
+      "category": "validation",
+      "files": [
+        "scripts/verify-member-security.mjs",
+        "scripts/verify-member-production.mjs"
+      ],
+      "details": [
+        "安全校验增加新资料字段检查。",
+        "生产 RPC 探测参数同步新 update_member_profile 签名。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment",
+      "result": "通过，已重新生成 database/member_center_full_deploy.sql"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过"
+    },
+    {
+      "command": "npm run verify:member-center",
+      "result": "通过，检查 9 组页面"
+    },
+    {
+      "command": "npm run verify:member-auth",
+      "result": "通过，覆盖 320、375、390、430、768、1024、1440 宽度"
+    },
+    {
+      "command": "npm run verify:admin-auth",
+      "result": "通过，覆盖 320、375、390、430、768、1024、1440 宽度"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过"
+    }
+  ],
+  "knownLimitations": [
+    "生产 Supabase 需要执行最新 database/member_center_full_deploy.sql 后，新字段和新 RPC 签名才会生效。",
+    "本次没有连接真实生产 Supabase 做注册实测，只完成本地构建、静态校验和浏览器多视口校验。"
+  ],
+  "deploymentNotes": [
+    "上线前先执行最新 database/member_center_full_deploy.sql。",
+    "执行后建议在预览环境新注册一个测试会员，确认性别和 BDSM 倾向能保存并在会员资料页读取。"
+  ]
+}

@@ -215,7 +215,7 @@ ORDER BY check_type, name;
 
 -- ============================================================================
 -- 2. database/create_member_center_tables.sql
--- sha256: 57e1132494f153a95ba5869bce1fcf89550df430ff59564960e37771c6d9338a
+-- sha256: e4184dcb0c1a57ade61981c5d448b1b68dbf80491ded8d4b058295e048aa3aaa
 -- ============================================================================
 
 -- M-profile Lab member center tables
@@ -231,6 +231,8 @@ CREATE TABLE IF NOT EXISTS member_profiles (
   wechat TEXT,
   contact_email TEXT,
   phone TEXT,
+  gender_identity TEXT NOT NULL DEFAULT 'undisclosed' CHECK (gender_identity IN ('male', 'female', 'non_binary', 'other', 'undisclosed')),
+  bdsm_orientation TEXT NOT NULL DEFAULT 'exploring' CHECK (bdsm_orientation IN ('sub', 'dom', 'switch', 'exploring', 'undisclosed')),
   membership_tier TEXT NOT NULL DEFAULT 'free' CHECK (membership_tier IN ('free', 'basic')),
   privacy_settings JSONB NOT NULL DEFAULT '{"hideUserId": true, "hideSensitiveItems": true, "allowPrivateShare": true}'::jsonb,
   notification_settings JSONB NOT NULL DEFAULT '{"monthlySummary": true, "trendReminder": false}'::jsonb,
@@ -245,9 +247,28 @@ ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS qq TEXT;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS wechat TEXT;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS contact_email TEXT;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS gender_identity TEXT NOT NULL DEFAULT 'undisclosed';
+ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS bdsm_orientation TEXT NOT NULL DEFAULT 'exploring';
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS is_banned BOOLEAN NOT NULL DEFAULT false;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS banned_at TIMESTAMP WITH TIME ZONE;
 ALTER TABLE member_profiles ADD COLUMN IF NOT EXISTS banned_reason TEXT;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'member_profiles_gender_identity_check'
+  ) THEN
+    ALTER TABLE member_profiles
+      ADD CONSTRAINT member_profiles_gender_identity_check
+      CHECK (gender_identity IN ('male', 'female', 'non_binary', 'other', 'undisclosed'));
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'member_profiles_bdsm_orientation_check'
+  ) THEN
+    ALTER TABLE member_profiles
+      ADD CONSTRAINT member_profiles_bdsm_orientation_check
+      CHECK (bdsm_orientation IN ('sub', 'dom', 'switch', 'exploring', 'undisclosed'));
+  END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS member_login_names (
   username TEXT PRIMARY KEY CHECK (username ~ '^[a-z0-9_]{3,24}$'),
@@ -463,7 +484,9 @@ BEGIN
     'full_name', fallback_name,
     'email', clean_email,
     'contactEmail', clean_email,
-    'contact_email', clean_email
+    'contact_email', clean_email,
+    'gender_identity', COALESCE(NULLIF(trim(metadata->>'gender_identity'), ''), 'undisclosed'),
+    'bdsm_orientation', COALESCE(NULLIF(trim(metadata->>'bdsm_orientation'), ''), 'exploring')
   );
 
   RETURN NEW;
@@ -893,12 +916,16 @@ BEGIN
 END;
 $$;
 
+DROP FUNCTION IF EXISTS update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB);
+DROP FUNCTION IF EXISTS update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB);
 CREATE OR REPLACE FUNCTION update_member_profile(
   input_display_name TEXT DEFAULT NULL,
   input_qq TEXT DEFAULT NULL,
   input_wechat TEXT DEFAULT NULL,
   input_contact_email TEXT DEFAULT NULL,
   input_phone TEXT DEFAULT NULL,
+  input_gender_identity TEXT DEFAULT NULL,
+  input_bdsm_orientation TEXT DEFAULT NULL,
   input_privacy_settings JSONB DEFAULT NULL,
   input_notification_settings JSONB DEFAULT NULL
 )
@@ -930,6 +957,14 @@ BEGIN
       wechat = NULLIF(left(trim(COALESCE(input_wechat, '')), 80), ''),
       contact_email = NULLIF(left(trim(COALESCE(input_contact_email, '')), 160), ''),
       phone = NULLIF(left(trim(COALESCE(input_phone, '')), 40), ''),
+      gender_identity = CASE
+        WHEN input_gender_identity IN ('male', 'female', 'non_binary', 'other', 'undisclosed') THEN input_gender_identity
+        ELSE gender_identity
+      END,
+      bdsm_orientation = CASE
+        WHEN input_bdsm_orientation IN ('sub', 'dom', 'switch', 'exploring', 'undisclosed') THEN input_bdsm_orientation
+        ELSE bdsm_orientation
+      END,
       privacy_settings = CASE
         WHEN input_privacy_settings IS NULL THEN privacy_settings
         ELSE normalize_member_privacy_settings(input_privacy_settings)
@@ -1508,8 +1543,7 @@ REVOKE EXECUTE ON FUNCTION get_member_login_email(TEXT) FROM PUBLIC, anon, authe
 REVOKE EXECUTE ON FUNCTION get_member_records() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION delete_member_record(UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
-REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION register_member_device(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION unlink_member_device(UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION create_member_order(TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
@@ -1526,7 +1560,7 @@ GRANT EXECUTE ON FUNCTION get_member_login_email(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION get_member_records() TO authenticated;
 GRANT EXECUTE ON FUNCTION delete_member_record(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_or_create_member_profile(TEXT, TEXT, TEXT) TO authenticated;
-GRANT EXECUTE ON FUNCTION update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB) TO authenticated;
+GRANT EXECUTE ON FUNCTION update_member_profile(TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, JSONB, JSONB) TO authenticated;
 GRANT EXECUTE ON FUNCTION register_member_device(TEXT, TEXT, TEXT, TEXT) TO authenticated;
 GRANT EXECUTE ON FUNCTION unlink_member_device(UUID) TO authenticated;
 GRANT EXECUTE ON FUNCTION create_member_order(TEXT, TEXT, TEXT, TEXT) TO authenticated;
@@ -2923,7 +2957,7 @@ COMMENT ON TABLE member_pair_reports IS '双人分析报告快照';
 
 -- ============================================================================
 -- 5. database/member_center_deployment_check.sql
--- sha256: 5f9e9044bd2bedd02d52df1eaa32f8ee50d5146dfceb74748248483c2082f202
+-- sha256: cf349e006ad51bfc3e632a76193a6c3491eef1561640f968bd88443bee170934
 -- ============================================================================
 
 -- Member center deployment check
@@ -3173,6 +3207,16 @@ security_policy_check AS (
         AND table_name = 'member_profiles'
         AND column_name = 'is_banned'
     ) AS ok
+  UNION ALL
+  SELECT
+    'member_profiles_has_profile_classification_fields' AS name,
+    (
+      SELECT count(*)
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'member_profiles'
+        AND column_name IN ('gender_identity', 'bdsm_orientation')
+    ) = 2 AS ok
   UNION ALL
   SELECT
     'member_share_links_no_public_select_policy' AS name,

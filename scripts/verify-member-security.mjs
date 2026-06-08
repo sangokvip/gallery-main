@@ -165,6 +165,8 @@ const checks = [
       'DROP POLICY IF EXISTS "member_identity_claims_no_insert"',
       'member_identity_claims',
       'member_login_names',
+      'gender_identity',
+      'bdsm_orientation',
       'normalize_member_auth_user_metadata',
       'aaa_member_auth_user_metadata_before_write',
       'CREATE OR REPLACE FUNCTION create_user_settings',
