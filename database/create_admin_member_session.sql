@@ -289,6 +289,52 @@ BEGIN
 END;
 $$;
 
+CREATE OR REPLACE FUNCTION member_admin_record_owners(input_session_token_hash TEXT, input_legacy_user_ids TEXT[])
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  ignored UUID;
+BEGIN
+  ignored := require_admin(input_session_token_hash);
+
+  IF input_legacy_user_ids IS NULL OR array_length(input_legacy_user_ids, 1) IS NULL THEN
+    RETURN '{}'::jsonb;
+  END IF;
+
+  RETURN COALESCE((
+    SELECT jsonb_object_agg(
+      owner_rows.legacy_user_id_text,
+      jsonb_build_object(
+        'account_id', owner_rows.account_id,
+        'username', owner_rows.login_name,
+        'display_name', owner_rows.display_name
+      )
+    )
+    FROM (
+      SELECT DISTINCT ON (mil.legacy_user_id_text)
+        mil.legacy_user_id_text,
+        p.account_id,
+        p.display_name,
+        COALESCE(
+          NULLIF(au.raw_user_meta_data->>'username', ''),
+          NULLIF(au.raw_user_meta_data->>'login_name', ''),
+          NULLIF(split_part(au.email, '@', 1), ''),
+          NULLIF(p.display_name, ''),
+          '会员用户'
+        ) AS login_name
+      FROM member_identity_links mil
+      JOIN member_profiles p ON p.account_id = mil.account_id
+      LEFT JOIN auth.users au ON au.id = p.account_id
+      WHERE mil.legacy_user_id_text = ANY(input_legacy_user_ids)
+      ORDER BY mil.legacy_user_id_text, mil.linked_at DESC
+    ) owner_rows
+  ), '{}'::jsonb);
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION member_admin_set_member_password(
   input_session_token_hash TEXT,
   input_account_id UUID,
@@ -774,6 +820,7 @@ REVOKE EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, T
 REVOKE EXECUTE ON FUNCTION create_admin_session(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_overview(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_record_owners(TEXT, TEXT[]) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_orders(TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_approve_order(TEXT, UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_reject_order(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated;
@@ -792,6 +839,7 @@ GRANT EXECUTE ON FUNCTION change_admin_password(TEXT, TEXT, TEXT) TO anon, authe
 GRANT EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION member_admin_overview(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION member_admin_record_owners(TEXT, TEXT[]) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_orders(TEXT, INTEGER) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_approve_order(TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_reject_order(TEXT, UUID, TEXT) TO anon, authenticated;

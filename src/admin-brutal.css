@@ -96,11 +96,50 @@
 }
 .brutal-table td { padding: 0.8rem 1rem; border-bottom: 1px solid #e5e7eb; font-weight: 500; font-size: 0.9rem; }
 .brutal-table tr:hover td { background: #f8fafc; }
+.table-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.table-scroll .brutal-table {
+  min-width: 1040px;
+}
 .records-table td:first-child { max-width: 360px; overflow-wrap: anywhere; }
+.record-id-cell {
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+.record-owner-cell {
+  color: var(--primary);
+  font-size: 1rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
 .row-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-.contact-stack { display: grid; gap: 0.2rem; min-width: 180px; }
-.contact-stack span { font-weight: 750; overflow-wrap: anywhere; }
+.contact-stack { display: grid; gap: 0.2rem; min-width: 0; }
+.contact-stack span { font-weight: 750; overflow-wrap: break-word; }
+.contact-stack .contact-primary { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .contact-stack small { color: var(--text-light); font-weight: 650; line-height: 1.35; }
+.member-list-table th,
+.member-list-table td {
+  vertical-align: middle;
+}
+.member-list-table th {
+  white-space: nowrap;
+}
+.member-list-table td:nth-child(1) { width: 17%; }
+.member-list-table td:nth-child(2) { width: 25%; }
+.member-list-table td:nth-child(3) { width: 13%; }
+.member-list-table td:nth-child(4),
+.member-list-table td:nth-child(5) {
+  width: 7%;
+  white-space: nowrap;
+  text-align: center;
+}
+.member-list-table td:nth-child(6) {
+  width: 14%;
+  white-space: nowrap;
+}
+.member-list-table td:nth-child(7) { width: 17%; }
 
 /* Badges */
 .badge {
@@ -111,6 +150,8 @@
 .badge-male { background: #dbeafe; color: #1e40af; }
 .badge-s { background: #fef3c7; color: #92400e; }
 .badge-lgbt { background: #ede9fe; color: #5b21b6; }
+.badge-neutral { background: #f1f5f9; color: #334155; }
+.badge-danger { background: #fef2f2; color: #dc2626; }
 
 /* Buttons */
 .btn-brutal {
@@ -262,6 +303,23 @@
   padding: 0.6rem 0.8rem;
   overflow-wrap: anywhere;
   white-space: normal;
+}
+.member-technical-details {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 0.8rem 1rem;
+}
+.member-technical-details summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+.member-technical-details p {
+  margin: 0.65rem 0;
+  color: var(--text-light);
+  font-size: 0.88rem;
+  font-weight: 650;
+  line-height: 1.5;
 }
 
 /* Type distribution */

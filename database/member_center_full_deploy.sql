@@ -1584,7 +1584,7 @@ COMMENT ON TABLE member_share_links IS '私密报告分享链接';
 
 -- ============================================================================
 -- 3. database/create_admin_member_session.sql
--- sha256: a89a01f74a4a7faa7ce3bb8f0a62f3e512741ac6bbdb630a8af4686be157c91a
+-- sha256: 7150279097ccb9e4b9d46c970893449074cddfbd0847bd17a320424e5cee3298
 -- ============================================================================
 
 -- Admin session and member management RPCs
@@ -1875,6 +1875,52 @@ BEGIN
       ) p
     ), '[]'::jsonb)
   );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION member_admin_record_owners(input_session_token_hash TEXT, input_legacy_user_ids TEXT[])
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  ignored UUID;
+BEGIN
+  ignored := require_admin(input_session_token_hash);
+
+  IF input_legacy_user_ids IS NULL OR array_length(input_legacy_user_ids, 1) IS NULL THEN
+    RETURN '{}'::jsonb;
+  END IF;
+
+  RETURN COALESCE((
+    SELECT jsonb_object_agg(
+      owner_rows.legacy_user_id_text,
+      jsonb_build_object(
+        'account_id', owner_rows.account_id,
+        'username', owner_rows.login_name,
+        'display_name', owner_rows.display_name
+      )
+    )
+    FROM (
+      SELECT DISTINCT ON (mil.legacy_user_id_text)
+        mil.legacy_user_id_text,
+        p.account_id,
+        p.display_name,
+        COALESCE(
+          NULLIF(au.raw_user_meta_data->>'username', ''),
+          NULLIF(au.raw_user_meta_data->>'login_name', ''),
+          NULLIF(split_part(au.email, '@', 1), ''),
+          NULLIF(p.display_name, ''),
+          '会员用户'
+        ) AS login_name
+      FROM member_identity_links mil
+      JOIN member_profiles p ON p.account_id = mil.account_id
+      LEFT JOIN auth.users au ON au.id = p.account_id
+      WHERE mil.legacy_user_id_text = ANY(input_legacy_user_ids)
+      ORDER BY mil.legacy_user_id_text, mil.linked_at DESC
+    ) owner_rows
+  ), '{}'::jsonb);
 END;
 $$;
 
@@ -2363,6 +2409,7 @@ REVOKE EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, T
 REVOKE EXECUTE ON FUNCTION create_admin_session(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_overview(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION member_admin_record_owners(TEXT, TEXT[]) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_orders(TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_approve_order(TEXT, UUID) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_reject_order(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated;
@@ -2381,6 +2428,7 @@ GRANT EXECUTE ON FUNCTION change_admin_password(TEXT, TEXT, TEXT) TO anon, authe
 GRANT EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION member_admin_overview(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION member_admin_record_owners(TEXT, TEXT[]) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_orders(TEXT, INTEGER) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_approve_order(TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION member_admin_reject_order(TEXT, UUID, TEXT) TO anon, authenticated;
@@ -2957,7 +3005,7 @@ COMMENT ON TABLE member_pair_reports IS '双人分析报告快照';
 
 -- ============================================================================
 -- 5. database/member_center_deployment_check.sql
--- sha256: cf349e006ad51bfc3e632a76193a6c3491eef1561640f968bd88443bee170934
+-- sha256: 34fc639ae3225664ae472c8c64dccaacb1bb54371719c5f7bbe24877fc88088c
 -- ============================================================================
 
 -- Member center deployment check
@@ -3013,6 +3061,7 @@ required_functions(name) AS (
     ('apply_member_order_approval'),
     ('member_admin_overview'),
     ('member_admin_members'),
+    ('member_admin_record_owners'),
     ('member_admin_orders'),
     ('member_admin_approve_order'),
     ('member_admin_reject_order'),
@@ -3343,6 +3392,10 @@ security_policy_check AS (
   SELECT
     'member_admin_set_member_password_guarded_by_session' AS name,
     has_function_privilege('anon', 'member_admin_set_member_password(text, uuid, text)', 'EXECUTE') AS ok
+  UNION ALL
+  SELECT
+    'member_admin_record_owners_guarded_by_session' AS name,
+    has_function_privilege('anon', 'member_admin_record_owners(text, text[])', 'EXECUTE') AS ok
   UNION ALL
   SELECT
     'member_admin_set_member_ban_guarded_by_session' AS name,

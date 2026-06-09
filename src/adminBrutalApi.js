@@ -49,11 +49,14 @@ function buildMockRecords() {
   return Array.from({ length: 36 }, (_, index) => {
     const type = ['female', 'male', 's', 'lgbt'][index % 4];
     const detailCount = index === 0 ? 108 : 24 + (index % 8) * 6;
+    const isMemberRecord = index % 3 === 0;
     return {
       id: `mock-record-${String(index + 1).padStart(3, '0')}`,
       test_type: type,
       user_id_text: `mock-user-${String((index % 6) + 1).padStart(2, '0')}`,
       nickname: `预览用户${(index % 6) + 1}`,
+      member_username: isMemberRecord ? `member_${String((index % 6) + 1).padStart(2, '0')}` : null,
+      member_display_name: isMemberRecord ? `本地会员 ${String((index % 6) + 1)}` : null,
       result_count: detailCount,
       report_data: { completedItems: detailCount, totalItems: detailCount },
       created_at: new Date(Date.UTC(2026, 4, 28 - index, 10, index % 60, 0)).toISOString()
@@ -152,6 +155,7 @@ const localAdminApi = {
           subscription: null,
           legacy_user_id_text: 'mock-user-01',
           orders: [{ id: 'mock-order-001' }],
+          assessment_count: 6,
           created_at: '2026-05-24T08:00:00.000Z'
         },
         {
@@ -170,6 +174,7 @@ const localAdminApi = {
           subscription: null,
           legacy_user_id_text: 'mock-user-02',
           orders: [],
+          assessment_count: 6,
           created_at: '2026-05-25T08:00:00.000Z'
         },
         {
@@ -188,6 +193,7 @@ const localAdminApi = {
           subscription: null,
           legacy_user_id_text: 'mock-user-03',
           orders: [],
+          assessment_count: 6,
           created_at: '2026-05-26T08:00:00.000Z'
         }
       ]
@@ -382,8 +388,21 @@ const realAdminApi = {
         input_offset: offset
       });
       if (!error && data) {
+        const members = data.members || [];
+        const assessmentCounts = await Promise.all(members.map(async (member) => {
+          if (!member?.legacy_user_id_text) return 0;
+          const { count, error: countError } = await supabase
+            .from('test_records')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id_text', member.legacy_user_id_text);
+          if (!countError && Number.isFinite(count)) return count;
+          return member.assessment_count ?? member.test_record_count ?? member.record_count ?? 0;
+        }));
         return {
-          members: data.members || [],
+          members: members.map((member, index) => ({
+            ...member,
+            assessment_count: assessmentCounts[index] || 0
+          })),
           total: data.total || 0
         };
       }
@@ -496,10 +515,28 @@ const realAdminApi = {
       const { data: users } = await supabase.from('users').select('id, nickname').in('id', userIds);
       if (users) users.forEach(u => { nickMap[u.id] = u.nickname; });
     }
+
+    let memberOwnerMap = {};
+    const sessionTokenHash = await this.getSessionTokenHash();
+    if (sessionTokenHash && userIds.length > 0) {
+      const { data: owners, error: ownerError } = await supabase.rpc('member_admin_record_owners', {
+        input_session_token_hash: sessionTokenHash,
+        input_legacy_user_ids: userIds
+      });
+      if (!ownerError && owners && typeof owners === 'object') {
+        memberOwnerMap = owners;
+      } else if (ownerError) {
+        console.warn('会员记录用户名映射读取失败:', ownerError.message);
+      }
+    }
+
     return {
       results: records.map((r, index) => ({
         ...r,
-        nickname: nickMap[r.user_id_text] || '匿名用户',
+        member_username: memberOwnerMap[r.user_id_text]?.username || null,
+        member_display_name: memberOwnerMap[r.user_id_text]?.display_name || null,
+        member_account_id: memberOwnerMap[r.user_id_text]?.account_id || null,
+        nickname: memberOwnerMap[r.user_id_text]?.username || nickMap[r.user_id_text] || '匿名用户',
         result_count: resultCounts[index] || 0
       })),
       total: count || 0

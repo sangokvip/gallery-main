@@ -115,6 +115,10 @@ const adminTokenRpc = [
     body: { input_session_token_hash: '0'.repeat(64), input_limit: 1, input_offset: 0 }
   },
   {
+    name: 'member_admin_record_owners',
+    body: { input_session_token_hash: '0'.repeat(64), input_legacy_user_ids: ['codex-production-check'] }
+  },
+  {
     name: 'member_admin_orders',
     body: { input_session_token_hash: '0'.repeat(64), input_limit: 1 }
   },

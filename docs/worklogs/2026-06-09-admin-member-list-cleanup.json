@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "worklogId": "2026-06-09-admin-member-list-cleanup",
+  "date": "2026-06-09",
+  "summary": "调整管理员后台会员列表：历史订单列改为测评数量，状态颜色按会员性别区分，并隐藏日常不需要的技术标识。",
+  "trigger": "用户反馈会员账号列表里历史订单应显示测评数量，状态颜色需要区分男女性会员，表格文字强制换行影响阅读，并询问详情弹窗两条账号标识的意义。",
+  "changes": [
+    {
+      "category": "admin-ui",
+      "files": [
+        "src/ModernAdminApp.jsx"
+      ],
+      "details": [
+        "会员列表表头从“历史订单”改为“测评数量”，列表值改读 assessment_count / test_record_count / record_count 等测评数量字段。",
+        "状态 badge 颜色按 gender_identity 区分：女性会员粉色，男性会员蓝色，未设置性别显示中性色；封禁状态保留“已封禁”文字和原因。",
+        "会员详情中的“账号标识”改为“技术信息”，默认折叠账号技术标识，并用中文解释会员账号 ID 和旧测评身份 ID 的用途。"
+      ]
+    },
+    {
+      "category": "admin-api",
+      "files": [
+        "src/adminBrutalApi.js"
+      ],
+      "details": [
+        "本地 mock 会员数据增加 assessment_count，方便后台预览直接显示测评数量。",
+        "真实 Supabase 会员列表读取后，按 legacy_user_id_text 从 test_records 统计测评记录数量，并回填 assessment_count；查询失败时回退到已有统计字段或 0。"
+      ]
+    },
+    {
+      "category": "layout",
+      "files": [
+        "src/admin-brutal.css"
+      ],
+      "details": [
+        "会员列表表格增加最小宽度和内部横向滚动容器，避免桌面宽屏下表头被挤成强制换行。",
+        "联系方式主文本使用单行省略，表头和数量/日期列保持不换行，减少邮箱和日期在宽屏下的中途断行。"
+      ]
+    },
+    {
+      "category": "verification",
+      "files": [
+        "scripts/verify-admin-authenticated.mjs"
+      ],
+      "details": [
+        "后台认证态验证脚本同步断言“测评数量”和“技术信息”。",
+        "继续覆盖会员详情、会员测评记录和测评详情弹窗。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 生产构建成功。"
+    },
+    {
+      "command": "npm run verify:admin-auth",
+      "result": "通过。覆盖 320、375、390、430、768、1024、1440 宽度；验证后台登录、测评记录、会员管理、会员详情和测评详情弹窗，无页面级横向溢出。"
+    },
+    {
+      "command": "Playwright screenshot check on http://127.0.0.1:4184/sangok.html",
+      "result": "通过。1440 宽度下会员列表包含“测评数量”，女性状态为粉色，男性状态为蓝色；详情弹窗显示“技术信息”，旧“账号标识”标题已移除。截图保存到 /tmp/admin-members-1440.png 和 /tmp/admin-member-detail-1440.png。"
+    }
+  ],
+  "knownLimitations": [
+    "测评数量依赖会员账号的 legacy_user_id_text 与 test_records.user_id_text 能匹配；没有绑定旧测评身份的会员会显示 0。",
+    "小屏下会员列表仍使用表格内部横向滚动，页面本身不横向溢出；如后续要求彻底移动端卡片化，需要单独改会员管理列表组件。"
+  ],
+  "deploymentNotes": [
+    "不需要新增 SQL 或环境变量。",
+    "部署后真实测评数量读取依赖现有 test_records 访问策略和后台会话可用。"
+  ]
+}

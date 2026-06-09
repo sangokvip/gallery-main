@@ -38,6 +38,25 @@ function getAdminRecordCount(record) {
   return 0;
 }
 
+function getMemberStatusBadgeClass(member) {
+  if (member?.gender_identity === 'male') return 'badge-male';
+  if (member?.gender_identity === 'female') return 'badge-female';
+  if (member?.is_banned) return 'badge-danger';
+  return 'badge-neutral';
+}
+
+function getMemberAssessmentCount(member) {
+  return member?.assessment_count
+    ?? member?.test_record_count
+    ?? member?.record_count
+    ?? member?.records?.length
+    ?? 0;
+}
+
+function getRecordOwnerName(record) {
+  return record?.member_username || record?.member_login_name || '';
+}
+
 // ===== Login =====
 function LoginPage({ onLogin }) {
   const [form, setForm] = useState({ username: '', password: '' });
@@ -185,10 +204,12 @@ function RecordsView({ records, loading, total, page, rowsPerPage, filters, onPa
         ) : (
           <>
             <table className="brutal-table records-table">
-              <thead><tr><th>ID</th><th>类型</th><th>用户</th><th>结果</th><th>时间</th><th>操作</th></tr></thead>
+              <thead><tr><th>ID / 会员</th><th>类型</th><th>用户</th><th>结果</th><th>时间</th><th>操作</th></tr></thead>
               <tbody>{records.map(r => (
                 <tr key={r.id}>
-                  <td style={{fontFamily:'monospace', fontSize:'0.8rem'}}>{r.id}</td>
+                  <td className={getRecordOwnerName(r) ? 'record-owner-cell' : 'record-id-cell'}>
+                    {getRecordOwnerName(r) || r.id}
+                  </td>
                   <td><span className={`badge ${TEST_BADGE[r.test_type]||''}`}>{TEST_LABEL[r.test_type]||r.test_type}</span></td>
                   <td>{r.nickname}</td>
                   <td>{r.result_count ?? r.test_results?.length ?? 0} 项</td>
@@ -384,9 +405,9 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
           </div>
 
           <div className="section-header compact"><h3>会员账号</h3><span className="sub">显示 {filteredMembers.length} / {members?.length || 0} 个</span></div>
-          <div className="brutal-card no-hover" style={{padding:0, overflow:'hidden'}}>
+          <div className="brutal-card no-hover table-scroll" style={{padding:0}}>
             <table className="brutal-table records-table member-list-table">
-              <thead><tr><th>会员</th><th>联系方式</th><th>状态</th><th>分享</th><th>历史订单</th><th>创建时间</th><th>操作</th></tr></thead>
+              <thead><tr><th>会员</th><th>联系方式</th><th>状态</th><th>分享</th><th>测评数量</th><th>创建时间</th><th>操作</th></tr></thead>
               <tbody>
                 {filteredMembers.length === 0 ? (
                   <tr><td colSpan={7} style={{textAlign:'center', padding:'2rem', color:'#888'}}>暂无会员账号</td></tr>
@@ -400,18 +421,18 @@ function MembersView({ stats, members, orders, loading, error, actionMessage, on
                     </td>
                     <td>
                       <div className="contact-stack">
-                        <span>{member.contact_email || '-'}</span>
+                        <span className="contact-primary">{member.contact_email || '-'}</span>
                         <small>{[member.qq && `QQ ${member.qq}`, member.wechat && `微信 ${member.wechat}`, member.phone && `电话 ${member.phone}`].filter(Boolean).join(' · ') || '未填写其他联系方式'}</small>
                       </div>
                     </td>
                     <td>
                       <div className="contact-stack">
-                        <span className={`badge ${member.is_banned ? 'badge-male' : 'badge-female'}`}>{member.is_banned ? '已封禁' : getMemberTierLabel(member.membership_tier)}</span>
+                        <span className={`badge ${getMemberStatusBadgeClass(member)}`}>{member.is_banned ? '已封禁' : getMemberTierLabel(member.membership_tier)}</span>
                         {member.is_banned && <small>{member.banned_reason || '未填写原因'}</small>}
                       </div>
                     </td>
                     <td>{member.share_links?.length || member.shares?.length || 0}</td>
-                    <td>{member.orders?.length || 0}</td>
+                    <td>{getMemberAssessmentCount(member)}</td>
                     <td>{formatDateTime(member.created_at)}</td>
                     <td>
                       <div className="row-actions">
@@ -599,12 +620,16 @@ function MemberDetailModal({ member, orders, onViewRecord, onMemberAction, onClo
           </div>
 
           <div className="section-header compact" style={{marginTop:'1.5rem'}}>
-            <h3>账号标识</h3>
+            <h3>技术信息</h3>
           </div>
-          <div className="member-id-list">
-            <code>account_id: {member.account_id}</code>
-            {member.legacy_user_id_text && <code>legacy_user_id: {member.legacy_user_id_text}</code>}
-          </div>
+          <details className="member-technical-details">
+            <summary>查看账号技术标识</summary>
+            <p>后台保留两类标识：会员账号 ID 用于登录账号和后台操作，旧测评身份 ID 用于关联注册前的游客测评记录。日常管理只需要看上面的会员资料和测评记录。</p>
+            <div className="member-id-list">
+              <code>会员账号 ID: {member.account_id}</code>
+              {member.legacy_user_id_text && <code>旧测评身份 ID: {member.legacy_user_id_text}</code>}
+            </div>
+          </details>
 
           <div className="section-header compact" style={{marginTop:'1.5rem'}}>
             <h3>会员测评记录</h3>

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-08-admin-record-member-username",
+  "date": "2026-06-08",
+  "summary": "后台测评记录列表的 ID 列支持优先显示已注册会员用户名；未注册记录继续显示原记录 ID。",
+  "trigger": "用户反馈后台测评记录 ID 位置在用户已注册时应该显示用户名。",
+  "changes": [
+    {
+      "category": "database",
+      "files": [
+        "database/create_admin_member_session.sql",
+        "database/member_center_full_deploy.sql",
+        "database/member_center_deployment_check.sql"
+      ],
+      "details": [
+        "新增 member_admin_record_owners 管理员 RPC，通过管理员 session 校验后按 legacy_user_id_text 返回会员用户名映射。",
+        "保持 member_identity_links 和 member_profiles 不对普通前端直接开放，避免为了显示用户名放宽表权限。",
+        "同步完整部署 SQL 和部署检查，确保上线执行的 SQL 包含新函数。"
+      ]
+    },
+    {
+      "category": "frontend",
+      "files": [
+        "src/adminBrutalApi.js",
+        "src/ModernAdminApp.jsx",
+        "src/admin-brutal.css"
+      ],
+      "details": [
+        "后台测评记录读取时调用 member_admin_record_owners，把会员用户名合并到记录对象。",
+        "测评记录表第一列从 ID 改为 ID / 会员：已注册记录显示用户名，未注册记录显示记录 ID。",
+        "增加 record-owner-cell 和 record-id-cell 样式，区分会员用户名与原始记录 ID。"
+      ]
+    },
+    {
+      "category": "validation",
+      "files": [
+        "scripts/verify-admin-authenticated.mjs",
+        "scripts/verify-member-production.mjs",
+        "scripts/verify-member-security.mjs"
+      ],
+      "details": [
+        "后台多视口验证改为检查会员用户名 member_01 和真实结果数。",
+        "生产探针和静态安全检查加入 member_admin_record_owners。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment",
+      "result": "通过，已重新生成 database/member_center_full_deploy.sql。"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过。"
+    },
+    {
+      "command": "npm run verify:admin-auth",
+      "result": "通过，覆盖 320、375、390、430、768、1024、1440 宽度。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过。"
+    }
+  ],
+  "knownLimitations": [
+    "真实线上数据库需要执行更新后的 database/member_center_full_deploy.sql 或至少执行新增的 member_admin_record_owners 函数后，后台才能显示已注册会员用户名。",
+    "没有在真实生产 Supabase 数据上执行写入测试。"
+  ],
+  "deploymentNotes": [
+    "部署前需要确保 Supabase 中存在 member_admin_record_owners(text, text[])，并保留其管理员 session 校验。",
+    "前端可向后兼容：如果 RPC 不存在或调用失败，后台会回退到旧昵称或匿名用户，不影响记录列表加载。"
+  ]
+}

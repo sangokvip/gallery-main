@@ -51,6 +51,7 @@ required_functions(name) AS (
     ('apply_member_order_approval'),
     ('member_admin_overview'),
     ('member_admin_members'),
+    ('member_admin_record_owners'),
     ('member_admin_orders'),
     ('member_admin_approve_order'),
     ('member_admin_reject_order'),
@@ -381,6 +382,10 @@ security_policy_check AS (
   SELECT
     'member_admin_set_member_password_guarded_by_session' AS name,
     has_function_privilege('anon', 'member_admin_set_member_password(text, uuid, text)', 'EXECUTE') AS ok
+  UNION ALL
+  SELECT
+    'member_admin_record_owners_guarded_by_session' AS name,
+    has_function_privilege('anon', 'member_admin_record_owners(text, text[])', 'EXECUTE') AS ok
   UNION ALL
   SELECT
     'member_admin_set_member_ban_guarded_by_session' AS name,
