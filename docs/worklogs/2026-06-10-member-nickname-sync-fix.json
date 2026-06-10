@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-10-member-nickname-sync-fix",
+  "date": "2026-06-10",
+  "summary": "修复已注册会员在后台测评记录列表中仍被全部显示为“匿名用户”的问题。",
+  "trigger": "用户反馈测评记录里都显示匿名用户，即使有些用户已经注册并修改了昵称。",
+  "changes": [
+    {
+      "category": "数据库底层同步机制修复",
+      "files": [
+        "database/create_member_center_tables.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": [
+        "在 database/create_member_center_tables.sql 末尾添加 sync_member_nickname_to_public_users 触发器：当会员档案的 display_name 发生创建或修改时，自动批量将该账号已绑定的全部匿名 ID 在 public.users.nickname 中的值更新为最新 display_name。",
+        "添加 sync_legacy_user_nickname_on_link 触发器：当新建匿名 ID 和会员 UUID 的绑定关系时，自动将该匿名 ID 对应 public.users.nickname 同步更新为会员当前 display_name。",
+        "添加一次性存量数据补正 SQL 语句：在部署时自动将所有已存在的绑定关系对应的 public.users.nickname 补齐为正确的会员昵称。",
+        "运行 prepare:member-deployment 脚本，重新生成包含此更新的 database/member_center_full_deploy.sql 部署文件。"
+      ]
+    }
+  ],
+  "validation": [
+    {
+      "command": "直查 test_records 匿名映射状况",
+      "result": "通过。查明最近的测评记录确实在 test_records.user_id_text 关联了临时 ID，但在 users 表中这些临时 ID 对应的昵称仍然都是默认值 '匿名用户'，无法映射为绑定的会员资料 display_name。"
+    },
+    {
+      "command": "npm run prepare:member-deployment",
+      "result": "通过。部署 SQL 重新生成成功，无任何冲突与报错。"
+    }
+  ],
+  "knownLimitations": [
+    "本次修改发生在数据库底层架构（触发器与存量数据更新），需要管理员在 Supabase SQL Editor 中重新执行最新生成的 database/member_center_full_deploy.sql 脚本（或者是执行 create_member_center_tables.sql 里的触发器片段）后才会最终对线上数据库生效。"
+  ],
+  "deploymentNotes": [
+    "请将 database/member_center_full_deploy.sql 或者 create_member_center_tables.sql 里的最新触发器 SQL 部分直接复制并贴入 Supabase SQL Editor 执行，执行完毕后即可自动修正现有的匿名记录，并且后续所有新绑定或昵称更新也会自动秒级同步。"
+  ]
+}
