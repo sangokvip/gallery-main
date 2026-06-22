@@ -47,6 +47,31 @@ async function openAdmin(page) {
   await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
 }
 
+async function assertExpiredSessionReturnsToLogin(browser) {
+  const page = await browser.newPage({ viewport: { width: 390, height: 920 } });
+  await page.goto(`${baseUrl}/sangok.html`, { waitUntil: 'domcontentloaded', timeout: 20000 });
+  await page.evaluate(() => {
+    localStorage.setItem('admin_data', JSON.stringify({
+      id: 'expired-admin',
+      username: 'expired-admin',
+      role: 'admin',
+      sessionToken: 'expired-session-token',
+      expiresAt: '2020-01-01T00:00:00.000Z'
+    }));
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
+
+  if (!await page.getByRole('button', { name: '登录' }).isVisible()) {
+    throw new Error('expired admin session did not return to login');
+  }
+  if (await page.evaluate(() => localStorage.getItem('admin_data') !== null)) {
+    throw new Error('expired admin session was not removed from localStorage');
+  }
+
+  await page.close();
+}
+
 async function login(page) {
   await page.getByPlaceholder('用户名').fill('admin-preview');
   await page.getByPlaceholder('密码').fill('preview-password');
@@ -154,6 +179,12 @@ async function assertAuthenticatedAdmin(browser, width) {
   await assertRecords(page, width);
   await assertMembers(page, width);
 
+  await page.getByRole('button', { name: '登出' }).click();
+  await page.getByRole('button', { name: '登录' }).waitFor({ state: 'visible' });
+  if (await page.evaluate(() => localStorage.getItem('admin_data') !== null)) {
+    throw new Error(`admin logout did not remove local session at ${width}px`);
+  }
+
   if (errors.length) {
     throw new Error(`admin authenticated browser errors at ${width}px:\n${errors.join('\n')}`);
   }
@@ -173,6 +204,7 @@ try {
   await waitForServer(server);
   const browser = await chromium.launch();
   try {
+    await assertExpiredSessionReturnsToLogin(browser);
     for (const width of widths) {
       console.log(`checking authenticated admin at ${width}px`);
       await assertAuthenticatedAdmin(browser, width);

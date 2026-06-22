@@ -89,6 +89,7 @@ const checks = [
     ],
     present: [
       'create_admin_session',
+      'revoke_admin_session',
       'change_admin_password',
       'input_session_token_hash',
       'member_admin_overview',
@@ -122,6 +123,8 @@ const checks = [
       'REVOKE EXECUTE ON FUNCTION member_admin_delete_member(TEXT, UUID, TEXT) FROM PUBLIC, anon, authenticated',
       'ALTER TABLE message_replies',
       'GRANT EXECUTE ON FUNCTION change_admin_password(TEXT, TEXT, TEXT) TO anon, authenticated',
+      'GRANT EXECUTE ON FUNCTION revoke_admin_session(TEXT) TO anon, authenticated',
+      "interval '30 days'",
       'GRANT EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) TO service_role',
       'GRANT EXECUTE ON FUNCTION admin_create_message(TEXT, TEXT, TEXT) TO anon, authenticated',
       'GRANT EXECUTE ON FUNCTION admin_create_reply(TEXT, UUID, TEXT, TEXT) TO anon, authenticated',

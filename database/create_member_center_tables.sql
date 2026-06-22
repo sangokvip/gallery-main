@@ -1360,3 +1360,80 @@ COMMENT ON TABLE member_login_names IS '会员用户名到 Supabase Auth 邮箱�
 COMMENT ON TABLE member_devices IS '会员账号关联设备和匿名身份绑定';
 COMMENT ON TABLE member_report_unlocks IS '高级报告、对比报告、导出模板解锁记录';
 COMMENT ON TABLE member_share_links IS '私密报告分享链接';
+
+-- ============================================================================
+-- 自动将已绑定会员的昵称同步至 public.users 表中
+-- ============================================================================
+
+-- 触发器函数一：在更新会员昵称时同步更新与其绑定的匿名测评 ID 的昵称
+CREATE OR REPLACE FUNCTION sync_member_nickname_to_public_users()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.display_name IS NULL
+     OR NEW.display_name = ''
+     OR NEW.display_name = '匿名用户'
+     OR (TG_OP = 'UPDATE' AND OLD.display_name = NEW.display_name)
+  THEN
+    RETURN NEW;
+  END IF;
+
+  UPDATE public.users u
+  SET nickname = NEW.display_name,
+      last_active = timezone('utc'::text, now())
+  FROM public.member_identity_links l
+  WHERE l.account_id = NEW.account_id
+    AND l.legacy_user_id_text = u.id;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sync_member_nickname ON public.member_profiles;
+CREATE TRIGGER trg_sync_member_nickname
+  AFTER INSERT OR UPDATE OF display_name ON public.member_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_member_nickname_to_public_users();
+
+-- 触发器函数二：在绑定匿名 ID 时，将该测评 ID 对应的 users.nickname 更新为当前的会员昵称
+CREATE OR REPLACE FUNCTION sync_legacy_user_nickname_on_link()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_display_name TEXT;
+BEGIN
+  SELECT display_name INTO v_display_name
+  FROM public.member_profiles
+  WHERE account_id = NEW.account_id;
+
+  IF v_display_name IS NOT NULL AND v_display_name <> '' AND v_display_name <> '匿名用户' THEN
+    UPDATE public.users
+    SET nickname = v_display_name,
+        last_active = timezone('utc'::text, now())
+    WHERE id = NEW.legacy_user_id_text;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sync_nickname_on_link ON public.member_identity_links;
+CREATE TRIGGER trg_sync_nickname_on_link
+  AFTER INSERT ON public.member_identity_links
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_legacy_user_nickname_on_link();
+
+-- 补正所有历史已绑定的匿名测评 ID 的昵称
+UPDATE public.users u
+SET nickname = p.display_name
+FROM public.member_identity_links l
+JOIN public.member_profiles p ON p.account_id = l.account_id
+WHERE l.legacy_user_id_text = u.id
+  AND p.display_name IS NOT NULL
+  AND p.display_name <> '匿名用户';

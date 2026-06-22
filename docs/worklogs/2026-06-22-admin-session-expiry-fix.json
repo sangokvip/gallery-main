@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-22-admin-session-expiry-fix",
+  "date": "2026-06-22",
+  "summary": "修复管理员会话过期后会员管理报错、但测评记录仍可显示的登录状态不一致问题。",
+  "trigger": "用户反馈会员管理经常显示管理员会话无效或已过期，而测评记录仍可正常查看。",
+  "changes": [
+    {
+      "category": "管理员会话校验",
+      "files": [
+        "src/adminBrutalApi.js"
+      ],
+      "details": "统一校验管理员本地会话的账号字段、sessionToken 和 expiresAt；缺失、格式错误或已过期时删除本地会话。测评记录、统计、设置和留言等直查入口也会先校验会话，避免各页面登录状态不一致。"
+    },
+    {
+      "category": "过期会话处理",
+      "files": [
+        "src/ModernAdminApp.jsx"
+      ],
+      "details": "页面初始化、窗口重新获得焦点及每分钟检查会话；后台请求收到会话过期错误后统一清除登录状态并返回登录页，不再只在会员管理页显示错误。"
+    },
+    {
+      "category": "回归验证",
+      "files": [
+        "scripts/verify-admin-authenticated.mjs"
+      ],
+      "details": "新增过期管理员会话回归场景，验证页面返回登录页并删除 localStorage 中的失效会话。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run verify:admin-auth（修复前）",
+      "result": "按预期失败：过期管理员会话没有返回登录页，复现了问题。"
+    },
+    {
+      "command": "npm run verify:admin-auth（修复后）",
+      "result": "通过。过期会话回归场景通过，320、375、390、430、768、1024、1440 宽度下后台登录态、测评记录、会员管理和详情验证通过，无横向溢出。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过。会员中心和管理员 RPC 静态安全校验通过。"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 生产构建成功。"
+    },
+    {
+      "command": "git diff --check && node --check scripts/verify-admin-authenticated.mjs",
+      "result": "通过。无空白错误，验证脚本语法正常。"
+    }
+  ],
+  "knownLimitations": [
+    "管理员数据库会话仍按现有安全策略在登录 8 小时后过期；过期后需要重新登录，本次修复的是过期状态识别和页面行为不一致。",
+    "未使用真实管理员凭据连接生产 Supabase，未执行生产登录回归。"
+  ],
+  "deploymentNotes": [
+    "本次不涉及 SQL 迁移或环境变量变更，部署前端即可生效。",
+    "部署后使用旧登录状态打开 /sangok.html 时会自动清除无 token、无过期时间或已过期的历史会话，需要重新登录一次。"
+  ]
+}

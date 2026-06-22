@@ -147,7 +147,7 @@ BEGIN
   DELETE FROM admin_sessions WHERE expires_at <= timezone('utc'::text, now());
 
   INSERT INTO admin_sessions (session_token_hash, admin_id, role, expires_at)
-  VALUES (input_session_token_hash, admin_row.id, admin_row.role, timezone('utc'::text, now()) + interval '8 hours')
+  VALUES (input_session_token_hash, admin_row.id, admin_row.role, timezone('utc'::text, now()) + interval '30 days')
   ON CONFLICT (session_token_hash) DO UPDATE
   SET admin_id = excluded.admin_id,
       role = excluded.role,
@@ -159,7 +159,7 @@ BEGIN
     'id', admin_row.id,
     'username', admin_row.username,
     'role', admin_row.role,
-    'expires_at', timezone('utc'::text, now()) + interval '8 hours'
+    'expires_at', timezone('utc'::text, now()) + interval '30 days'
   );
 END;
 $$;
@@ -196,6 +196,21 @@ BEGIN
     RAISE EXCEPTION '管理员会话无效或已过期';
   END IF;
   RETURN current_admin;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION revoke_admin_session(input_session_token_hash TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  ignored UUID;
+BEGIN
+  ignored := require_admin(input_session_token_hash);
+  DELETE FROM admin_sessions WHERE session_token_hash = input_session_token_hash;
+  RETURN true;
 END;
 $$;
 
@@ -818,6 +833,7 @@ REVOKE EXECUTE ON FUNCTION get_admin_session(TEXT) FROM PUBLIC, anon, authentica
 REVOKE EXECUTE ON FUNCTION require_admin(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION create_admin_session(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION revoke_admin_session(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_overview(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_record_owners(TEXT, TEXT[]) FROM PUBLIC, anon, authenticated;
@@ -835,6 +851,7 @@ REVOKE EXECUTE ON FUNCTION admin_toggle_message_pin(TEXT, UUID, BOOLEAN) FROM PU
 REVOKE EXECUTE ON FUNCTION admin_update_message_reaction_count(TEXT, UUID, TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION create_admin_session(TEXT, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION revoke_admin_session(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION change_admin_password(TEXT, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION member_admin_overview(TEXT) TO anon, authenticated;
@@ -853,5 +870,5 @@ GRANT EXECUTE ON FUNCTION admin_delete_reply(TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_toggle_message_pin(TEXT, UUID, BOOLEAN) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_update_message_reaction_count(TEXT, UUID, TEXT, INTEGER) TO anon, authenticated;
 
-COMMENT ON TABLE admin_sessions IS '后台管理员短期会话，前端只保存明文 token，数据库只保存 hash';
+COMMENT ON TABLE admin_sessions IS '后台管理员最长30天持久会话，前端只保存明文 token，数据库只保存 hash';
 COMMENT ON TABLE admin_login_attempts IS '后台登录失败计数，用于数据库侧限速';

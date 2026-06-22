@@ -215,7 +215,7 @@ ORDER BY check_type, name;
 
 -- ============================================================================
 -- 2. database/create_member_center_tables.sql
--- sha256: e4184dcb0c1a57ade61981c5d448b1b68dbf80491ded8d4b058295e048aa3aaa
+-- sha256: 8d0f42c5ca908526dcdf0ffcca3b3d319775c37a5da3281ea577078fd2b9dc05
 -- ============================================================================
 
 -- M-profile Lab member center tables
@@ -1581,10 +1581,87 @@ COMMENT ON TABLE member_devices IS '会员账号关联设备和匿名身份绑�
 COMMENT ON TABLE member_report_unlocks IS '高级报告、对比报告、导出模板解锁记录';
 COMMENT ON TABLE member_share_links IS '私密报告分享链接';
 
+-- ============================================================================
+-- 自动将已绑定会员的昵称同步至 public.users 表中
+-- ============================================================================
+
+-- 触发器函数一：在更新会员昵称时同步更新与其绑定的匿名测评 ID 的昵称
+CREATE OR REPLACE FUNCTION sync_member_nickname_to_public_users()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.display_name IS NULL
+     OR NEW.display_name = ''
+     OR NEW.display_name = '匿名用户'
+     OR (TG_OP = 'UPDATE' AND OLD.display_name = NEW.display_name)
+  THEN
+    RETURN NEW;
+  END IF;
+
+  UPDATE public.users u
+  SET nickname = NEW.display_name,
+      last_active = timezone('utc'::text, now())
+  FROM public.member_identity_links l
+  WHERE l.account_id = NEW.account_id
+    AND l.legacy_user_id_text = u.id;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sync_member_nickname ON public.member_profiles;
+CREATE TRIGGER trg_sync_member_nickname
+  AFTER INSERT OR UPDATE OF display_name ON public.member_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_member_nickname_to_public_users();
+
+-- 触发器函数二：在绑定匿名 ID 时，将该测评 ID 对应的 users.nickname 更新为当前的会员昵称
+CREATE OR REPLACE FUNCTION sync_legacy_user_nickname_on_link()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_display_name TEXT;
+BEGIN
+  SELECT display_name INTO v_display_name
+  FROM public.member_profiles
+  WHERE account_id = NEW.account_id;
+
+  IF v_display_name IS NOT NULL AND v_display_name <> '' AND v_display_name <> '匿名用户' THEN
+    UPDATE public.users
+    SET nickname = v_display_name,
+        last_active = timezone('utc'::text, now())
+    WHERE id = NEW.legacy_user_id_text;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sync_nickname_on_link ON public.member_identity_links;
+CREATE TRIGGER trg_sync_nickname_on_link
+  AFTER INSERT ON public.member_identity_links
+  FOR EACH ROW
+  EXECUTE FUNCTION sync_legacy_user_nickname_on_link();
+
+-- 补正所有历史已绑定的匿名测评 ID 的昵称
+UPDATE public.users u
+SET nickname = p.display_name
+FROM public.member_identity_links l
+JOIN public.member_profiles p ON p.account_id = l.account_id
+WHERE l.legacy_user_id_text = u.id
+  AND p.display_name IS NOT NULL
+  AND p.display_name <> '匿名用户';
+
 
 -- ============================================================================
 -- 3. database/create_admin_member_session.sql
--- sha256: 7150279097ccb9e4b9d46c970893449074cddfbd0847bd17a320424e5cee3298
+-- sha256: d1f4a0ac74a47e5a0063e1274a4741af25734d1a31710949fd07649e9bcb0bcb
 -- ============================================================================
 
 -- Admin session and member management RPCs
@@ -1736,7 +1813,7 @@ BEGIN
   DELETE FROM admin_sessions WHERE expires_at <= timezone('utc'::text, now());
 
   INSERT INTO admin_sessions (session_token_hash, admin_id, role, expires_at)
-  VALUES (input_session_token_hash, admin_row.id, admin_row.role, timezone('utc'::text, now()) + interval '8 hours')
+  VALUES (input_session_token_hash, admin_row.id, admin_row.role, timezone('utc'::text, now()) + interval '30 days')
   ON CONFLICT (session_token_hash) DO UPDATE
   SET admin_id = excluded.admin_id,
       role = excluded.role,
@@ -1748,7 +1825,7 @@ BEGIN
     'id', admin_row.id,
     'username', admin_row.username,
     'role', admin_row.role,
-    'expires_at', timezone('utc'::text, now()) + interval '8 hours'
+    'expires_at', timezone('utc'::text, now()) + interval '30 days'
   );
 END;
 $$;
@@ -1785,6 +1862,21 @@ BEGIN
     RAISE EXCEPTION '管理员会话无效或已过期';
   END IF;
   RETURN current_admin;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION revoke_admin_session(input_session_token_hash TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  ignored UUID;
+BEGIN
+  ignored := require_admin(input_session_token_hash);
+  DELETE FROM admin_sessions WHERE session_token_hash = input_session_token_hash;
+  RETURN true;
 END;
 $$;
 
@@ -2407,6 +2499,7 @@ REVOKE EXECUTE ON FUNCTION get_admin_session(TEXT) FROM PUBLIC, anon, authentica
 REVOKE EXECUTE ON FUNCTION require_admin(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION create_admin_session(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION revoke_admin_session(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_overview(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_record_owners(TEXT, TEXT[]) FROM PUBLIC, anon, authenticated;
@@ -2424,6 +2517,7 @@ REVOKE EXECUTE ON FUNCTION admin_toggle_message_pin(TEXT, UUID, BOOLEAN) FROM PU
 REVOKE EXECUTE ON FUNCTION admin_update_message_reaction_count(TEXT, UUID, TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION create_admin_session(TEXT, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION revoke_admin_session(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION change_admin_password(TEXT, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION member_admin_overview(TEXT) TO anon, authenticated;
@@ -2442,7 +2536,7 @@ GRANT EXECUTE ON FUNCTION admin_delete_reply(TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_toggle_message_pin(TEXT, UUID, BOOLEAN) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_update_message_reaction_count(TEXT, UUID, TEXT, INTEGER) TO anon, authenticated;
 
-COMMENT ON TABLE admin_sessions IS '后台管理员短期会话，前端只保存明文 token，数据库只保存 hash';
+COMMENT ON TABLE admin_sessions IS '后台管理员最长30天持久会话，前端只保存明文 token，数据库只保存 hash';
 COMMENT ON TABLE admin_login_attempts IS '后台登录失败计数，用于数据库侧限速';
 
 
@@ -3005,7 +3099,7 @@ COMMENT ON TABLE member_pair_reports IS '双人分析报告快照';
 
 -- ============================================================================
 -- 5. database/member_center_deployment_check.sql
--- sha256: 34fc639ae3225664ae472c8c64dccaacb1bb54371719c5f7bbe24877fc88088c
+-- sha256: 1f917ad5612a4b990e894e91e338e3579e42a9783ae62eea117a9d33d5bf5df6
 -- ============================================================================
 
 -- Member center deployment check
@@ -3055,6 +3149,7 @@ required_functions(name) AS (
     ('get_member_pair_request'),
     ('accept_member_pair_request'),
     ('create_admin_session'),
+    ('revoke_admin_session'),
     ('change_admin_password'),
     ('get_admin_session'),
     ('require_admin'),
@@ -3372,6 +3467,10 @@ security_policy_check AS (
   SELECT
     'delete_member_record_not_executable_by_anon' AS name,
     NOT has_function_privilege('anon', 'delete_member_record(uuid)', 'EXECUTE') AS ok
+  UNION ALL
+  SELECT
+    'revoke_admin_session_rpc_exists' AS name,
+    has_function_privilege('anon', 'revoke_admin_session(text)', 'EXECUTE') AS ok
   UNION ALL
   SELECT
     'verify_admin_password_not_executable_by_anon' AS name,
