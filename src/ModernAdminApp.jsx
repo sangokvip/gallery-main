@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { adminApi } from './adminBrutalApi.js';
+import { adminApi, isAdminSessionError } from './adminBrutalApi.js';
 import './admin-brutal.css';
 
 const TEST_BADGE = { female: 'badge-female', male: 'badge-male', s: 'badge-s', lgbt: 'badge-lgbt' };
@@ -53,7 +53,7 @@ function LoginPage({ onLogin }) {
       <div className="login-wrap">
         <div className="brutal-card login-card no-hover">
           <h1>M-Profile Lab</h1>
-          <p className="sub">管理后台</p>
+          <p className="sub">管理后台 · 登录状态保留 30 天</p>
           {error && <div className="login-error">{error}</div>}
           <form onSubmit={submit}>
             <input placeholder="用户名" value={form.username} onChange={e => setForm({...form, username: e.target.value})} autoFocus />
@@ -726,6 +726,18 @@ function ModernAdminApp() {
   const [details, setDetails] = useState([]);
   const [detailLoading, setDetailLoading] = useState(false);
 
+  const clearAdminSession = () => {
+    localStorage.removeItem('admin_data');
+    setAdmin(null);
+    setTab('dashboard');
+  };
+
+  const handleAdminError = (error) => {
+    if (!isAdminSessionError(error)) return false;
+    clearAdminSession();
+    return true;
+  };
+
   useEffect(() => {
     const a = adminApi.validateSession();
     setAdmin(a);
@@ -739,12 +751,27 @@ function ModernAdminApp() {
     if (tab === 'members') loadMembers();
   }, [admin, tab]);
 
+  useEffect(() => {
+    if (!admin) return undefined;
+    const validateCurrentSession = () => {
+      if (!adminApi.validateSession()) clearAdminSession();
+    };
+    const timer = window.setInterval(validateCurrentSession, 60_000);
+    window.addEventListener('focus', validateCurrentSession);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', validateCurrentSession);
+    };
+  }, [admin]);
+
   const loadDashboard = async () => {
     setStatsLoading(true);
     try {
       const [s, r] = await Promise.all([adminApi.getStats(), adminApi.getRecords({}, 5, 0)]);
       setStats(s); setRecentRecords(r.results);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      if (!handleAdminError(e)) console.error(e);
+    }
     setStatsLoading(false);
   };
 
@@ -753,7 +780,11 @@ function ModernAdminApp() {
     try {
       const res = await adminApi.getRecords(f, r, p * r);
       setRecords(res.results); setTotal(res.total);
-    } catch (e) { console.error(e); setRecords([]); setTotal(0); }
+    } catch (e) {
+      if (!handleAdminError(e)) console.error(e);
+      setRecords([]);
+      setTotal(0);
+    }
     setRecordsLoading(false);
   };
 
@@ -770,6 +801,10 @@ function ModernAdminApp() {
       setMembers(membersData.members);
       setMemberOrders(ordersData);
     } catch (e) {
+      if (handleAdminError(e)) {
+        setMembersLoading(false);
+        return;
+      }
       console.error(e);
       setMembersError(e.message || '会员管理服务不可用');
       setMemberStats(null);
@@ -786,6 +821,7 @@ function ModernAdminApp() {
       setMemberActionMessage('订单已审核通过');
       await loadMembers();
     } catch (e) {
+      if (handleAdminError(e)) return;
       setMemberActionMessage(e.message || '订单审核失败');
     }
   };
@@ -797,20 +833,34 @@ function ModernAdminApp() {
       setMemberActionMessage('订单已拒绝');
       await loadMembers();
     } catch (e) {
+      if (handleAdminError(e)) return;
       setMemberActionMessage(e.message || '订单拒绝失败');
     }
   };
 
   const viewDetail = async (record) => {
     setDetailRecord(record); setDetailLoading(true);
-    const d = await adminApi.getRecordDetails(record.id);
-    setDetails(d); setDetailLoading(false);
+    try {
+      const d = await adminApi.getRecordDetails(record.id);
+      setDetails(d);
+    } catch (e) {
+      if (!handleAdminError(e)) console.error(e);
+    }
+    setDetailLoading(false);
   };
 
   const onFilterChange = (k, v) => { const f = { ...filters, [k]: v }; setFilters(f); setPage(0); loadRecords(f, 0, rpp); };
   const onPageChange = (p) => { setPage(p); loadRecords(filters, p, rpp); };
   const onRppChange = (r) => { setRpp(r); setPage(0); loadRecords(filters, 0, r); };
-  const logout = () => { setAdmin(null); localStorage.removeItem('admin_data'); };
+  const logout = async () => {
+    try {
+      await adminApi.logout();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      clearAdminSession();
+    }
+  };
 
   if (loading) return <div className="admin-app"><div className="loading">初始化中...</div></div>;
   if (!admin) return <LoginPage onLogin={setAdmin} />;

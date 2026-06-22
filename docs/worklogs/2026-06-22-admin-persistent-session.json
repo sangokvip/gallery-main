@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-06-22-admin-persistent-session",
+  "date": "2026-06-22",
+  "summary": "将管理员登录状态从 8 小时延长为 30 天，并增加服务端会话撤销能力。",
+  "trigger": "用户要求管理员登录状态能够长期保存。",
+  "changes": [
+    {
+      "category": "管理员持久会话",
+      "files": [
+        "database/create_admin_member_session.sql",
+        "database/member_center_full_deploy.sql"
+      ],
+      "details": "create_admin_session 创建的会话有效期由 8 小时改为 30 天；数据库仍只保存随机 token 的 SHA-256 hash，账号禁用、密码修改和到期检查保持有效。"
+    },
+    {
+      "category": "安全注销",
+      "files": [
+        "database/create_admin_member_session.sql",
+        "database/member_center_deployment_check.sql",
+        "src/adminBrutalApi.js",
+        "src/ModernAdminApp.jsx"
+      ],
+      "details": "新增 revoke_admin_session RPC。管理员点击登出时先撤销数据库会话，再清除浏览器 localStorage；即使网络失败也会清除本地登录状态。"
+    },
+    {
+      "category": "界面与验证",
+      "files": [
+        "src/ModernAdminApp.jsx",
+        "scripts/verify-admin-authenticated.mjs",
+        "scripts/verify-member-security.mjs",
+        "scripts/verify-member-production.mjs"
+      ],
+      "details": "登录页标注登录状态保留 30 天；浏览器验证新增注销后本地会话清理检查，安全和生产探测脚本加入新 RPC 与 30 天有效期约束。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run prepare:member-deployment",
+      "result": "通过。根据分离 SQL 重新生成 database/member_center_full_deploy.sql。"
+    },
+    {
+      "command": "npm run verify:admin-auth",
+      "result": "通过。320、375、390、430、768、1024、1440 宽度下登录、后台功能、过期会话和主动注销验证通过。"
+    },
+    {
+      "command": "npm run verify:member-security",
+      "result": "通过。管理员会话 RPC 权限、30 天有效期和会员安全静态检查通过。"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 生产构建成功。"
+    },
+    {
+      "command": "SQL dollar quote balance and git diff --check",
+      "result": "通过。create_admin_member_session.sql 和 member_center_full_deploy.sql 的函数定界符成对，无空白错误。"
+    }
+  ],
+  "knownLimitations": [
+    "受当前静态前端和 Supabase RPC 架构限制，管理员明文 session token 保存在 localStorage；数据库只保存 hash，CSP 和 XSS 防护必须持续保持。",
+    "30 天是固定有效期，不是永久登录；超过 30 天、账号被禁用、修改密码或主动退出后需要重新登录。",
+    "未使用真实管理员凭据执行生产登录测试。"
+  ],
+  "deploymentNotes": [
+    "必须在 Supabase 执行更新后的 database/create_admin_member_session.sql，或执行完整的 database/member_center_full_deploy.sql；只部署前端不会延长服务端会话。",
+    "部署 SQL 和前端后需要重新登录一次，现有按 8 小时创建的会话不会自动延长为 30 天。",
+    "部署后运行 database/member_center_deployment_check.sql，确认 revoke_admin_session_rpc_exists 等检查全部为 ok=true。"
+  ]
+}

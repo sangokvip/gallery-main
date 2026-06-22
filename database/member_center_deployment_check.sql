@@ -45,6 +45,7 @@ required_functions(name) AS (
     ('get_member_pair_request'),
     ('accept_member_pair_request'),
     ('create_admin_session'),
+    ('revoke_admin_session'),
     ('change_admin_password'),
     ('get_admin_session'),
     ('require_admin'),
@@ -338,6 +339,10 @@ security_policy_check AS (
   SELECT
     'delete_member_record_not_executable_by_anon' AS name,
     NOT has_function_privilege('anon', 'delete_member_record(uuid)', 'EXECUTE') AS ok
+  UNION ALL
+  SELECT
+    'revoke_admin_session_rpc_exists' AS name,
+    has_function_privilege('anon', 'revoke_admin_session(text)', 'EXECUTE') AS ok
   UNION ALL
   SELECT
     'verify_admin_password_not_executable_by_anon' AS name,

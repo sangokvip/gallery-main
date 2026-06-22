@@ -1,5 +1,35 @@
 import { supabase } from './utils/supabase.js';
 
+const ADMIN_SESSION_ERROR = '管理员会话无效或已过期';
+
+function readStoredAdminSession() {
+  try {
+    const raw = localStorage.getItem('admin_data');
+    if (!raw) return null;
+    const admin = JSON.parse(raw);
+    const expiresAt = Date.parse(admin?.expiresAt || '');
+    if (
+      !admin?.username ||
+      !admin?.role ||
+      !admin?.id ||
+      !admin?.sessionToken ||
+      !Number.isFinite(expiresAt) ||
+      expiresAt <= Date.now()
+    ) {
+      localStorage.removeItem('admin_data');
+      return null;
+    }
+    return admin;
+  } catch {
+    localStorage.removeItem('admin_data');
+    return null;
+  }
+}
+
+export function isAdminSessionError(error) {
+  return String(error?.message || error || '').includes(ADMIN_SESSION_ERROR);
+}
+
 function randomToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return Array.from(bytes).map(byte => byte.toString(16).padStart(2, '0')).join('');
@@ -30,7 +60,7 @@ const mockAdminSession = {
   username: 'admin-preview',
   role: 'admin',
   sessionToken: 'local-admin-mock-session',
-  expiresAt: '2026-12-31T23:59:59.000Z'
+  expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
 };
 
 const mockRecordDetails = Array.from({ length: 108 }, (_, index) => {
@@ -73,20 +103,12 @@ const localAdminApi = {
     return true;
   },
 
+  async logout() {
+    return true;
+  },
+
   validateSession() {
-    try {
-      const raw = localStorage.getItem('admin_data');
-      if (!raw) return null;
-      const admin = JSON.parse(raw);
-      if (!admin?.username || !admin?.role || !admin?.id) {
-        localStorage.removeItem('admin_data');
-        return null;
-      }
-      return admin;
-    } catch {
-      localStorage.removeItem('admin_data');
-      return null;
-    }
+    return readStoredAdminSession();
   },
 
   async getSessionTokenHash() {
@@ -284,35 +306,43 @@ const realAdminApi = {
 
   // 验证会话
   validateSession() {
-    try {
-      const raw = localStorage.getItem('admin_data');
-      if (!raw) return null;
-      const admin = JSON.parse(raw);
-      if (!admin?.username || !admin?.role || !admin?.id) { localStorage.removeItem('admin_data'); return null; }
-      return admin;
-    } catch { localStorage.removeItem('admin_data'); return null; }
+    return readStoredAdminSession();
   },
 
   async getSessionTokenHash() {
     const admin = this.validateSession();
-    if (!admin?.sessionToken) return null;
+    if (!admin) throw new Error(ADMIN_SESSION_ERROR);
     return sha256(admin.sessionToken);
+  },
+
+  async logout() {
+    const sessionTokenHash = await this.getSessionTokenHash();
+    const { error } = await supabase.rpc('revoke_admin_session', {
+      input_session_token_hash: sessionTokenHash
+    });
+    if (error && !isAdminSessionError(error)) {
+      throw new Error('退出登录失败: ' + error.message);
+    }
+    return true;
   },
 
   // 获取/保存系统设置 - 通过 Supabase system_settings 表
   async getSettings() {
+    await this.getSessionTokenHash();
     const { data, error } = await supabase.from('system_settings').select('key, value, description');
     if (error) return {};
     return (data || []).reduce((acc, item) => { acc[item.key] = item.value; return acc; }, {});
   },
 
   async saveSetting(key, value) {
+    await this.getSessionTokenHash();
     const { error } = await supabase.from('system_settings').upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
     if (error) throw new Error('保存设置失败: ' + error.message);
     return true;
   },
 
   async getStats() {
+    await this.getSessionTokenHash();
     const todayISO = new Date(new Date().setHours(0,0,0,0)).toISOString();
     const [u, t, tu, tt] = await Promise.all([
       supabase.from('users').select('id', { count: 'exact' }),
@@ -410,6 +440,7 @@ const realAdminApi = {
   },
 
   async getRecords(filters = {}, limit = 20, offset = 0) {
+    await this.getSessionTokenHash();
     let q = supabase.from('test_records').select('*', { count: 'exact' }).order('created_at', { ascending: false });
     if (filters.testType) q = q.eq('test_type', filters.testType);
     const { data, error, count } = await q.range(offset, offset + limit - 1);
@@ -443,11 +474,13 @@ const realAdminApi = {
   },
 
   async getRecordDetails(recordId) {
+    await this.getSessionTokenHash();
     const { data, error } = await supabase.from('test_results').select('*').eq('record_id', recordId).order('category');
     return error ? [] : (data || []);
   },
 
   async getMemberRecords(member, limit = 20) {
+    await this.getSessionTokenHash();
     if (!member?.legacy_user_id_text) return [];
 
     const { data, error } = await supabase
@@ -477,11 +510,13 @@ const realAdminApi = {
   },
 
   async getMessages() {
+    await this.getSessionTokenHash();
     const { data, count } = await supabase.from('messages').select('id, text, user_id, created_at, is_pinned', { count: 'exact' }).order('created_at', { ascending: false }).limit(50);
     return { messages: data || [], total: count || 0 };
   },
 
   async deleteMessage(id) {
+    await this.getSessionTokenHash();
     const { error } = await supabase.from('messages').delete().eq('id', id);
     if (error) throw error;
   }

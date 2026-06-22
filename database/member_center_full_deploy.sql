@@ -1566,7 +1566,7 @@ WHERE l.legacy_user_id_text = u.id
 
 -- ============================================================================
 -- 3. database/create_admin_member_session.sql
--- sha256: e6b414ab13f80696c9b89656416ea567e1098adbcb41e66a339d95220638d74b
+-- sha256: c7c8b010e6ad4d62aeefc5d880664f24c13ed10a4d897c87879cad8b5cf621c0
 -- ============================================================================
 
 -- Admin session and member management RPCs
@@ -1718,7 +1718,7 @@ BEGIN
   DELETE FROM admin_sessions WHERE expires_at <= timezone('utc'::text, now());
 
   INSERT INTO admin_sessions (session_token_hash, admin_id, role, expires_at)
-  VALUES (input_session_token_hash, admin_row.id, admin_row.role, timezone('utc'::text, now()) + interval '8 hours')
+  VALUES (input_session_token_hash, admin_row.id, admin_row.role, timezone('utc'::text, now()) + interval '30 days')
   ON CONFLICT (session_token_hash) DO UPDATE
   SET admin_id = excluded.admin_id,
       role = excluded.role,
@@ -1730,7 +1730,7 @@ BEGIN
     'id', admin_row.id,
     'username', admin_row.username,
     'role', admin_row.role,
-    'expires_at', timezone('utc'::text, now()) + interval '8 hours'
+    'expires_at', timezone('utc'::text, now()) + interval '30 days'
   );
 END;
 $$;
@@ -1767,6 +1767,21 @@ BEGIN
     RAISE EXCEPTION '管理员会话无效或已过期';
   END IF;
   RETURN current_admin;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION revoke_admin_session(input_session_token_hash TEXT)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  ignored UUID;
+BEGIN
+  ignored := require_admin(input_session_token_hash);
+  DELETE FROM admin_sessions WHERE session_token_hash = input_session_token_hash;
+  RETURN true;
 END;
 $$;
 
@@ -2158,6 +2173,7 @@ REVOKE EXECUTE ON FUNCTION get_admin_session(TEXT) FROM PUBLIC, anon, authentica
 REVOKE EXECUTE ON FUNCTION require_admin(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION create_admin_session(TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION revoke_admin_session(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_overview(TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_members(TEXT, INTEGER, INTEGER) FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION member_admin_orders(TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
@@ -2171,6 +2187,7 @@ REVOKE EXECUTE ON FUNCTION admin_toggle_message_pin(TEXT, UUID, BOOLEAN) FROM PU
 REVOKE EXECUTE ON FUNCTION admin_update_message_reaction_count(TEXT, UUID, TEXT, INTEGER) FROM PUBLIC, anon, authenticated;
 
 GRANT EXECUTE ON FUNCTION create_admin_session(TEXT, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION revoke_admin_session(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION change_admin_password(TEXT, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION apply_member_order_approval(UUID, TEXT, TEXT, TEXT, TEXT) TO service_role;
 GRANT EXECUTE ON FUNCTION member_admin_overview(TEXT) TO anon, authenticated;
@@ -2185,7 +2202,7 @@ GRANT EXECUTE ON FUNCTION admin_delete_reply(TEXT, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_toggle_message_pin(TEXT, UUID, BOOLEAN) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION admin_update_message_reaction_count(TEXT, UUID, TEXT, INTEGER) TO anon, authenticated;
 
-COMMENT ON TABLE admin_sessions IS '后台管理员短期会话，前端只保存明文 token，数据库只保存 hash';
+COMMENT ON TABLE admin_sessions IS '后台管理员最长30天持久会话，前端只保存明文 token，数据库只保存 hash';
 COMMENT ON TABLE admin_login_attempts IS '后台登录失败计数，用于数据库侧限速';
 
 
@@ -2707,7 +2724,7 @@ COMMENT ON TABLE member_pair_reports IS '双人分析报告快照';
 
 -- ============================================================================
 -- 5. database/member_center_deployment_check.sql
--- sha256: 261540d5b699282462ada21ed07ec4be45e56e01191a6702084143426ea8b15c
+-- sha256: 1bca51189d97a8f1ec31cce41a559e480c43d9a25709d79dcfca1ab67d9fdefd
 -- ============================================================================
 
 -- Member center deployment check
@@ -2757,6 +2774,7 @@ required_functions(name) AS (
     ('get_member_pair_request'),
     ('accept_member_pair_request'),
     ('create_admin_session'),
+    ('revoke_admin_session'),
     ('change_admin_password'),
     ('get_admin_session'),
     ('require_admin'),
@@ -3050,6 +3068,10 @@ security_policy_check AS (
   SELECT
     'delete_member_record_not_executable_by_anon' AS name,
     NOT has_function_privilege('anon', 'delete_member_record(uuid)', 'EXECUTE') AS ok
+  UNION ALL
+  SELECT
+    'revoke_admin_session_rpc_exists' AS name,
+    has_function_privilege('anon', 'revoke_admin_session(text)', 'EXECUTE') AS ok
   UNION ALL
   SELECT
     'verify_admin_password_not_executable_by_anon' AS name,

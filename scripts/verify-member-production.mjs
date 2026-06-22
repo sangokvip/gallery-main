@@ -93,6 +93,10 @@ const authenticatedOnlyRpc = [
 
 const adminTokenRpc = [
   {
+    name: 'revoke_admin_session',
+    body: { input_session_token_hash: '0'.repeat(64) }
+  },
+  {
     name: 'change_admin_password',
     body: {
       input_session_token_hash: '0'.repeat(64),
