@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-07-12-compact-assessment-progress",
+  "date": "2026-07-12",
+  "summary": "压缩长页面的答题进度区，避免影响滑动和阅读。",
+  "trigger": "用户反馈进度区占用屏幕面积过大。",
+  "changes": [
+    {
+      "category": "ui",
+      "files": ["src/components/AssessmentFlowPanel.jsx"],
+      "description": "默认进度区改为 40px 高度的完成数、细进度条和工具入口；取消 sticky。分类选择、批量设置、撤销和未完成过滤移入右侧浮层。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。"
+    },
+    {
+      "command": "Playwright female.html 390px",
+      "result": "收起状态高度为 40px，展开工具浮层后主体高度仍为 40px，无横向滚动。"
+    }
+  ],
+  "knownLimitations": [
+    "展开批量工具时会临时覆盖少量题目内容，关闭后不占用阅读空间。"
+  ],
+  "deploymentNotes": "无需数据库迁移。"
+}
