@@ -25,6 +25,7 @@ import AdsterraAd from './components/AdsterraAd'
 import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
 import AssessmentFlowPanel, { useAssessmentFlow } from './components/AssessmentFlowPanel'
 import ResultInsights from './components/ResultInsights'
+import QrCallout from './components/QrCallout'
 
 
 // GSAP动画系统导入
@@ -194,17 +195,6 @@ function LgbtApp() {
           clearProps: "all"
         })
 
-          // 卡片动画 - 从下方滑入并缩放
-          .from('.lgbt-card, .MuiPaper-root:not(.MuiAppBar-root):not(.MuiDrawer-paper)', {
-            opacity: 0,
-            y: 20,
-            scale: 0.98,
-            duration: 0.5,
-            ease: "back.out(1.2)",
-            stagger: 0.05,
-            clearProps: "all"
-          }, "-=0.3")
-
           // 按钮动画 - 弹跳效果
           .from('.lgbt-button, .MuiButton-root', {
             opacity: 0,
@@ -232,7 +222,6 @@ function LgbtApp() {
         // 清理动画
         gsap.killTweensOf([
           '.pixel-title-pink, h1, h2, h3',
-          '.pixel-card-pink, .MuiPaper-root:not(.MuiAppBar-root)',
           '.pixel-button-pink, .MuiButton-root',
           '.MuiTextField-root, .MuiSelect-root, .MuiChip-root'
         ]);
@@ -1422,28 +1411,7 @@ function LgbtApp() {
             >
               生成报告
             </Button>
-            <Paper elevation={2} sx={{
-              p: 3,
-              borderRadius: 0,
-              textAlign: 'center',
-              maxWidth: 300,
-              mx: 'auto',
-              backgroundColor: 'white'
-            }} className="pixel-card-pink">
-              <Typography variant="subtitle1" sx={{
-                fontWeight: 'bold',
-                color: 'primary.main',
-                mb: 2
-              }}>
-                扫码领取您的XP报告（或访问 bdsm.casa）
-              </Typography>
-              <Box component="img" src="/qrcode.png" alt="QR Code" sx={{
-                width: '200px',
-                height: '200px',
-                display: 'block',
-                margin: '0 auto'
-              }} />
-            </Paper>
+            <QrCallout accentColor="#8b5cf6" className="pixel-card-pink" />
           </Box>
 
           <Dialog
@@ -1657,7 +1625,7 @@ function LgbtApp() {
                   borderRadius: 2
                 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#ff69b4' }}>
-                    原生相机扫码领取您的XP报告（或访问 bdsm.casa）
+                    扫码获取 XP 报告 · bdsm.casa
                   </Typography>
                   <Box
                     component="img"

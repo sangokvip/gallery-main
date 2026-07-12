@@ -26,6 +26,7 @@ import AdsterraAd from './components/AdsterraAd'
 import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
 import AssessmentFlowPanel, { useAssessmentFlow } from './components/AssessmentFlowPanel'
 import ResultInsights from './components/ResultInsights'
+import QrCallout from './components/QrCallout'
 
 
 // 使用黑白像素风格的Footer
@@ -1400,28 +1401,7 @@ function App() {
           >
             生成报告
           </Button>
-          <Paper elevation={2} sx={{
-            p: 3,
-            borderRadius: 2,
-            textAlign: 'center',
-            maxWidth: 300,
-            mx: 'auto',
-            backgroundColor: 'white'
-          }}>
-            <Typography variant="subtitle1" sx={{
-              fontWeight: 'bold',
-              color: 'primary.main',
-              mb: 2
-            }}>
-              扫码领取您的XP报告（或访问 bdsm.casa）
-            </Typography>
-            <Box component="img" src="/qrcode.png" alt="QR Code" sx={{
-              width: '200px',
-              height: '200px',
-              display: 'block',
-              margin: '0 auto'
-            }} />
-          </Paper>
+          <QrCallout accentColor="#1E3D59" />
         </Box>
 
         <Dialog
@@ -1627,7 +1607,7 @@ function App() {
                 backgroundColor: '#ffffff'
               }}>
                 <Typography variant="h6" sx={{ mb: 2, color: '#1E3D59' }}>
-                  原生相机扫码领取您的XP报告（或访问 bdsm.casa）
+                  扫码获取 XP 报告 · bdsm.casa
                 </Typography>
                 <Box 
                   component="img" 

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-07-12-long-form-and-qr-refinement",
+  "date": "2026-07-12",
+  "summary": "按用户反馈恢复测试的全部分类长页面，并重新设计二维码展示，修正中文与域名强制换行问题。",
+  "trigger": "用户反馈分类分步增加操作负担，且二维码文案换行别扭、样式不美观。",
+  "changes": [
+    {
+      "category": "assessment-flow",
+      "files": ["src/components/AssessmentFlowPanel.jsx"],
+      "description": "恢复全部分类同时展示；顶部面板仅保留总进度、只看未完成、批量设置和撤销作为辅助操作。"
+    },
+    {
+      "category": "qr-presentation",
+      "files": ["src/components/QrCallout.jsx", "src/App.jsx", "src/MaleApp.jsx", "src/SApp.jsx", "src/LgbtApp.jsx"],
+      "description": "提取统一二维码组件，使用主题色硬边框和阴影；将标题与 bdsm.casa 拆成稳定两行，域名禁止断行；同步简化报告内二维码文案。"
+    },
+    {
+      "category": "motion",
+      "files": ["src/App.jsx", "src/LgbtApp.jsx"],
+      "description": "移除对全部分类卡片的逐个入场动画，避免长页面后半部分长时间透明。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，2521 个模块完成构建。"
+    },
+    {
+      "command": "Playwright female.html 390px",
+      "result": "9 个分类卡片均在首轮渲染后可见，无横向滚动、无页面错误；二维码组件标题、域名和边框渲染正常。"
+    },
+    {
+      "command": "Playwright 四套测试入口",
+      "result": "female、male、s、lgbt 均包含二维码组件，分类页面恢复为全部分类可见。"
+    }
+  ],
+  "knownLimitations": [
+    "长页面在题目很多时仍较长；顶部的只看未完成功能可作为减负方式。",
+    "本次未改变二维码实际跳转内容或报告生成逻辑。"
+  ],
+  "deploymentNotes": "部署后建议重点查看手机端二维码区域与长页面滚动体验。"
+}

@@ -26,6 +26,7 @@ import AdsterraAd from './components/AdsterraAd'
 import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
 import AssessmentFlowPanel, { useAssessmentFlow } from './components/AssessmentFlowPanel'
 import ResultInsights from './components/ResultInsights'
+import QrCallout from './components/QrCallout'
 
 
 // MENU_ITEMS定义移到函数组件内部
@@ -1037,28 +1038,7 @@ function SApp() {
               生成报告
             </Button>
           </Box>
-          <Paper elevation={2} className="pixel-card-red" sx={{
-            p: 3,
-            borderRadius: 0,
-            textAlign: 'center',
-            maxWidth: 300,
-            mx: 'auto',
-            backgroundColor: 'white'
-          }}>
-            <Typography variant="subtitle1" sx={{
-              fontWeight: 'bold',
-              color: 'primary.main',
-              mb: 2
-            }}>
-              扫码领取您的XP报告（或访问 bdsm.casa）
-            </Typography>
-            <Box component="img" src="/qrcode.png" alt="QR Code" sx={{
-              width: '200px',
-              height: '200px',
-              display: 'block',
-              margin: '0 auto'
-            }} />
-          </Paper>
+          <QrCallout accentColor="#d00000" className="pixel-card-red" />
         </Box>
       </Container>
 
@@ -1416,7 +1396,7 @@ function SApp() {
               borderRadius: 2
             }}>
               <Typography variant="h6" sx={{ mb: 2, color: '#ff0000' }}>
-                原生相机扫码领取您的XP报告（或访问 bdsm.casa）
+                扫码获取 XP 报告 · bdsm.casa
               </Typography>
               <Box 
                 component="img" 
