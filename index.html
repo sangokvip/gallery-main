@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- 基础SEO标签 -->
-  <title>M型人格测试 | S型人格测试 | 专业心理测评平台 - M-profile Lab</title>
-  <meta name="description" content="M-profile Lab是专业的人格测试平台，提供免费的M型人格测试和S型人格测试。通过科学的心理测评，帮助您深入了解自己的性格特质，发现真实的内在自我。支持男女分版测试，结果准确可靠。" />
-  <meta name="keywords" content="M型人格测试,S型人格测试,性格测试,人格分析,心理测试,性格分析,人格测评,心理评估,免费测试,在线测试,男M测试,女M测试,性格特质,人格特征" />
+  <title>成人偏好与边界自评工具 | M-profile Lab</title>
+  <meta name="description" content="M-profile Lab 是面向成年人的偏好与边界自我探索工具，支持 M、S 与多元群体版本，可保存、对比并在明确授权后分享结果。结果仅供自我了解与沟通参考，不构成心理或医学诊断。" />
+  <meta name="keywords" content="成人偏好测试,边界测试,M型测试,S型测试,BDSM测试,偏好自评,伴侣沟通,成人自我探索" />
   <meta name="author" content="M-profile Lab Team" />
   <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
   <meta name="googlebot" content="index, follow" />
@@ -21,8 +21,8 @@
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://m-profile.top/" />
-  <meta property="og:title" content="M型人格测试 | S型人格测试 - M-profile Lab" />
-  <meta property="og:description" content="专业的人格测试平台，提供免费的M型和S型人格测试。通过科学测评了解您的性格特质，发现真实的自我。" />
+  <meta property="og:title" content="成人偏好与边界自评工具 - M-profile Lab" />
+  <meta property="og:description" content="面向成年人的偏好与边界自我探索工具。结果仅供自我了解与沟通参考，不构成专业诊断。" />
   <meta property="og:image" content="https://m-profile.top/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -32,8 +32,8 @@
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image" />
   <meta property="twitter:url" content="https://m-profile.top/" />
-  <meta property="twitter:title" content="M型人格测试 | S型人格测试 - M-profile Lab" />
-  <meta property="twitter:description" content="专业的人格测试平台，提供免费的M型和S型人格测试。通过科学测评了解您的性格特质，发现真实的自我。" />
+  <meta property="twitter:title" content="成人偏好与边界自评工具 - M-profile Lab" />
+  <meta property="twitter:description" content="面向成年人的偏好与边界自我探索工具。结果仅供自我了解与沟通参考，不构成专业诊断。" />
   <meta property="twitter:image" content="https://m-profile.top/og-image.png" />
 
   <!-- 结构化数据 -->
@@ -42,12 +42,12 @@
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "M-profile Lab",
-    "description": "专业的人格测试平台，提供免费的M型和S型人格测试",
+    "description": "面向成年人的偏好与边界自我探索工具，结果仅供自我了解与沟通参考",
     "url": "https://m-profile.top/",
-    "potentialAction": {
-      "@type": "SearchAction",
-      "target": "https://m-profile.top/search?q={search_term_string}",
-      "query-input": "required name=search_term_string"
+    "isAccessibleForFree": true,
+    "audience": {
+      "@type": "PeopleAudience",
+      "requiredMinAge": 18
     },
     "publisher": {
       "@type": "Organization",
@@ -64,6 +64,8 @@
 
   <link rel="canonical" href="https://m-profile.top/" />
   
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='16' fill='%23000'/><path d='M24 12C24 8.68629 20.4183 6 16 6C11.5817 6 8 8.68629 8 12C8 13.6974 9.05546 15.2141 10.7581 16.2371C10.8109 16.2686 10.8419 16.3249 10.8397 16.3841L10.7896 17.6506C10.7816 17.8683 11.0169 18.0073 11.2032 17.8928L12.7361 16.9851C12.7987 16.9457 12.8739 16.9304 12.9478 16.9428C13.9389 17.1404 14.9987 17.2444 16.1023 17.2444C20.4183 17.2444 24 14.5581 24 11.2444V12Z' fill='white'/><circle cx='12' cy='12' r='1.5' fill='%23000'/><circle cx='16' cy='12' r='1.5' fill='%23000'/><circle cx='20' cy='12' r='1.5' fill='%23000'/></svg>" />
 
@@ -149,6 +151,54 @@
 
     .nav-link:hover { text-decoration: underline; text-underline-offset: 4px; }
 
+    .nav-link:focus-visible,
+    .nav-logo:focus-visible,
+    .btn:focus-visible,
+    .mobile-nav summary:focus-visible,
+    .footer-link:focus-visible {
+      outline: 3px solid #2563eb;
+      outline-offset: 4px;
+    }
+
+    .mobile-nav { display: none; position: relative; }
+    .mobile-nav summary {
+      min-width: 44px;
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--border-color);
+      border-radius: 6px;
+      background: #fff;
+      box-shadow: 2px 2px 0 #000;
+      cursor: pointer;
+      font-weight: 800;
+      list-style: none;
+    }
+    .mobile-nav summary::-webkit-details-marker { display: none; }
+    .mobile-nav-panel {
+      position: absolute;
+      top: calc(100% + 0.75rem);
+      right: 0;
+      z-index: 10;
+      width: min(17rem, calc(100vw - 3rem));
+      display: grid;
+      gap: 0.25rem;
+      padding: 0.75rem;
+      border: 3px solid var(--border-color);
+      background: #fff;
+      box-shadow: var(--shadow-brutal);
+    }
+    .mobile-nav-panel a {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0.625rem 0.75rem;
+      color: var(--text-main);
+      text-decoration: none;
+      font-weight: 800;
+    }
+
     /* Main Area - Direct to Tests */
     .header-text {
       font-size: 3rem;
@@ -166,12 +216,30 @@
       font-weight: 600;
     }
 
+    .trust-note {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0;
+      margin-bottom: 3rem;
+      border: 3px solid var(--border-color);
+      background: #fff;
+      box-shadow: var(--shadow-brutal);
+    }
+    .trust-item { padding: 1rem 1.25rem; font-weight: 700; }
+    .trust-item + .trust-item { border-left: 2px solid var(--border-color); }
+    .trust-item strong { display: block; margin-bottom: 0.125rem; }
+    .trust-item span { color: var(--text-light); font-size: 0.875rem; }
+
+    .section-heading { margin-bottom: 1.5rem; }
+    .section-kicker { font-size: 0.8rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+    .section-heading h2 { font-size: 1.75rem; line-height: 1.2; }
+
     .cards-grid {
       display: grid;
       /* Force 2 columns on desktop to avoid the 3x1 orphan issue */
       grid-template-columns: repeat(2, 1fr);
       gap: 2.5rem;
-      padding-bottom: 6rem;
+      padding-bottom: 3.5rem;
     }
 
     .card {
@@ -258,6 +326,18 @@
     .card.s-type { background-color: #eff6ff; }
     .card.l-type { background-color: #fff1f2; }
     .card.c-type { background-color: #fffbeb; }
+    .card.utility-card { background: #fff; }
+    .utility-grid { padding-bottom: 6rem; }
+
+    .safety-note {
+      margin-top: auto;
+      margin-bottom: 3rem;
+      padding: 1.25rem;
+      border-left: 5px solid #000;
+      background: #f3f4f6;
+      color: var(--text-light);
+      font-size: 0.95rem;
+    }
 
     /* Footer */
     .site-footer {
@@ -305,11 +385,17 @@
       .header-text { font-size: 2.2rem; }
       .sub-text { font-size: 1rem; margin-bottom: 2rem; }
       .nav-links { display: none; }
+      .mobile-nav { display: block; }
+      .trust-note { grid-template-columns: 1fr; }
+      .trust-item + .trust-item { border-left: 0; border-top: 2px solid var(--border-color); }
       .cards-grid { grid-template-columns: 1fr; gap: 1.5rem; }
       .footer-content { flex-direction: column; align-items: flex-start; }
     }
     
     @media (max-width: 480px) {
+      .container { padding: 0 1rem; }
+      .nav { padding: 1.25rem 0; margin-bottom: 1.5rem; }
+      .header-text { font-size: 2rem; }
       .card { padding: 1.5rem; }
       .card h3 { font-size: 1.3rem; }
       .card-desc { font-size: 0.95rem; }
@@ -317,31 +403,59 @@
       .card-actions { flex-direction: column; }
       .btn-half { width: 100%; }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <nav class="nav">
+    <nav class="nav" aria-label="主导航">
       <a href="/" class="nav-logo">M-profile Lab</a>
       <div class="nav-links">
         <a href="#tests" class="nav-link">开始测试</a>
         <a href="/member.html" class="nav-link">我的档案</a>
         <a href="/message.html" class="nav-link">社区讨论</a>
       </div>
+      <details class="mobile-nav">
+        <summary aria-label="打开导航菜单">菜单</summary>
+        <div class="mobile-nav-panel">
+          <a href="#tests">开始自评</a>
+          <a href="/member.html">我的档案</a>
+          <a href="/message.html">留言板</a>
+        </div>
+      </details>
     </nav>
   </div>
 
   <main>
     <div class="container">
-      <h1 class="header-text">开始探索你的内在特质。</h1>
-      <p class="sub-text">无需注册即可完成测评；注册账号后可跨设备同步和对比记录。</p>
+      <h1 class="header-text">了解偏好，也明确边界。</h1>
+      <p class="sub-text">面向 18 岁以上用户的成人偏好自评工具。无需注册即可完成，结果用于自我了解与双方沟通，不构成心理或医学诊断。</p>
+
+      <section class="trust-note" aria-label="使用说明">
+        <div class="trust-item"><strong>18+ 成人内容</strong><span>部分题目涉及露骨或高风险行为</span></div>
+        <div class="trust-item"><strong>答案默认不公开</strong><span>分享由你主动发起，并可控制明细</span></div>
+        <div class="trust-item"><strong>同意高于分数</strong><span>任何结果都不能替代明确、持续的同意</span></div>
+      </section>
+
+      <div class="section-heading">
+        <span class="section-kicker">Self assessment</span>
+        <h2>选择适合你的自评入口</h2>
+      </div>
 
       <div class="cards-grid" id="tests">
         
         <!-- M-Type -->
         <div class="card m-type">
-          <h3>M型人格测试</h3>
-          <p class="card-desc">深入分析你的认知功能与性格特征，通过系统性的心理测评发现真实的内在自我。</p>
+          <h3>M 向偏好自评</h3>
+          <p class="card-desc">梳理你对不同情境与行为的接受程度，识别兴趣、未知和明确边界。</p>
           <div class="card-actions">
             <a href="/female.html" class="btn btn-half">女生版本</a>
             <a href="/male.html" class="btn btn-half">男生版本</a>
@@ -350,8 +464,8 @@
 
         <!-- S-Type -->
         <div class="card s-type">
-          <h3>S型人格测试</h3>
-          <p class="card-desc">发现并发挥你的核心优势与行为驱动力，了解你的主导性格倾向及潜在潜力。</p>
+          <h3>S 向偏好自评</h3>
+          <p class="card-desc">了解你在主导、控制与互动方式上的偏好，用于自我整理和沟通准备。</p>
           <div class="card-actions">
             <a href="/s.html" class="btn btn-primary">开始测试</a>
           </div>
@@ -359,32 +473,36 @@
 
         <!-- LGBT+ -->
         <div class="card l-type">
-          <h3>LGBT+ 身份探索</h3>
-          <p class="card-desc">专为多元群体设计的研究级支持工具，协助您进行深度身份认同的探索之旅。</p>
+          <h3>多元群体偏好自评</h3>
+          <p class="card-desc">减少性别与角色预设，用更包容的题目组织方式梳理偏好和边界。</p>
           <div class="card-actions">
             <a href="/lgbt.html" class="btn btn-primary">开始探索</a>
           </div>
         </div>
 
-        <!-- Community -->
-        <div class="card c-type">
-          <h3>社区交流</h3>
-          <p class="card-desc">与志同道合的测试者交流，分享感悟心得，探讨真实而深入的心理学话题。</p>
-          <div class="card-actions">
-            <a href="/message.html" class="btn btn-primary" style="background: #fff; color: #000;">进入留言板</a>
-          </div>
-        </div>
+      </div>
 
-        <!-- Member Center -->
-        <div class="card m-type">
+      <div class="section-heading">
+        <span class="section-kicker">Your tools</span>
+        <h2>保存记录与继续交流</h2>
+      </div>
+      <div class="cards-grid utility-grid">
+        <div class="card utility-card">
           <h3>我的档案</h3>
-          <p class="card-desc">注册后长期同步测评记录，回看每次明细并对比具体项目变化。</p>
+          <p class="card-desc">注册后跨设备保存记录、查看变化，并管理你主动创建的分享。</p>
           <div class="card-actions">
             <a href="/member.html" class="btn btn-primary">查看我的档案</a>
           </div>
         </div>
-
+        <div class="card utility-card">
+          <h3>留言板</h3>
+          <p class="card-desc">交流使用体验与功能建议。请勿公开真实联系方式、身份信息或他人的私密内容。</p>
+          <div class="card-actions">
+            <a href="/message.html" class="btn btn-primary">进入留言板</a>
+          </div>
+        </div>
       </div>
+      <p class="safety-note"><strong>安全提示：</strong>涉及窒息、失去意识、火、电、切割或其他可能造成伤害的行为时，测试结果不代表安全许可。请优先了解风险、法律限制与紧急停止方式。</p>
     </div>
   </main>
 
@@ -399,7 +517,7 @@
           <a href="/member.html" class="footer-link">我的档案</a>
           <a href="/message.html" class="footer-link">留言板</a>
         </nav>
-        <p class="copyright">© 2024 M-profile Lab. 测评结果仅供参考。</p>
+        <p class="copyright">© 2026 M-profile Lab. 18+ 自评结果仅供沟通参考。</p>
       </div>
     </div>
   </footer>

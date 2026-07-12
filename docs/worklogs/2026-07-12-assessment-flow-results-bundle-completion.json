@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-07-12-assessment-flow-results-bundle-completion",
+  "date": "2026-07-12",
+  "summary": "完成审查清单中的剩余完善工作：四套测试改为分类分步流程，增加未完成过滤、统一设置与撤销；统一结果解释与沟通建议；修正术语；拆分大型导出依赖。",
+  "trigger": "用户要求先完成截图中列出的全部完善工作。",
+  "changes": [
+    {
+      "category": "assessment-flow",
+      "files": [
+        "src/components/AssessmentFlowPanel.jsx",
+        "src/App.jsx",
+        "src/MaleApp.jsx",
+        "src/SApp.jsx",
+        "src/LgbtApp.jsx"
+      ],
+      "description": "四套测试统一使用分类分步面板；新增总进度、分类进度、分类跳转、下一类、只看未完成、本类统一设置和撤销。已有自动加载最近记录继续作为继续上次的数据来源。"
+    },
+    {
+      "category": "result-explanation",
+      "files": [
+        "src/components/ResultInsights.jsx",
+        "src/App.jsx",
+        "src/MaleApp.jsx",
+        "src/SApp.jsx",
+        "src/LgbtApp.jsx"
+      ],
+      "description": "四套报告统一增加突出分类的自然语言说明、偏好/沟通/边界/未知数量和同意优先的沟通建议。"
+    },
+    {
+      "category": "terminology-design-system",
+      "files": [
+        "src/SApp.jsx",
+        "src/LgbtApp.jsx",
+        "src/components/AssessmentFlowPanel.jsx",
+        "src/components/ResultInsights.jsx"
+      ],
+      "description": "将人格诊断和身份探索类表述调整为偏好与边界自评；四套测试共享相同的导航、按钮层级、进度结构与结果说明，仅保留主题色差异。"
+    },
+    {
+      "category": "performance",
+      "files": [
+        "vite.config.js"
+      ],
+      "description": "只对 html2canvas、html2pdf、jsPDF、DOMPurify 和 file-saver 采用异步自动拆分，保留其余稳定 vendor 分组，消除 889 KB 单一 vendor chunk 且避免 MUI 运行时依赖顺序错误。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，2520 个模块完成构建；不再出现超过 500 KB 的 chunk 警告。最大异步导出 chunk 为 html2pdf 423.91 kB，原 889.03 kB vendor 已拆除。"
+    },
+    {
+      "command": "Playwright 四入口核心交互",
+      "result": "female、male、s、lgbt 均能显示分类进度，统一设置 W 后可撤销，下一类正确切换，无页面错误或横向滚动。"
+    },
+    {
+      "command": "Playwright 典型视口",
+      "result": "female 页面在 320、375、390、430、768、1024、1440 均无横向滚动。"
+    },
+    {
+      "command": "Playwright 结果报告",
+      "result": "批量填写后可生成报告，结果怎么理解与沟通建议均可见。"
+    },
+    {
+      "command": "运行时拆包回归",
+      "result": "发现并修复初版自动拆包造成的 ForwardRef 错误；最终四个入口运行时均正常。"
+    }
+  ],
+  "knownLimitations": [
+    "继续上次沿用现有最近记录加载机制，没有新增本地未登录草稿存储。",
+    "结果解释基于本次选择分布，不构成专业诊断或安全建议。",
+    "未对真实 Supabase 账号进行跨设备恢复验证。"
+  ],
+  "deploymentNotes": "部署后应重点观察分类完成率、下一类点击率和报告生成率；异步导出依赖仅在用户保存图片或 PDF 时加载。"
+}

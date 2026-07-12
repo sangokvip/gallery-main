@@ -117,11 +117,16 @@ COMMENT ON TABLE user_analytics IS '用户行为分析表';
 COMMENT ON TABLE report_exports IS '测试报告导出记录表';
 COMMENT ON TABLE daily_statistics IS '系统每日统计数据表';
 
--- 插入默认管理员账户（密码：admin123）
--- 注意：生产环境请使用更安全的密码
-INSERT INTO admins (username, password_hash, email, role, is_active) VALUES 
-('admin', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin@example.com', 'super_admin', true)
-ON CONFLICT (username) DO NOTHING;
+-- 创建默认管理员账户
+-- 安全要求：禁止在仓库中硬编码可用口令。请在部署时手动执行下面的 INSERT，
+-- 并把 password_hash 替换为你自己生成的 bcrypt 哈希（成本因子 >= 10）。
+-- 生成方式（任选其一）：
+--   Node:   node -e "console.log(require('bcryptjs').hashSync(process.argv[1],10))" '你的强口令'
+--   pgcrypto: crypt('你的强口令', gen_salt('bf', 10))
+--
+-- INSERT INTO admins (username, password_hash, email, role, is_active) VALUES
+-- ('你的管理员用户名', '<在此粘贴你生成的_bcrypt_哈希>', 'you@example.com', 'super_admin', true)
+-- ON CONFLICT (username) DO NOTHING;
 
 -- 插入系统默认配置
 INSERT INTO system_settings (key, value, description) VALUES 

@@ -1,4 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+/* 像素字体：使用本地字体文件，避免依赖 Google Fonts CDN（更快、可离线、无第三方请求） */
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('/fonts/PressStart2P-Regular.ttf') format('truetype');
+  font-display: swap;
+}
 
 /* 像素风格全局样式 */
 .pixel-theme {
@@ -290,11 +295,7 @@
   stroke-width: 2px !important;
 }
 
-/* 像素字体 */
-@font-face {
-  font-family: 'PixelFont';
-  src: url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-}
+/* （原 'PixelFont' @font-face 已移除：它从未被任何规则引用，真正使用的字体族是上方的 'Press Start 2P'） */
 
 /* 像素边框动画 */
 @keyframes pixelBorderAnimation {

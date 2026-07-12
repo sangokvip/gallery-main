@@ -30,7 +30,6 @@ import Masonry from '@mui/lab/Masonry';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import ThumbDownIcon from '@mui/icons-material/ThumbDown';
 import MenuIcon from '@mui/icons-material/Menu';
-import LogoutIcon from '@mui/icons-material/Logout';
 import FemaleIcon from '@mui/icons-material/Female';
 import MaleIcon from '@mui/icons-material/Male';
 import ScienceIcon from '@mui/icons-material/Science';
@@ -42,6 +41,7 @@ import CropFreeIcon from '@mui/icons-material/CropFree';
 import './styles/pixel-theme.css';
 import { v4 as uuidv4 } from 'uuid';
 import { galleryApi } from './utils/supabase';
+import { adminApi } from './adminBrutalApi';
 import CollectionsIcon from '@mui/icons-material/Collections';
 import AdsterraAd from './components/AdsterraAd';
 
@@ -2247,10 +2247,7 @@ function GalleryApp() {
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState('info');
   const [userId, setUserId] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(() => {
-    // 从 localStorage 读取管理员状态
-    return localStorage.getItem('isAdmin') === 'true';
-  });
+  const isAdmin = true;
   const [filter, setFilter] = useState('all');
   const [selectedImages, setSelectedImages] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -2400,28 +2397,6 @@ function GalleryApp() {
       fetchImages(true);
     }
   }, [page]);
-
-  // 处理双击标题进入管理员模式
-  const handleTitleDoubleClick = () => {
-    const password = prompt('请输入管理员密码：');
-    if (password === '[REMOVED]') {
-      setIsAdmin(true);
-      localStorage.setItem('isAdmin', 'true'); // 保存管理员状态
-      setSnackbarMessage('管理员登录成功！');
-      setSnackbarOpen(true);
-    } else if (password !== null) {
-      setSnackbarMessage('密码错误！');
-      setSnackbarOpen(true);
-    }
-  };
-
-  // 退出管理员模式
-  const handleLogout = () => {
-    setIsAdmin(false);
-    localStorage.removeItem('isAdmin'); // 移除管理员状态
-    setSnackbarMessage('已退出管理员模式！');
-    setSnackbarOpen(true);
-  };
 
   // 初始化用户ID
   useEffect(() => {
@@ -2817,18 +2792,9 @@ function GalleryApp() {
                     transition: 'all 0.2s ease',
                   }
                 }}>
-                  {isAdmin && (
-                    <Button
-                      color="error"
-                      variant="outlined"
-                      startIcon={<LogoutIcon />}
-                      onClick={handleLogout}
-                      size="small"
-                      sx={{ fontWeight: 500 }}
-                    >
-                      退出管理
-                    </Button>
-                  )}
+                  <Button color="primary" variant="outlined" href="/sangok.html" size="small">
+                    返回后台
+                  </Button>
                   <Button
                     color="primary"
                     variant="text"
@@ -2936,19 +2902,6 @@ function GalleryApp() {
             </Box>
             <Divider sx={{ mb: 2 }} />
             <List>
-              {isAdmin && (
-                <ListItem 
-                  button 
-                  onClick={handleLogout}
-                  sx={{
-                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                    '&:hover': { backgroundColor: 'rgba(239, 68, 68, 0.15)' }
-                  }}
-                >
-                  <ListItemIcon><LogoutIcon sx={{ color: 'error.main' }} /></ListItemIcon>
-                  <ListItemText primary="退出管理" primaryTypographyProps={{ fontWeight: 500, color: 'error.main' }} />
-                </ListItem>
-              )}
               <ListItem 
                 button 
                 component="a" 
@@ -3056,9 +3009,8 @@ function GalleryApp() {
                     '100%': { transform: 'translateY(0)' },
                   },
               }}
-              onDoubleClick={handleTitleDoubleClick}
             >
-              Report Gallery
+              后台图库
             </Typography>
 
               <Typography
@@ -3316,4 +3268,59 @@ const hasEditPermission = (image) => {
   return image.isAdmin || image.user_id === image.current_user_id;
 };
 
-export default GalleryApp; 
+function AdminGalleryGate() {
+  const [accessState, setAccessState] = useState('checking');
+
+  useEffect(() => {
+    let active = true;
+    const verifyBackendSession = async () => {
+      const admin = adminApi.validateSession();
+      if (!admin) {
+        if (active) setAccessState('denied');
+        return;
+      }
+
+      try {
+        // getStats 会携带当前管理员会话哈希，由后台 RPC 校验会话是否有效。
+        await Promise.race([
+          adminApi.getStats(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('管理员会话验证超时')), 5000))
+        ]);
+        if (active) setAccessState('allowed');
+      } catch {
+        if (active) setAccessState('denied');
+      }
+    };
+
+    verifyBackendSession();
+    return () => { active = false; };
+  }, []);
+
+  if (accessState === 'allowed') return <GalleryApp />;
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Container maxWidth="sm" sx={{ minHeight: '100vh', display: 'grid', placeItems: 'center', py: 4 }}>
+        <Paper sx={{ p: 4, width: '100%', textAlign: 'center' }}>
+          {accessState === 'checking' ? (
+            <>
+              <CircularProgress size={28} sx={{ mb: 2 }} />
+              <Typography color="text.secondary">正在验证后台管理员会话…</Typography>
+            </>
+          ) : (
+            <>
+              <Typography variant="h5" component="h1" sx={{ mb: 1 }}>访问受限</Typography>
+              <Typography color="text.secondary" sx={{ mb: 3 }}>
+                图库仅供已登录的后台管理员使用。
+              </Typography>
+              <Button variant="contained" href="/sangok.html">前往后台登录</Button>
+            </>
+          )}
+        </Paper>
+      </Container>
+    </ThemeProvider>
+  );
+}
+
+export default AdminGalleryGate;

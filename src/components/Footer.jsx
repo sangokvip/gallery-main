@@ -76,19 +76,41 @@ const Footer = ({ pixelStyle = false, pinkStyle = false, redStyle = false }) => 
             gap: 2
           }}
         >
-          <Typography 
-            variant="body2" 
-            color="white"
-            sx={{
-              ...(pixelStyle && {
-                fontFamily: 'inherit',
-                fontSize: '0.8rem',
-                textShadow: '2px 2px 0px #000000',
-              })
-            }}
-          >
-            © {currentYear} M-Profile Lab. All rights reserved.
-          </Typography>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, alignItems: { xs: 'center', sm: 'flex-start' } }}>
+            <Typography
+              variant="body2"
+              color="white"
+              sx={{
+                ...(pixelStyle && {
+                  fontFamily: 'inherit',
+                  fontSize: '0.8rem',
+                  textShadow: '2px 2px 0px #000000',
+                })
+              }}
+            >
+              © {currentYear} M-Profile Lab. All rights reserved.
+            </Typography>
+            <Link
+              href="https://bdsm.casa"
+              target="_blank"
+              rel="noopener noreferrer"
+              underline="none"
+              sx={{
+                color: 'white',
+                fontWeight: 800,
+                letterSpacing: '0.5px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.5,
+                ...(pixelStyle
+                  ? { fontFamily: 'inherit', fontSize: '0.85rem', textShadow: '2px 2px 0px #000000' }
+                  : { fontSize: '0.95rem' }),
+                '&:hover': { opacity: 0.85 }
+              }}
+            >
+              🔖 网址：bdsm.casa
+            </Link>
+          </Box>
           
           <Box
             sx={{

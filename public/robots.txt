@@ -28,6 +28,7 @@ Disallow: /node_modules/
 Disallow: /.git/
 Disallow: /.vscode/
 Disallow: /dist/
+Disallow: /gallery.html
 
 # 爬取延迟（毫秒）
 Crawl-delay: 1

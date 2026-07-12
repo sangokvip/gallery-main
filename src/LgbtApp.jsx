@@ -2,15 +2,12 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Container, Typography, Paper, Grid, Box, Select, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Snackbar, AppBar, Toolbar, Drawer, List, ListItem, ListItemIcon, ListItemText, createTheme, ThemeProvider, TextField, Chip, LinearProgress, CircularProgress } from '@mui/material'
 import Footer from './components/Footer'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import html2canvas from 'html2canvas'
-import html2pdf from 'html2pdf.js'
-import { createReportImageBlob, saveReportImageBlob } from './utils/reportExport'
+// html2canvas / html2pdf / reportExport 改为按需动态 import（见导出与分享处理函数），避免答题前就下载 ~650KB 的导出库
 import ScienceIcon from '@mui/icons-material/Science'
 import HomeIcon from '@mui/icons-material/Home'
 import InfoIcon from '@mui/icons-material/Info'
 import HelpIcon from '@mui/icons-material/Help'
 import MenuIcon from '@mui/icons-material/Menu'
-import AutorenewIcon from '@mui/icons-material/Autorenew'
 import CloseIcon from '@mui/icons-material/Close'
 import MaleIcon from '@mui/icons-material/Male'
 import MessageIcon from '@mui/icons-material/Message'
@@ -26,6 +23,8 @@ import { userManager, getUserId, getNickname } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 import AdsterraAd from './components/AdsterraAd'
 import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
+import AssessmentFlowPanel, { useAssessmentFlow } from './components/AssessmentFlowPanel'
+import ResultInsights from './components/ResultInsights'
 
 
 // GSAP动画系统导入
@@ -163,6 +162,15 @@ function LgbtApp() {
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
   const { memberStatusLabel, showMemberSignupPrompt, MemberSignupPromptSnackbar } = useMemberSignupPrompt()
+  const assessmentFlow = useAssessmentFlow({
+    categories: CATEGORIES,
+    ratings,
+    setRatings,
+    notify: message => {
+      setSnackbarMessage(message)
+      setSnackbarOpen(true)
+    }
+  })
 
   // 初始化GSAP和页面动画
   useEffect(() => {
@@ -465,6 +473,7 @@ function LgbtApp() {
     try {
       setSnackbarMessage("正在生成图片，请稍候...");
       setSnackbarOpen(true);
+      const { createReportImageBlob, saveReportImageBlob } = await import('./utils/reportExport');
       const blob = await createReportImageBlob(reportRef.current);
       const result = await saveReportImageBlob({
         blob,
@@ -505,6 +514,7 @@ function LgbtApp() {
           html2canvas: { scale: 2 },
           jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
         }
+        const html2pdf = (await import('html2pdf.js')).default
         await html2pdf().set(opt).from(element).save()
         setSnackbarMessage('报告已成功保存为PDF！')
         setSnackbarOpen(true)
@@ -541,6 +551,7 @@ function LgbtApp() {
       if (canShareFiles) {
         // 尝试分享带有文件的内容
         try {
+          const html2canvas = (await import('html2canvas')).default
           const canvas = await html2canvas(reportRef.current)
           const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0))
           const file = new File([blob], 'LGBT自评报告.png', { type: 'image/png' })
@@ -1164,7 +1175,7 @@ function LgbtApp() {
               onDoubleClick={handleTitleDoubleClick}
               title="lgbt-profile.top"
             >
-              🏳️‍🌈 LGBT+身份探索测试
+              🏳️‍🌈 多元群体偏好自评
             </Typography>
             <Box className="pixel-divider-pink" sx={{ mb: 4, mt: 2 }}></Box>
 
@@ -1259,32 +1270,6 @@ function LgbtApp() {
                 <Button
                   variant="outlined"
                   size="large"
-                  startIcon={<AutorenewIcon />}
-                  sx={{
-                    padding: '12px 32px',
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold'
-                  }}
-                  className="pixel-button-pink"
-                  onClick={() => {
-                    const newRatings = {};
-                    Object.entries(CATEGORIES).forEach(([category, items]) => {
-                      items.forEach(item => {
-                        const randomIndex = Math.floor(Math.random() * RATING_OPTIONS.length);
-                        newRatings[`${category}-${item}`] = RATING_OPTIONS[randomIndex];
-                      });
-                    });
-                    setRatings(newRatings);
-                    setSnackbarMessage('已完成随机选择！');
-                    setSnackbarOpen(true);
-                  }}
-                >
-                  随机选择
-                </Button>
-
-                <Button
-                  variant="outlined"
-                  size="large"
                   startIcon={<CloseIcon />}
                   color="error"
                   sx={{
@@ -1318,7 +1303,8 @@ function LgbtApp() {
             </Box>
           </Box>
 
-          {Object.entries(CATEGORIES).map(([category, items]) => (
+          <AssessmentFlowPanel flow={assessmentFlow} ratingOptions={RATING_OPTIONS} accentColor="#8b5cf6" />
+          {assessmentFlow.visibleCategoryEntries.map(([category, items]) => (
             <Paper key={category} elevation={2} sx={{
               p: { xs: 3, md: 4 },
               borderRadius: 0,
@@ -1449,7 +1435,7 @@ function LgbtApp() {
                 color: 'primary.main',
                 mb: 2
               }}>
-                扫码领取您的XP报告
+                扫码领取您的XP报告（或访问 bdsm.casa）
               </Typography>
               <Box component="img" src="/qrcode.png" alt="QR Code" sx={{
                 width: '200px',
@@ -1491,7 +1477,7 @@ function LgbtApp() {
               borderBottom: '2px dashed #ff69b4',
               mb: 1
             }} className="lgbt-title">
-              🏳️‍🌈 LGBT+身份探索详细报告
+              🏳️‍🌈 多元群体偏好自评详细报告
             </DialogTitle>
             <DialogContent ref={reportRef} sx={{
               px: { xs: 2, md: 4 },
@@ -1512,7 +1498,7 @@ function LgbtApp() {
                   backgroundClip: 'text',
                   mb: { xs: 2, md: 3 } 
                 }}>
-                  🏳️‍🌈 LGBT+身份探索报告
+                  🏳️‍🌈 多元群体偏好自评报告
                 </Typography>
                 <Typography variant="subtitle1" align="center" sx={{ 
                   background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3)',
@@ -1524,6 +1510,7 @@ function LgbtApp() {
                 }}>
                   No.{userCount.toLocaleString().padStart(4, '0')}
                 </Typography>
+                <ResultInsights data={getRadarData()} ratings={ratings} accentColor="#8b5cf6" />
 
                 {/* 雷达图部分 */}
                 <Box sx={{
@@ -1670,7 +1657,7 @@ function LgbtApp() {
                   borderRadius: 2
                 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#ff69b4' }}>
-                    原生相机扫码领取您的XP报告
+                    原生相机扫码领取您的XP报告（或访问 bdsm.casa）
                   </Typography>
                   <Box
                     component="img"

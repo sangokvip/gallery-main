@@ -68,11 +68,6 @@
       "dest": "/$1.png"
     },
     {
-      "src": "/sw.js",
-      "dest": "/sw.js",
-      "headers": { "cache-control": "public, max-age=0, must-revalidate" }
-    },
-    {
       "src": "/female.html",
       "dest": "/female.html"
     },

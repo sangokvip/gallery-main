@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-07-12-gallery-admin-only",
+  "date": "2026-07-12",
+  "summary": "图库已从前台入口和搜索收录中移除，并改为仅在后台管理员会话通过服务端校验后加载。",
+  "trigger": "用户要求隐藏图库板块，只允许管理员从后台进入，不在前台显示图库入口。",
+  "changes": [
+    {
+      "category": "frontend-visibility",
+      "files": ["src/MessageApp.jsx"],
+      "description": "删除留言板中的图库宣传卡片和进入图库按钮。"
+    },
+    {
+      "category": "admin-access-control",
+      "files": ["src/GalleryApp.jsx", "src/ModernAdminApp.jsx"],
+      "description": "图库保留为后台快捷入口；图库页面移除双击密码和 localStorage 管理员开关，改为读取后台会话并调用后台统计接口验证会话后才挂载图库。未通过验证时不加载图片或图库操作界面。"
+    },
+    {
+      "category": "seo",
+      "files": ["gallery.html", "public/robots.txt", "public/sitemap.xml"],
+      "description": "图库页面设为 noindex/nofollow，移除公开图库结构化数据、广告和 canonical，robots 禁止抓取，sitemap 删除图库 URL。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过。"
+    },
+    {
+      "command": "Playwright 未登录访问图库",
+      "result": "显示访问受限，不出现图库内容。"
+    },
+    {
+      "command": "静态入口检查",
+      "result": "前台页面不再存在指向 /gallery.html 的链接；唯一链接保留在 ModernAdminApp 后台快捷入口。"
+    }
+  ],
+  "knownLimitations": [
+    "管理员会话校验依赖现有 member_admin_overview 后台 RPC 在生产环境已部署。若该 RPC 不可用，图库会按安全默认拒绝访问。",
+    "本地无真实生产管理员凭据，未执行真实管理员会话的端到端验证。"
+  ],
+  "deploymentNotes": "部署前确认生产数据库已部署管理员会话和 member_admin_overview RPC；否则后台图库会显示访问受限。"
+}

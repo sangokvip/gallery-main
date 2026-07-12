@@ -2,15 +2,12 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Container, Typography, Paper, Grid, Box, Select, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Snackbar, AppBar, Toolbar, Drawer, List, ListItem, ListItemIcon, ListItemText, createTheme, ThemeProvider, TextField, Chip, LinearProgress, CircularProgress } from '@mui/material'
 import Footer from './components/Footer'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import html2canvas from 'html2canvas'
-import html2pdf from 'html2pdf.js'
-import { createReportImageBlob, saveReportImageBlob } from './utils/reportExport'
+// html2canvas / html2pdf / reportExport 改为按需动态 import（见导出与分享处理函数），避免答题前就下载 ~650KB 的导出库
 import ScienceIcon from '@mui/icons-material/Science'
 import HomeIcon from '@mui/icons-material/Home'
 import InfoIcon from '@mui/icons-material/Info'
 import HelpIcon from '@mui/icons-material/Help'
 import MenuIcon from '@mui/icons-material/Menu'
-import AutorenewIcon from '@mui/icons-material/Autorenew'
 import CloseIcon from '@mui/icons-material/Close'
 import MaleIcon from '@mui/icons-material/Male'
 import FavoriteIcon from '@mui/icons-material/Favorite'
@@ -27,6 +24,8 @@ import { userManager, getUserId, getNickname } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 import AdsterraAd from './components/AdsterraAd'
 import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
+import AssessmentFlowPanel, { useAssessmentFlow } from './components/AssessmentFlowPanel'
+import ResultInsights from './components/ResultInsights'
 
 
 // GSAP动画系统导入
@@ -159,6 +158,15 @@ function App() {
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
   const { memberStatusLabel, showMemberSignupPrompt, MemberSignupPromptSnackbar } = useMemberSignupPrompt()
+  const assessmentFlow = useAssessmentFlow({
+    categories: CATEGORIES,
+    ratings,
+    setRatings,
+    notify: message => {
+      setSnackbarMessage(message)
+      setSnackbarOpen(true)
+    }
+  })
 
   // 初始化GSAP和页面动画
   useEffect(() => {
@@ -461,6 +469,7 @@ function App() {
     try {
       setSnackbarMessage("正在生成图片，请稍候...");
       setSnackbarOpen(true);
+      const { createReportImageBlob, saveReportImageBlob } = await import('./utils/reportExport');
       const blob = await createReportImageBlob(reportRef.current);
       const result = await saveReportImageBlob({
         blob,
@@ -501,6 +510,7 @@ function App() {
           html2canvas: { scale: 2 },
           jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
         }
+        const html2pdf = (await import('html2pdf.js')).default
         await html2pdf().set(opt).from(element).save()
         setSnackbarMessage('报告已成功保存为PDF！')
         setSnackbarOpen(true)
@@ -537,6 +547,7 @@ function App() {
       if (canShareFiles) {
         // 尝试分享带有文件的内容
         try {
+          const html2canvas = (await import('html2canvas')).default
           const canvas = await html2canvas(reportRef.current)
           const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png', 1.0))
           const file = new File([blob], '女M自评报告.png', { type: 'image/png' })
@@ -1060,32 +1071,6 @@ function App() {
                 <Button
                   variant="outlined"
                   size="large"
-                  startIcon={<AutorenewIcon />}
-                  sx={{
-                    padding: '12px 32px',
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold'
-                  }}
-                  className="pixel-button-pink"
-                  onClick={() => {
-                    const newRatings = {};
-                    Object.entries(CATEGORIES).forEach(([category, items]) => {
-                      items.forEach(item => {
-                        const randomIndex = Math.floor(Math.random() * RATING_OPTIONS.length);
-                        newRatings[`${category}-${item}`] = RATING_OPTIONS[randomIndex];
-                      });
-                    });
-                    setRatings(newRatings);
-                    setSnackbarMessage('已完成随机选择！');
-                    setSnackbarOpen(true);
-                  }}
-                >
-                  随机选择
-                </Button>
-
-                <Button
-                  variant="outlined"
-                  size="large"
                   startIcon={<CloseIcon />}
                   color="error"
                   sx={{
@@ -1119,7 +1104,8 @@ function App() {
             </Box>
           </Box>
 
-          {Object.entries(CATEGORIES).map(([category, items]) => (
+          <AssessmentFlowPanel flow={assessmentFlow} ratingOptions={RATING_OPTIONS} accentColor="#ff69b4" />
+          {assessmentFlow.visibleCategoryEntries.map(([category, items]) => (
             <Paper key={category} elevation={2} sx={{
               p: { xs: 3, md: 4 },
               borderRadius: 0,
@@ -1250,7 +1236,7 @@ function App() {
                 color: 'primary.main',
                 mb: 2
               }}>
-                扫码领取您的XP报告
+                扫码领取您的XP报告（或访问 bdsm.casa）
               </Typography>
               <Box component="img" src="/qrcode.png" alt="QR Code" sx={{
                 width: '200px',
@@ -1312,6 +1298,7 @@ function App() {
                 <Typography variant="subtitle1" align="center" sx={{ color: '#ff69b4', mb: { xs: 2, md: 3 }, fontWeight: 'bold' }}>
                   No.{userCount.toLocaleString().padStart(4, '0')}
                 </Typography>
+                <ResultInsights data={getRadarData()} ratings={ratings} accentColor="#ff69b4" />
 
                 {/* 雷达图部分 */}
                 <Box sx={{
@@ -1458,7 +1445,7 @@ function App() {
                   borderRadius: 2
                 }}>
                   <Typography variant="h6" sx={{ mb: 2, color: '#ff69b4' }}>
-                    原生相机扫码领取您的XP报告
+                    原生相机扫码领取您的XP报告（或访问 bdsm.casa）
                   </Typography>
                   <Box
                     component="img"

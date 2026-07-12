@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-07-12-homepage-positioning-navigation-random-action",
+  "date": "2026-07-12",
+  "summary": "完成第一批网站完善：修正首页产品定位与敏感内容说明，补齐移动导航和焦点状态，重组测试与工具入口，并从四套正式测试中移除随机填充。",
+  "trigger": "用户要求开始完善网站。",
+  "changes": [
+    {
+      "category": "product-positioning",
+      "files": [
+        "index.html"
+      ],
+      "description": "将专业心理测评表述改为 18+ 成人偏好与边界自评，明确非心理或医学诊断、答案默认不公开、同意高于分数，并同步修正 title、description、OG、Twitter 和 JSON-LD。"
+    },
+    {
+      "category": "responsive-accessibility",
+      "files": [
+        "index.html"
+      ],
+      "description": "新增原生 details 移动导航、键盘焦点样式、44px 触控目标、reduced-motion 处理和 320px 布局保护。"
+    },
+    {
+      "category": "information-architecture",
+      "files": [
+        "index.html"
+      ],
+      "description": "将三个自评入口与档案、留言板分组，修正文案层级、LGBT+ 入口定位、版权年份，并删除不存在的站内搜索结构化数据。"
+    },
+    {
+      "category": "error-prevention",
+      "files": [
+        "src/App.jsx",
+        "src/SApp.jsx",
+        "src/MaleApp.jsx",
+        "src/LgbtApp.jsx"
+      ],
+      "description": "移除正式测试中的随机选择按钮和相关图标导入，避免随机答案被保存、分析或分享。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，2518 个模块完成构建；既有 vendor-c65f6136.js 仍为 889.03 kB，保留体积警告。"
+    },
+    {
+      "command": "Playwright + 本机 Chrome 多视口检查",
+      "result": "320、375、390、430、768、1024、1440 均无横向滚动；移动端显示菜单、桌面端显示完整导航；页面无 console error。"
+    },
+    {
+      "command": "Playwright 390px 移动菜单交互",
+      "result": "菜单可点击展开，开始自评、我的档案、留言板三个链接均可见。"
+    },
+    {
+      "command": "rg 检查随机选择和旧定位文案",
+      "result": "四套测试不再包含 AutorenewIcon 或随机选择；首页不再包含 SearchAction、专业心理测评和结果准确可靠。"
+    },
+    {
+      "command": "Impeccable detect index.html",
+      "result": "剩余 3 条字体风格 warning，均指向 Inter 单字体；无新增结构类问题。"
+    }
+  ],
+  "knownLimitations": [
+    "本批未实现分段答题、只看未完成、继续上次和双人边界会话。",
+    "首页仍使用 Inter，字体个性问题留待统一设计系统阶段处理。",
+    "大型 vendor chunk 仍需单独分析依赖来源后再拆分。",
+    "未验证真实 Supabase 登录、保存与分享数据流程，本批没有修改这些接口。"
+  ],
+  "deploymentNotes": "属于前端静态页面和测试操作调整，部署前建议复核首页 SEO 预览，并确认移除随机按钮符合运营需求。"
+}

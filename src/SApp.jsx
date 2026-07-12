@@ -2,15 +2,12 @@ import React, { useState, useRef, useEffect } from 'react'
 import { Container, Typography, Paper, Grid, Box, Select, MenuItem, Button, Dialog, DialogTitle, DialogContent, DialogActions, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, IconButton, Snackbar, AppBar, Toolbar, Drawer, List, ListItem, ListItemIcon, ListItemText, createTheme, ThemeProvider, TextField, Chip, Popper, Fade, LinearProgress, CircularProgress } from '@mui/material'
 import './styles/pixel-theme.css'
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
-import html2canvas from 'html2canvas'
-import html2pdf from 'html2pdf.js'
-import { createReportImageBlob, saveReportImageBlob } from './utils/reportExport'
+// html2canvas / html2pdf / reportExport 改为按需动态 import（见导出与分享处理函数），避免答题前就下载 ~650KB 的导出库
 import ScienceIcon from '@mui/icons-material/Science'
 import HomeIcon from '@mui/icons-material/Home'
 import InfoIcon from '@mui/icons-material/Info'
 import HelpIcon from '@mui/icons-material/Help'
 import MenuIcon from '@mui/icons-material/Menu'
-import AutorenewIcon from '@mui/icons-material/Autorenew'
 import CloseIcon from '@mui/icons-material/Close'
 import MaleIcon from '@mui/icons-material/Male'
 import FemaleIcon from '@mui/icons-material/Female'
@@ -27,6 +24,8 @@ import { userManager, getUserId, getNickname } from './utils/userManager'
 import { runDatabaseDiagnostic } from './utils/databaseDiagnostic'
 import AdsterraAd from './components/AdsterraAd'
 import { useMemberSignupPrompt } from './components/MemberSignupPrompt'
+import AssessmentFlowPanel, { useAssessmentFlow } from './components/AssessmentFlowPanel'
+import ResultInsights from './components/ResultInsights'
 
 
 // MENU_ITEMS定义移到函数组件内部
@@ -151,6 +150,15 @@ function SApp() {
   const reportRef = useRef(null)
   const originalGuideRef = useRef(null)
   const { memberStatusLabel, showMemberSignupPrompt, MemberSignupPromptSnackbar } = useMemberSignupPrompt()
+  const assessmentFlow = useAssessmentFlow({
+    categories: CATEGORIES,
+    ratings,
+    setRatings,
+    notify: message => {
+      setSnackbarMessage(message)
+      setSnackbarOpen(true)
+    }
+  })
 
   // 页面加载时初始化数据
   useEffect(() => {
@@ -494,6 +502,7 @@ function SApp() {
     try {
       setSnackbarMessage("正在生成图片，请稍候...");
       setSnackbarOpen(true);
+      const { createReportImageBlob, saveReportImageBlob } = await import('./utils/reportExport');
       const blob = await createReportImageBlob(reportRef.current);
       const result = await saveReportImageBlob({
         blob,
@@ -534,6 +543,7 @@ function SApp() {
           html2canvas: { scale: 2 },
           jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
         }
+        const html2pdf = (await import('html2pdf.js')).default
         await html2pdf().set(opt).from(element).save()
         setSnackbarMessage('报告已成功保存为PDF！')
         setSnackbarOpen(true)
@@ -564,6 +574,7 @@ function SApp() {
 
     try {
       const reportElement = reportRef.current
+      const html2canvas = (await import('html2canvas')).default
       const canvas = await html2canvas(reportElement, {
         scale: 2,
         useCORS: true,
@@ -875,29 +886,6 @@ function SApp() {
 
             <Button
               variant="outlined"
-              color="primary"
-              size="large"
-              onClick={() => {
-                const newRatings = { ...ratings }
-                Object.entries(CATEGORIES).forEach(([category, items]) => {
-                  items.forEach(item => {
-                    const randomIndex = Math.floor(Math.random() * RATING_OPTIONS.length)
-                    newRatings[`${category}-${item}`] = RATING_OPTIONS[randomIndex]
-                  })
-                })
-                setRatings(newRatings)
-                setSnackbarMessage('已完成随机选择！')
-                setSnackbarOpen(true)
-              }}
-              className="pixel-button-red"
-              startIcon={<AutorenewIcon />}
-              sx={{ minWidth: 150 }}
-            >
-              随机选择
-            </Button>
-
-            <Button
-              variant="outlined"
               size="large"
               startIcon={<CloseIcon />}
               color="error"
@@ -925,7 +913,8 @@ function SApp() {
           </Box>
         </Box>
         
-        {Object.entries(CATEGORIES).map(([category, items]) => (
+        <AssessmentFlowPanel flow={assessmentFlow} ratingOptions={RATING_OPTIONS} accentColor="#d00000" />
+        {assessmentFlow.visibleCategoryEntries.map(([category, items]) => (
           <Paper key={category} elevation={2} className="pixel-card-red" sx={{
             p: { xs: 3, md: 4 },
             borderRadius: 0,
@@ -1061,7 +1050,7 @@ function SApp() {
               color: 'primary.main',
               mb: 2
             }}>
-              扫码领取您的XP报告
+              扫码领取您的XP报告（或访问 bdsm.casa）
             </Typography>
             <Box component="img" src="/qrcode.png" alt="QR Code" sx={{
               width: '200px',
@@ -1275,11 +1264,12 @@ function SApp() {
         }}>
           <Box ref={reportRef} sx={{ p: { xs: 1, md: 2 } }}>
             <Typography variant="h4" gutterBottom align="center" sx={{ color: 'red', mb: { xs: 2, md: 3 } }}>
-              S型人格测试报告
+              S 向偏好自评报告
             </Typography>
             <Typography variant="subtitle1" align="center" sx={{ color: 'red', mb: { xs: 2, md: 3 }, fontWeight: 'bold' }}>
               No.{userCount.toLocaleString().padStart(4, '0')}
             </Typography>
+            <ResultInsights data={getRadarData()} ratings={ratings} accentColor="#d00000" />
 
             {/* 雷达图部分 */}
             <Box sx={{
@@ -1426,7 +1416,7 @@ function SApp() {
               borderRadius: 2
             }}>
               <Typography variant="h6" sx={{ mb: 2, color: '#ff0000' }}>
-                原生相机扫码领取您的XP报告
+                原生相机扫码领取您的XP报告（或访问 bdsm.casa）
               </Typography>
               <Box 
                 component="img" 
@@ -1497,7 +1487,7 @@ function SApp() {
         <DialogTitle>评分说明</DialogTitle>
         <DialogContent>
           <Typography variant="body1" paragraph>
-            本测试旨在帮助您了解自己的S型人格特质。请根据您对各项活动的接受程度进行评分：
+            本自评用于梳理你在主导、控制与互动方式上的偏好和边界，请根据真实感受评分：
           </Typography>
           <TableContainer>
             <Table>
@@ -1571,7 +1561,7 @@ function SApp() {
             2. 您可以使用每个类别旁边的"一键选择"功能，快速为整个类别设置相同的评分。
           </Typography>
           <Typography variant="body1" paragraph>
-            3. 完成评分后，点击"生成报告"按钮查看您的S型人格分析报告。
+            3. 完成评分后，点击“生成报告”查看偏好、边界和沟通提示。
           </Typography>
           <Typography variant="body1" paragraph>
             4. 在报告页面，您可以将报告保存为图片或PDF格式，也可以直接分享给朋友。

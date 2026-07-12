@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-07-12-site-product-ui-audit",
+  "date": "2026-07-12",
+  "summary": "完成首页、核心测试、结果分享与会员中心的产品和 UI 审查，整理现有问题与高价值新增功能方向。",
+  "trigger": "用户询问网站还能完善什么，以及可开发哪些更吸引人的功能。",
+  "changes": [
+    {
+      "category": "audit",
+      "files": [
+        "index.html",
+        "src/App.jsx",
+        "src/SApp.jsx",
+        "src/MemberCenterApp.jsx",
+        "src/ShareReportApp.jsx"
+      ],
+      "description": "只读检查首页入口、答题流程、报告、分享和会员留存路径，未修改业务代码。"
+    },
+    {
+      "category": "recommendations",
+      "files": [
+        ".impeccable/critique/"
+      ],
+      "description": "形成定位修正、分段答题、统一导航、隐私分享、边界地图、沟通清单和双人会话等优先建议。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run build",
+      "result": "通过，2520 个模块完成构建；vendor-c65f6136.js 为 889.03 kB，存在体积警告。"
+    },
+    {
+      "command": "node detect.mjs --json index.html / s.html / src/SApp.jsx",
+      "result": "共 6 条 warning；2 条 side-tab 为误报，字体信号合并为一个问题，bounce 动效为低严重度有效信号。"
+    },
+    {
+      "command": "in-app Browser 初始化",
+      "result": "失败：Browser is not available: iab，因此未完成 320、375、390、430、768、1024、1440 的实际视口验证。"
+    }
+  ],
+  "knownLimitations": [
+    "本轮没有真实浏览器截图、DOM 测量、键盘操作和读屏验证。",
+    "建议基于源码、构建结果和静态 detector，不代表线上转化数据结论。",
+    "工作区在审查前已有大量未提交修改，本次没有处理或覆盖这些修改。"
+  ],
+  "deploymentNotes": "本次仅新增审查快照和工作记录，不涉及业务部署。"
+}
