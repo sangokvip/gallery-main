@@ -16,6 +16,7 @@
     "verify:member-security": "node scripts/verify-member-security.mjs",
     "verify:member-production": "node scripts/verify-member-production.mjs",
     "verify:site-production": "node scripts/verify-site-production.mjs",
+    "verify:message-reactions": "node scripts/verify-message-reaction-pagination.mjs",
     "verify:member-predeploy": "node scripts/verify-member-predeploy.mjs",
     "report:member-launch": "node scripts/generate-member-launch-report.mjs",
     "vercel-build": "vite build"

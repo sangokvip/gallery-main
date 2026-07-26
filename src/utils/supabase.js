@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { getIdentitySecret } from './userManager'
+import { fetchAllRows } from './supabasePagination'
 
 // 创建Supabase客户端实例
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -32,6 +33,7 @@ if (supabaseUrl && supabaseAnonKey) {
       eq: () => builder,
       in: () => builder,
       order: () => builder,
+      range: () => builder,
       gte: () => builder,
       limit: () => builder,
       single: () => builder,
@@ -184,10 +186,14 @@ export const messagesApi = {
 
       if (messageIds.length > 0) {
         const [reactionsResult, repliesResult] = await Promise.allSettled([
-          supabase
-            .from('message_reactions')
-            .select('message_id,is_like')
-            .in('message_id', messageIds),
+          fetchAllRows((from, to) => (
+            supabase
+              .from('message_reactions')
+              .select('id,message_id,is_like')
+              .in('message_id', messageIds)
+              .order('id', { ascending: true })
+              .range(from, to)
+          )),
           supabase
             .from('message_replies')
             .select('id,message_id')
@@ -195,10 +201,8 @@ export const messagesApi = {
         ]);
 
         if (reactionsResult.status === 'fulfilled') {
-          const { data, error } = reactionsResult.value;
-          if (error) {
-            console.error('获取消息反应失败:', error);
-          } else if (Array.isArray(data)) {
+          const data = reactionsResult.value;
+          if (Array.isArray(data)) {
             reactionsByMessage = data.reduce((acc, reaction) => {
               if (!acc[reaction.message_id]) {
                 acc[reaction.message_id] = { likes: 0, dislikes: 0 };
@@ -213,6 +217,7 @@ export const messagesApi = {
           }
         } else {
           console.error('获取消息反应失败:', reactionsResult.reason);
+          throw reactionsResult.reason;
         }
 
         if (repliesResult.status === 'fulfilled') {
@@ -292,14 +297,16 @@ export const messagesApi = {
       let reactionsByMessage = {};
 
       if (messageIds.length > 0) {
-        const { data, error } = await supabase
-          .from('message_reactions')
-          .select('message_id,is_like')
-          .in('message_id', messageIds);
+        const data = await fetchAllRows((from, to) => (
+          supabase
+            .from('message_reactions')
+            .select('id,message_id,is_like')
+            .in('message_id', messageIds)
+            .order('id', { ascending: true })
+            .range(from, to)
+        ));
 
-        if (error) {
-          console.error('获取热门消息的反应失败:', error);
-        } else if (Array.isArray(data)) {
+        if (Array.isArray(data)) {
           reactionsByMessage = data.reduce((acc, reaction) => {
             if (!acc[reaction.message_id]) {
               acc[reaction.message_id] = { likes: 0, dislikes: 0 };
@@ -390,15 +397,14 @@ export const messagesApi = {
   async getMessageReactions(messageId) {
     console.log('正在获取消息反应统计:', messageId);
     try {
-      const { data, error } = await supabase
-        .from('message_reactions')
-        .select('is_like')
-        .eq('message_id', messageId);
-
-      if (error) {
-        console.error('获取反应统计失败:', error);
-        throw error;
-      }
+      const data = await fetchAllRows((from, to) => (
+        supabase
+          .from('message_reactions')
+          .select('id,is_like')
+          .eq('message_id', messageId)
+          .order('id', { ascending: true })
+          .range(from, to)
+      ));
 
       // 直接计算总数，不考虑用户重复
       const likes = data.filter(r => r.is_like).length;

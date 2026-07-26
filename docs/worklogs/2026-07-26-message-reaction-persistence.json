@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "1.0",
+  "worklogId": "2026-07-26-message-reaction-persistence",
+  "date": "2026-07-26",
+  "summary": "修复留言点赞和管理员调整赞踩数量后刷新归零的问题。留言反应查询现在会分页读取全部记录，不再受 Supabase 单次最多返回 1000 行的限制。",
+  "trigger": "用户反馈留言点赞后刷新归零，管理员修改点赞数量后刷新也归零。",
+  "changes": [
+    {
+      "category": "bugfix",
+      "files": [
+        "src/utils/supabase.js",
+        "src/utils/supabasePagination.js"
+      ],
+      "details": "新增通用分页读取函数，并用于留言列表、热门留言榜和单条留言反应统计。查询按主键稳定排序，每页读取 1000 行，直到读取完成。反应查询失败时不再静默显示为 0。"
+    },
+    {
+      "category": "tests",
+      "files": [
+        "scripts/verify-message-reaction-pagination.mjs",
+        "package.json"
+      ],
+      "details": "新增 2890 行数据的分页回归测试，验证查询范围为 0-999、1000-1999、2000-2999，并验证查询错误会正确抛出。"
+    }
+  ],
+  "validation": [
+    {
+      "command": "npm run verify:message-reactions",
+      "result": "通过。成功读取模拟的 2890 行数据，并覆盖错误传播。"
+    },
+    {
+      "command": "npm run build",
+      "result": "通过。Vite 成功构建全部页面和资源。"
+    },
+    {
+      "command": "git diff --check",
+      "result": "通过。未发现空白字符错误。"
+    },
+    {
+      "command": "本地留言板连接真实 Supabase 的只读浏览器验证",
+      "result": "修复前查询返回 1000 行，而数据库实际有 2890 行；修复后页面读取到 2734 个赞和 156 个踩，共 2890 条反应。连续刷新两次结果一致，浏览器控制台无错误。"
+    }
+  ],
+  "knownLimitations": [
+    "未执行真实点赞或管理员修改操作，避免为生产留言制造测试数据；写入路径未改动，刷新读取路径已使用真实生产数据验证。"
+  ],
+  "deploymentNotes": "仅需部署前端代码，不需要执行数据库迁移。现有 message_reactions 数据会在新版本加载时自动分页读取。"
+}
